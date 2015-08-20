@@ -16,6 +16,7 @@ namespace LightRail.SampleServer
         {
             var config = new LightRailConfiguration();
 
+            config.UseLogger<ConsoleLogManager>();
             config.UseSerialization<JsonMessageSerializer>();
             config.UseTransport<ServiceBrokerMessageTransport, ServiceBrokerMessageTransportConfiguration>();
 

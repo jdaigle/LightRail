@@ -13,6 +13,9 @@ namespace LightRail
             // Default Values
             this.UseSerialization<JsonMessageSerializer>();
             this.MessageHandlerCollection = new MessageHandlerCollection();
+#if DEBUG
+            this.LogManager = new ConsoleLogManager();
+#endif
         }
 
         public void UseSerialization<TMessageSerializer>()
@@ -28,7 +31,7 @@ namespace LightRail
             where TTransportConfig : AbstractTransportConfiguration
         {
             this.TransportConfiguration = Activator.CreateInstance<TTransportConfig>();
-            this.TransportConstructor = () => (ITransport)Activator.CreateInstance(typeof(TTransport), this.TransportConfiguration);
+            this.TransportConstructor = () => (ITransport)Activator.CreateInstance(typeof(TTransport), this, this.TransportConfiguration);
         }
 
         public AbstractTransportConfiguration TransportConfiguration { get; private set; }
@@ -45,6 +48,14 @@ namespace LightRail
             MessageHandlerCollection.Register(messageHandler);
         }
 
-        public MessageHandlerCollection MessageHandlerCollection { get; private set; } 
+        public MessageHandlerCollection MessageHandlerCollection { get; private set; }
+
+        public void UseLogger<TLogManager>()
+            where TLogManager : ILogManager, new()
+        {
+            LogManager = new TLogManager();
+        }
+
+        public ILogManager LogManager { get; set; }
     }
 }

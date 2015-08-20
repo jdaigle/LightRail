@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace LightRail
 {
-    public abstract class LogAppender
+    public interface ILogManager
     {
+        ILogger GetLogger(string name);
     }
 }

@@ -12,44 +12,45 @@ namespace LightRail.SqlServer
 {
     public class ServiceBrokerMessageTransport : ITransport, IReceiveMessages, ISendMessages
     {
-        public ServiceBrokerMessageTransport(ServiceBrokerMessageTransportConfiguration configuration)
+        public ServiceBrokerMessageTransport(LightRailConfiguration config, ServiceBrokerMessageTransportConfiguration transportConfiguration)
         {
-            ServiceBrokerMessageType = configuration.ServiceBrokerMessageType;
+            ServiceBrokerMessageType = transportConfiguration.ServiceBrokerMessageType;
             if (string.IsNullOrWhiteSpace(ServiceBrokerMessageType))
             {
                 throw new InvalidConfigurationException("ServiceBrokerMessageType cannot be Null or WhiteSpace");
             }
-            ServiceBrokerContract = configuration.ServiceBrokerContract;
+            ServiceBrokerContract = transportConfiguration.ServiceBrokerContract;
             if (string.IsNullOrWhiteSpace(ServiceBrokerContract))
             {
                 throw new InvalidConfigurationException("ServiceBrokerContract cannot be Null or WhiteSpace");
             }
-            ServiceBrokerQueue = configuration.ServiceBrokerQueue;
+            ServiceBrokerQueue = transportConfiguration.ServiceBrokerQueue;
             if (string.IsNullOrWhiteSpace(ServiceBrokerQueue))
             {
                 throw new InvalidConfigurationException("ServiceBrokerQueue cannot be Null or WhiteSpace");
             }
-            ServiceBrokerService = configuration.ServiceBrokerService;
+            ServiceBrokerService = transportConfiguration.ServiceBrokerService;
             if (string.IsNullOrWhiteSpace(ServiceBrokerService))
             {
                 throw new InvalidConfigurationException("ServiceBrokerService cannot be Null or WhiteSpace");
             }
-            ConnectionString = configuration.ServiceBrokerConnectionString;
+            ConnectionString = transportConfiguration.ServiceBrokerConnectionString;
             if (string.IsNullOrWhiteSpace(ConnectionString))
             {
                 throw new InvalidConfigurationException("ServiceBrokerConnectionString cannot be Null or WhiteSpace");
             }
-            MaxRetries = configuration.MaxRetries;
+            MaxRetries = transportConfiguration.MaxRetries;
             if (MaxRetries < 0)
             {
                 MaxRetries = 0;
             }
-            MaxConcurrency = configuration.MaxConcurrency;
+            MaxConcurrency = transportConfiguration.MaxConcurrency;
             if (MaxConcurrency <= 0)
             {
                 MaxConcurrency = 1;
             }
             workerThreadPool = new Semaphore(MaxConcurrency, MaxConcurrency);
+            logger = config.LogManager.GetLogger("LightRail.SqlServer");
         }
 
         private static readonly int waitTimeout = 15 * 60 * 1000; // wait 15 minutes
@@ -61,6 +62,7 @@ namespace LightRail.SqlServer
         public int MaxConcurrency { get; private set; }
         public string ConnectionString { get; private set; }
         private readonly Semaphore workerThreadPool;
+        private readonly ILogger logger;
 
         private bool hasStarted;
         private object startLock = new object();
@@ -163,10 +165,9 @@ namespace LightRail.SqlServer
                 transaction = BeginTransaction();
                 message = ServiceBrokerWrapper.WaitAndReceive(transaction, this.ServiceBrokerQueue, waitTimeout);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // TODO: log exception
-                //Logger.Error("Error in receiving message from queue.", e);
+                logger.Error("Exception caught trying to receive from queue.", e);
                 TryRollbackTransaction(transaction);
                 TryDisposeTransactionAndConnection(transaction);
                 workerThreadPool.Release(1);
@@ -212,9 +213,9 @@ namespace LightRail.SqlServer
                 ServiceBrokerWrapper.EndConversation(transaction, message.ConversationHandle);
                 transaction.Commit();
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // TODO log exception
+                logger.Error("Exception caught handling message. Rolling back transaction to retry.", e);
                 TryRollbackTransaction(transaction);
             }
             finally
@@ -242,8 +243,8 @@ namespace LightRail.SqlServer
             }
             catch (Exception)
             {
-                // TODO log exception
-                throw; // TODO poison message detection
+                // TODO poison message detection
+                throw; // exception will get logged by caller
             }
         }
 
@@ -267,7 +268,16 @@ namespace LightRail.SqlServer
                 foreach (var destination in destinations)
                 {
                     var conversationHandle = ServiceBrokerWrapper.SendOne(transaction, ServiceBrokerService, destination, ServiceBrokerContract, ServiceBrokerMessageType, messageBuffer);
-                    // TODO log message sent
+#if DEBUG
+                    logger.Debug(string.Format("Sending message {0} with Handle {1} to Service Named {2}.\n" +
+                                               "ToString() of the message yields: {3}\n" +
+                                               "Message headers:\n{4}",
+                                               transportMessage.Message.GetType().AssemblyQualifiedName,
+                                               conversationHandle,
+                                               destination,
+                                               transportMessage.Message.ToString(),
+                                               string.Join(", ", transportMessage.Headers.Select(h => h.Key + ":" + h.Value).ToArray())));
+#endif
                 }
             }
 

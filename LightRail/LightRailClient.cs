@@ -12,6 +12,7 @@ namespace LightRail
         {
             var client = new LightRailClient();
 
+            client.logger = config.LogManager.GetLogger("LightRail");
             client.Transport = config.TransportConstructor();
             client.Transport.Subscribe(client);
             client.MessageSerializer = config.MessageSerializerConstructor();
@@ -27,9 +28,13 @@ namespace LightRail
 
         public LightRailClient Start()
         {
+            logger.Debug("Starting LightRailClient");
             this.Transport.Start();
+            logger.Debug("LightRailClient Started");
             return this;
         }
+
+        private ILogger logger;
 
         public ITransport Transport { get; private set; }
         public IMessageSerializer MessageSerializer { get; private set; }
@@ -60,7 +65,7 @@ namespace LightRail
             var headers = new Dictionary<string, string>(); // copy headers before sending
             headers[Headers.ContentType] = MessageSerializer.ContentType;
             headers[Headers.EnclosedMessageTypes] = string.Join(",", GetEnclosedMessageTypes(message.GetType()).Distinct());
-            var transportMessage = new OutgoingTransportMessage(headers, MessageSerializer.Serialize(message));
+            var transportMessage = new OutgoingTransportMessage(headers, message, MessageSerializer.Serialize(message));
             this.Transport.Send(transportMessage, destinations);
         }
 

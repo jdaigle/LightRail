@@ -48,8 +48,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConsoleLogManager.cs" />
+    <Compile Include="ConsoleLogger.cs" />
     <Compile Include="DispatchInfo.cs" />
     <Compile Include="Headers.cs" />
+    <Compile Include="ILogger.cs" />
+    <Compile Include="ILogManager.cs" />
     <Compile Include="IMessageSerializer.cs" />
     <Compile Include="IncomingTransportMessage.cs" />
     <Compile Include="IReceiveMessages.cs" />
@@ -59,7 +63,9 @@
     <Compile Include="JsonMessageSerializer.cs" />
     <Compile Include="LightRailClient.cs" />
     <Compile Include="LightRailConfiguration.cs" />
-    <Compile Include="LogAppender.cs" />
+    <Compile Include="LogEntry.cs" />
+    <Compile Include="LoggerExtensions.cs" />
+    <Compile Include="LoggingEventType.cs" />
     <Compile Include="MessageAvailable.cs" />
     <Compile Include="MessageHandlerCollection.cs" />
     <Compile Include="OutgoingTransportMessage.cs" />

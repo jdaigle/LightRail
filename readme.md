@@ -21,5 +21,5 @@ popularized by the successful [NServiceBus](https://github.com/Particular/NServi
 **API, Runtime Client, and Configuration**
 * Message type conventions *- not started*
 * Message mapper & concrete interface type builder *- not started*
-* Logging framework abstraction *- not started*
+* Logging framework abstraction *- completed*
 * Message handler pipelining *- in progress*
