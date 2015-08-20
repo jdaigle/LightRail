@@ -12,37 +12,6 @@ namespace LightRail
     {
         public string ContentType { get { return "application/json"; } }
 
-        private Dictionary<string, Type> knownTypes = new Dictionary<string, Type>(StringComparer.InvariantCultureIgnoreCase);
-
-        public void RegisterKnownType<T>()
-        {
-            RegisterKnownType(typeof(T));
-        }
-
-        public void RegisterKnownType(Type type)
-        {
-            knownTypes[GetTypeKeyPrivate(type)] = type;
-        }
-
-        public string GetTypeKey<T>()
-        {
-            return GetTypeKey(typeof(T));
-        }
-
-        public string GetTypeKey(Type type)
-        {
-            if (!knownTypes.ContainsKey(GetTypeKeyPrivate(type)))
-            {
-                RegisterKnownType(type);
-            }
-            return GetTypeKeyPrivate(type);
-        }
-
-        private static string GetTypeKeyPrivate(Type type)
-        {
-            return type.FullName;
-        }
-
         public string Serialize(object data)
         {
             return Jil.JSON.Serialize(data);
@@ -53,34 +22,14 @@ namespace LightRail
             JSON.Serialize(data, output);
         }
 
-        public object Deserialize(string text, string type)
+        public object Deserialize(string text, Type type)
         {
-            Type knownType = FindKnownType(type);
-            return JSON.Deserialize(text, knownType);
+            return JSON.Deserialize(text, type);
         }
 
-        public object Deserialize(TextReader reader, string type)
+        public object Deserialize(TextReader reader, Type type)
         {
-            Type knownType = FindKnownType(type);
-            return JSON.Deserialize(reader, knownType);
-        }
-
-        private Type FindKnownType(string type)
-        {
-            Type knownType;
-            if (knownTypes.ContainsKey(type))
-            {
-                knownType = knownTypes[type];
-            }
-            else
-            {
-                knownType = Type.GetType(type);
-            }
-            if (knownType == null)
-            {
-                throw new InvalidOperationException(string.Format("Unknown Type To Deserialize [{0}]", type));
-            }
-            return knownType;
+            return JSON.Deserialize(reader, type);
         }
     }
 }

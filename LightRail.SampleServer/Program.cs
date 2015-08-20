@@ -35,7 +35,8 @@ namespace LightRail.SampleServer
             //        Endpoint = "queue@machinename"
             //    });
 
-            //config.Conventions.DefiningMessagesAs(t => t.Namespace != null && t.Namespace == "Messages");
+            config.AddAssemblyToScan(typeof(Program).Assembly);
+            config.MessageTypeConventions.AddConvention(t => typeof(IMessage).IsAssignableFrom(t));
 
             //config.ExecuteTheseHandlersFirst(typeof(HandlerB), typeof(HandlerA), typeof(HandlerC));
 
@@ -50,20 +51,37 @@ namespace LightRail.SampleServer
             //    TimeIncrease = TimeSpan.FromSeconds(10)
             //};
 
+            config.Handle<IMessage>(message =>
+            {
+                Console.WriteLine("IMessage Received");
+            });
             config.Handle<SampleMessage>(message =>
             {
                 Console.WriteLine("Message Received: " + message.Data);
+            });
+            config.Handle<IOnly>(message =>
+            {
+                Console.WriteLine("Message (interface) Received: " + message.Data);
             });
 
             var client = LightRailClient.Create(config).Start();
 
             client.Send(new SampleMessage() { Data = "Hello World" }, "TestListenerService");
+            client.Send<IOnly>(x =>
+            {
+                x.Data = "hello world...!";
+            }, "TestListenerService");
 
             while (true)
             {
                 Thread.Sleep(1000);
             }
         }
+    }
+
+    public interface IOnly : IMessage
+    {
+        string Data { get; set; }
     }
 
     public class SampleMessage : IMessage

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LightRail.Reflection;
 
 namespace LightRail
 {
@@ -17,6 +18,9 @@ namespace LightRail
             client.Transport.Subscribe(client);
             client.MessageSerializer = config.MessageSerializerConstructor();
             client.MessageHandlers = config.MessageHandlerCollection;
+            var messageTypes = config.MessageTypeConventions.ScanAssembliesForMessageTypes(config.AssembliesToScan);
+            client.MessageMapper = new MessageMapper(config.MessageTypeConventions);
+            client.MessageMapper.Initialize(messageTypes);
 
             return client;
         }
@@ -39,6 +43,7 @@ namespace LightRail
         public ITransport Transport { get; private set; }
         public IMessageSerializer MessageSerializer { get; private set; }
         public MessageHandlerCollection MessageHandlers { get; private set; }
+        public IMessageMapper MessageMapper { get; private set; }
 
         public void Send(object message)
         {
@@ -57,7 +62,7 @@ namespace LightRail
 
         public void Send<T>(Action<T> messageConstructor, string destination)
         {
-            throw new NotImplementedException();
+            SendInternal(MessageMapper.CreateInstance(messageConstructor), new[] { destination });
         }
 
         private void SendInternal(object message, IEnumerable<string> destinations)
@@ -75,7 +80,7 @@ namespace LightRail
             "System.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
         };
 
-        private static IEnumerable<string> GetEnclosedMessageTypes(Type type)
+        private IEnumerable<string> GetEnclosedMessageTypes(Type type)
         {
             if (systemAssemblyNames.Contains(type.Assembly.FullName) || type == typeof(object))
             {
@@ -121,7 +126,16 @@ namespace LightRail
 
         void IObserver<MessageAvailable>.OnNext(MessageAvailable value)
         {
-            var message = MessageSerializer.Deserialize(value.TransportMessage.SerializedMessageData, value.TransportMessage.Headers[Headers.EnclosedMessageTypes].Split(',')[0] + ", LightRail.SampleServer");
+            Type messageType = null;
+            foreach (var typeName in value.TransportMessage.Headers[Headers.EnclosedMessageTypes].Split(','))
+            {
+                messageType = this.MessageMapper.GetMappedTypeFor(typeName);
+                if (messageType != null)
+                {
+                    break;
+                }
+            }
+            var message = MessageSerializer.Deserialize(value.TransportMessage.SerializedMessageData, messageType);
             foreach (var handler in MessageHandlers.GetOrderedDispatchInfoFor(message.GetType()))
             {
                 handler.Invoke(message);

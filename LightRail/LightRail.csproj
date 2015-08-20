@@ -54,6 +54,8 @@
     <Compile Include="Headers.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="ILogManager.cs" />
+    <Compile Include="IMessageCreator.cs" />
+    <Compile Include="IMessageMapper.cs" />
     <Compile Include="IMessageSerializer.cs" />
     <Compile Include="IncomingTransportMessage.cs" />
     <Compile Include="IReceiveMessages.cs" />
@@ -68,8 +70,12 @@
     <Compile Include="LoggingEventType.cs" />
     <Compile Include="MessageAvailable.cs" />
     <Compile Include="MessageHandlerCollection.cs" />
+    <Compile Include="MessageTypeConventions.cs" />
     <Compile Include="OutgoingTransportMessage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Reflection\DelegateFactory.cs" />
+    <Compile Include="Reflection\ExtensionMethods.cs" />
+    <Compile Include="Reflection\MessageMapper.cs" />
     <Compile Include="SqlServer\HeaderInfo.cs" />
     <Compile Include="InvalidConfigurationException.cs" />
     <Compile Include="SqlServer\ServiceBrokerMessage.cs" />

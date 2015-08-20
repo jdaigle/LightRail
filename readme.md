@@ -19,7 +19,7 @@ popularized by the successful [NServiceBus](https://github.com/Particular/NServi
 * Azure Service Bus *- maybe*
 
 **API, Runtime Client, and Configuration**
-* Message type conventions *- not started*
-* Message mapper & concrete interface type builder *- not started*
+* Message type conventions *- completed*
+* Message mapper & concrete interface type builder *- completed*
 * Logging framework abstraction *- completed*
 * Message handler pipelining *- in progress*
