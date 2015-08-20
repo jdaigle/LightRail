@@ -14,11 +14,16 @@ namespace LightRail.SampleServer
     {
         static void Main(string[] args)
         {
+            // always start with a configuration object
             var config = new LightRailConfiguration();
 
+            // Optional: by default we use the ConsoleLogManager
+            // but you can change that by specifying the type
             config.UseLogger<ConsoleLogManager>();
+
+            // Optional: JsonMessageSerializer by default
+            // but you can change that by specifying the type
             config.UseSerialization<JsonMessageSerializer>();
-            config.UseTransport<ServiceBrokerMessageTransport, ServiceBrokerMessageTransportConfiguration>();
 
             //append mapping to config
             //config.MessageEndpointMappings.Add(
@@ -35,22 +40,27 @@ namespace LightRail.SampleServer
             //        Endpoint = "queue@machinename"
             //    });
 
+            // by default, all assemblies are scanned. but you can
+            // turn that off and scan specific assemblies
             config.AddAssemblyToScan(typeof(Program).Assembly);
+
+            // by default, there aren't any messages types so you must specify conventions
             config.MessageTypeConventions.AddConvention(t => typeof(IMessage).IsAssignableFrom(t));
 
             //config.ExecuteTheseHandlersFirst(typeof(HandlerB), typeof(HandlerA), typeof(HandlerC));
 
+            // You must specify the type of transport and transport config
+            config.UseTransport<ServiceBrokerMessageTransport, ServiceBrokerMessageTransportConfiguration>();
+
+            // Max Retries changes how often we retry on errors
+            config.TransportConfiguration.MaxRetries = 2;
+
+            // required ServiceBroker settings
             config.TransportConfigurationAs<ServiceBrokerMessageTransportConfiguration>().ServiceBrokerConnectionString = "server=localhost;database=servicebus;integrated security=true;";
             config.TransportConfigurationAs<ServiceBrokerMessageTransportConfiguration>().ServiceBrokerQueue = "TestListenerQueue";
             config.TransportConfigurationAs<ServiceBrokerMessageTransportConfiguration>().ServiceBrokerService = "TestListenerService";
-            config.TransportConfiguration.MaxRetries = 2;
-            //config.SecondLevelRetriesConfig
-            //{
-            //    Enabled = true,
-            //    NumberOfRetries = 2,
-            //    TimeIncrease = TimeSpan.FromSeconds(10)
-            //};
 
+            // register message handlers. they will execute in the order registered!
             config.Handle<IMessage>(message =>
             {
                 Console.WriteLine("IMessage Received");
@@ -64,8 +74,10 @@ namespace LightRail.SampleServer
                 Console.WriteLine("Message (interface) Received: " + message.Data);
             });
 
+            // create the client, and start to begin listening
             var client = LightRailClient.Create(config).Start();
 
+            // sample sending
             client.Send(new SampleMessage() { Data = "Hello World" }, "TestListenerService");
             client.Send<IOnly>(x =>
             {
