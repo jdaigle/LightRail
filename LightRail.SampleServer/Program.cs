@@ -61,18 +61,21 @@ namespace LightRail.SampleServer
             config.TransportConfigurationAs<ServiceBrokerMessageTransportConfiguration>().ServiceBrokerService = "TestListenerService";
 
             // register message handlers. they will execute in the order registered!
-            config.Handle<IMessage>(message =>
+            config.Handle<IMessage>((message, context) =>
             {
                 Console.WriteLine("IMessage Received");
             });
-            config.Handle<SampleMessage>(message =>
+            config.Handle<SampleMessage>((message, context) =>
             {
                 Console.WriteLine("Message Received: " + message.Data);
             });
-            config.Handle<IOnly>(message =>
+            config.Handle<IOnly>((message, context) =>
             {
                 Console.WriteLine("Message (interface) Received: " + message.Data);
             });
+
+            config.Handle<SampleMessage>((message, context) => Handle(message));
+            config.Handle<IOnly>((message, context) => Handle(message, new object())); // example of currying
 
             // create the client, and start to begin listening
             var client = LightRailClient.Create(config).Start();
@@ -88,6 +91,16 @@ namespace LightRail.SampleServer
             {
                 Thread.Sleep(1000);
             }
+        }
+
+        static void Handle(SampleMessage message)
+        {
+            Console.WriteLine("Message Received: " + message.Data);
+        }
+
+        static void Handle(IOnly message, object otherDepedency)
+        {
+            Console.WriteLine("Message Received: " + message.Data);
         }
     }
 

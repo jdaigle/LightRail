@@ -49,7 +49,7 @@ namespace LightRail
             return (TTransportConfig)this.TransportConfiguration;
         }
 
-        public void Handle<TMessage>(Action<TMessage> messageHandler)
+        public void Handle<TMessage>(Action<TMessage, MessageContext> messageHandler)
         {
             MessageHandlerCollection.Register(messageHandler);
         }

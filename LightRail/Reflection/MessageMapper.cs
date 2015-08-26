@@ -323,11 +323,6 @@ namespace LightRail.Reflection
 
         private MessageTypeConventions messageTypeCoventions;
 
-        public bool IsMessageType(Type type)
-        {
-            return messageTypeCoventions.IsMessageType(type);
-        }
-
         public IEnumerable<Type> DynamicTypes
         {
             get { return concreteToInterfaceTypeMapping.Keys; }

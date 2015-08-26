@@ -9,10 +9,6 @@ namespace LightRail
     public static class Headers
     {
         public const string TimeSent = "LightRail.TimeSent";
-        /// <summary>
-        /// The conversation that this message is part of
-        /// </summary>
-        public const string ConversationId = "LightRail.ConversationId";
         public const string MessageId = "LightRail.MessageId";
         /// <summary>
         /// The MessageId that caused this message to be sent

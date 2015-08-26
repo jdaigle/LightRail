@@ -261,6 +261,9 @@ namespace LightRail.SqlServer
                 commitAndDisposeTransaction = true;
             }
 
+            transportMessage.Headers[Headers.TimeSent] = DateTime.UtcNow.ToString("o");
+            transportMessage.Headers[Headers.ReplyToAddress] = this.ServiceBrokerService;
+
             using (var stream = new MemoryStream())
             {
                 FastXmlServiceBrokerMessageSerializer.Serialize(transportMessage, stream);

@@ -12,10 +12,7 @@ namespace LightRail
             this.ParameterTypes = parameterTypes ?? new Type[0];
         }
 
-        public virtual void Invoke(object arg0)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract void Invoke(params object[] args);
 
         public bool IsMatchByParameterType(params Type[] args)
         {
@@ -46,9 +43,25 @@ namespace LightRail
 
         private Action<TArg0> method;
 
-        public override void Invoke(object arg0)
+        public override void Invoke(params object[] args)
         {
-            method((TArg0)arg0);
+            method((TArg0)args[0]);
+        }
+    }
+
+    public class GenericDispatchInfo<TArg0, TArg1> : DispatchInfo
+    {
+        public GenericDispatchInfo(Action<TArg0, TArg1> method)
+            : base(typeof(TArg0), typeof(TArg1))
+        {
+            this.method = method;
+        }
+
+        private Action<TArg0, TArg1> method;
+
+        public override void Invoke(params object[] args)
+        {
+            method((TArg0)args[0], (TArg1)args[1]);
         }
     }
 }

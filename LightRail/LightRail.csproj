@@ -56,9 +56,10 @@
     <Compile Include="ConsoleLogger.cs" />
     <Compile Include="DispatchInfo.cs" />
     <Compile Include="Headers.cs" />
+    <Compile Include="ILightRailClient.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="ILogManager.cs" />
-    <Compile Include="IMessageCreator.cs" />
+    <Compile Include="IMessage.cs" />
     <Compile Include="IMessageMapper.cs" />
     <Compile Include="IMessageSerializer.cs" />
     <Compile Include="IncomingTransportMessage.cs" />
@@ -73,6 +74,7 @@
     <Compile Include="LoggerExtensions.cs" />
     <Compile Include="LoggingEventType.cs" />
     <Compile Include="MessageAvailable.cs" />
+    <Compile Include="MessageContext.cs" />
     <Compile Include="MessageHandlerCollection.cs" />
     <Compile Include="MessageTypeConventions.cs" />
     <Compile Include="OutgoingTransportMessage.cs" />

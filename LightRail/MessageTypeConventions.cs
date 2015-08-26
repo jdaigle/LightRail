@@ -13,6 +13,7 @@ namespace LightRail
 
         public MessageTypeConventions()
         {
+            isMessageType.Add(x => typeof(IMessage).IsAssignableFrom(x)); // default convention
         }
 
         public MessageTypeConventions(IEnumerable<Func<Type, bool>> conventions)

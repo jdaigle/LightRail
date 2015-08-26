@@ -7,7 +7,7 @@ using LightRail.Reflection;
 
 namespace LightRail
 {
-    public class LightRailClient : IObserver<MessageAvailable>
+    public class LightRailClient : ILightRailClient, IObserver<MessageAvailable>
     {
         public static LightRailClient Create(LightRailConfiguration config)
         {
@@ -45,6 +45,9 @@ namespace LightRail
         public MessageHandlerCollection MessageHandlers { get; private set; }
         public IMessageMapper MessageMapper { get; private set; }
 
+        [ThreadStatic]
+        private static MessageContext currentMessageContext;
+
         public void Send(object message)
         {
             throw new NotImplementedException();
@@ -65,11 +68,30 @@ namespace LightRail
             SendInternal(MessageMapper.CreateInstance(messageConstructor), new[] { destination });
         }
 
+        public void Reply(object message)
+        {
+            if (currentMessageContext == null)
+            {
+                throw new InvalidOperationException("Cannot Reply When CurrentMessageContext is Null");
+            }
+            SendInternal(message, new[] { currentMessageContext[Headers.ReplyToAddress] });
+        }
+
+        public void Reply<T>(Action<T> messageConstructor)
+        {
+            this.Reply(MessageMapper.CreateInstance(messageConstructor));
+        }
+
         private void SendInternal(object message, IEnumerable<string> destinations)
         {
-            var headers = new Dictionary<string, string>(); // copy headers before sending
+            var headers = new Dictionary<string, string>();
             headers[Headers.ContentType] = MessageSerializer.ContentType;
             headers[Headers.EnclosedMessageTypes] = string.Join(",", GetEnclosedMessageTypes(message.GetType()).Distinct());
+            if (currentMessageContext != null)
+            {
+                // TODO set outbound message headers
+                headers[Headers.RelatedTo] = currentMessageContext[Headers.MessageId];
+            }
             var transportMessage = new OutgoingTransportMessage(headers, message, MessageSerializer.Serialize(message));
             this.Transport.Send(transportMessage, destinations);
         }
@@ -126,19 +148,27 @@ namespace LightRail
 
         void IObserver<MessageAvailable>.OnNext(MessageAvailable value)
         {
-            Type messageType = null;
-            foreach (var typeName in value.TransportMessage.Headers[Headers.EnclosedMessageTypes].Split(','))
+            currentMessageContext = new MessageContext(this, value.TransportMessage.MessageId, value.TransportMessage.Headers);
+            try
             {
-                messageType = this.MessageMapper.GetMappedTypeFor(typeName);
-                if (messageType != null)
+                Type messageType = null;
+                foreach (var typeName in value.TransportMessage.Headers[Headers.EnclosedMessageTypes].Split(','))
                 {
-                    break;
+                    messageType = this.MessageMapper.GetMappedTypeFor(typeName);
+                    if (messageType != null)
+                    {
+                        break;
+                    }
+                }
+                var message = MessageSerializer.Deserialize(value.TransportMessage.SerializedMessageData, messageType);
+                foreach (var handler in MessageHandlers.GetOrderedDispatchInfoFor(message.GetType(), typeof(MessageContext)))
+                {
+                    handler.Invoke(message, currentMessageContext);
                 }
             }
-            var message = MessageSerializer.Deserialize(value.TransportMessage.SerializedMessageData, messageType);
-            foreach (var handler in MessageHandlers.GetOrderedDispatchInfoFor(message.GetType()))
+            finally
             {
-                handler.Invoke(message);
+                currentMessageContext = null;
             }
         }
     }

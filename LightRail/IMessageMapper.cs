@@ -10,8 +10,13 @@ namespace LightRail
     /// Enables looking up interfaced mapped to generated concrete types
     /// and vice versa.
     /// </summary>
-    public interface IMessageMapper : IMessageCreator
+    public interface IMessageMapper
     {
+
+        T CreateInstance<T>();
+        T CreateInstance<T>(Action<T> action);
+        object CreateInstance(Type messageType);
+
         /// <summary>
         /// Initializes the mapper with the given types to be scanned.
         /// </summary>
@@ -32,12 +37,5 @@ namespace LightRail
         /// <param name="typeName"></param>
         /// <returns></returns>
         Type GetMappedTypeFor(string typeName);
-
-        /// <summary>
-        /// Determines if the specified type is a type of message based on conventions
-        /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        bool IsMessageType(Type type);
     }
 }

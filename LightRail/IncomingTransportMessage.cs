@@ -14,6 +14,7 @@ namespace LightRail
         {
             MessageId = messageId;
             Headers = headers;
+            Headers[LightRail.Headers.MessageId] = messageId;
             SerializedMessageData = serializedMessagedata;
         }
 
