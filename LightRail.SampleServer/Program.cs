@@ -19,7 +19,11 @@ namespace LightRail.SampleServer
 
             // Optional: by default we use the ConsoleLogManager
             // but you can change that by specifying the type
-            config.UseLogger<ConsoleLogManager>();
+            //config.UseLogger<ConsoleLogManager>();
+
+            // Override to use log4net
+            log4net.Config.XmlConfigurator.Configure();
+            config.UseLogger<Log4NetLogManager>();
 
             // Optional: JsonMessageSerializer by default
             // but you can change that by specifying the type

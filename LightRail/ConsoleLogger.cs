@@ -8,7 +8,7 @@ namespace LightRail
 {
     public class ConsoleLogger : ILogger
     {
-        private string name;
+        private readonly string name;
 
         public ConsoleLogger(string name)
         {
