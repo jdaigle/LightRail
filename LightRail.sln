@@ -22,6 +22,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{E4EBC4
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{BF71F21B-BA93-4825-9CD2-0465ABAD52FE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.FullDuplex.Client", "Samples\Samples.FullDuplex.Client\Samples.FullDuplex.Client.csproj", "{844AB21A-62F6-4FE4-8C82-35DD22978AFB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.FullDuplex.Server", "Samples\Samples.FullDuplex.Server\Samples.FullDuplex.Server.csproj", "{12A6752F-D35D-4F69-8069-246FA26ACFC1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.FullDuplex.Shared", "Samples\Samples.FullDuplex.Shared\Samples.FullDuplex.Shared.csproj", "{50A30FAA-B3FA-4228-8702-785EF0FFEF23}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,8 +42,25 @@ Global
 		{8139369D-513F-4928-95D9-7168DCCCC2A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8139369D-513F-4928-95D9-7168DCCCC2A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8139369D-513F-4928-95D9-7168DCCCC2A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{844AB21A-62F6-4FE4-8C82-35DD22978AFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{844AB21A-62F6-4FE4-8C82-35DD22978AFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{844AB21A-62F6-4FE4-8C82-35DD22978AFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{844AB21A-62F6-4FE4-8C82-35DD22978AFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12A6752F-D35D-4F69-8069-246FA26ACFC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12A6752F-D35D-4F69-8069-246FA26ACFC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12A6752F-D35D-4F69-8069-246FA26ACFC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12A6752F-D35D-4F69-8069-246FA26ACFC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50A30FAA-B3FA-4228-8702-785EF0FFEF23}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50A30FAA-B3FA-4228-8702-785EF0FFEF23}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50A30FAA-B3FA-4228-8702-785EF0FFEF23}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50A30FAA-B3FA-4228-8702-785EF0FFEF23}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{844AB21A-62F6-4FE4-8C82-35DD22978AFB} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
+		{12A6752F-D35D-4F69-8069-246FA26ACFC1} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
+		{50A30FAA-B3FA-4228-8702-785EF0FFEF23} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 	EndGlobalSection
 EndGlobal
