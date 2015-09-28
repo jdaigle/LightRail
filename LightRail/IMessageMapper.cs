@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace LightRail
 {
@@ -12,7 +11,6 @@ namespace LightRail
     /// </summary>
     public interface IMessageMapper
     {
-
         T CreateInstance<T>();
         T CreateInstance<T>(Action<T> action);
         object CreateInstance(Type messageType);
@@ -37,5 +35,9 @@ namespace LightRail
         /// <param name="typeName"></param>
         /// <returns></returns>
         Type GetMappedTypeFor(string typeName);
+
+        List<Type> GetMessageTypeHierarchy(Type type);
+
+        IEnumerable<string> GetEnclosedMessageTypes(Type type);
     }
 }

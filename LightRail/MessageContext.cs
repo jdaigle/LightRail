@@ -7,8 +7,11 @@ namespace LightRail
 {
     public class MessageContext
     {
-        public ILightRailClient Client { get; private set; }
+        public IBus Bus { get; private set; }
         public string MessageID { get; private set; }
+        public IServiceLocator ServiceLocator { get; private set; }
+        public object CurrentMessage { get; set; }
+        public string SerializedMessageData { get; set; }
 
         private readonly IReadOnlyDictionary<string, string> headers;
 
@@ -31,11 +34,12 @@ namespace LightRail
             }
         }
 
-        public MessageContext(ILightRailClient lightRailClient, string messageID, Dictionary<string, string> headers)
+        public MessageContext(IBus bus, string messageID, Dictionary<string, string> headers, IServiceLocator serviceLocator)
         {
-            this.Client = lightRailClient;
+            this.Bus = bus;
             this.MessageID = messageID;
             this.headers = headers;
+            this.ServiceLocator = serviceLocator;
         }
     }
 }

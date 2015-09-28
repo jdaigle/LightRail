@@ -88,9 +88,9 @@ namespace LightRail.SqlServer
             return ReceiveInternal(transaction, queueName, conversationHandle, true, waitTimeout);
         }
 
-        public static int QueryMessageCount(IDbTransaction transaction, string queueName, string messageContractName)
+        public static int QueryMessageCount(IDbTransaction transaction, string queueName, string messageTypeName)
         {
-            return QueryMessageCountInternal(transaction, queueName, messageContractName);
+            return QueryMessageCountInternal(transaction, queueName, messageTypeName);
         }
 
         [SuppressMessage("Microsoft.Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Concatinating multiple commands")]
@@ -274,10 +274,10 @@ namespace LightRail.SqlServer
                 query.Append("WAITFOR(");
             query.Append("RECEIVE TOP(1) ");
 
-            query.Append("conversation_group_id, conversation_handle, " +
-                         "message_sequence_number, service_name, service_contract_name, " +
-                         "message_type_name, validation, message_body " +
-                         "FROM ");
+            query.Append("conversation_handle");
+            query.Append(", service_name, service_contract_name, message_type_name");
+            query.Append(", message_body");
+            query.Append(" FROM ");
             query.Append(queueName);
 
             if (conversationHandle.HasValue && conversationHandle.Value != Guid.Empty)
@@ -313,15 +313,29 @@ namespace LightRail.SqlServer
             return null;
         }
 
-        [SuppressMessage("Microsoft.Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Cannot use parameter for queueName")]
-        private static int QueryMessageCountInternal(IDbTransaction transaction, string queueName, string messageContractName)
+        [SuppressMessage("Microsoft.Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Cannot use parameter for initiatorServiceName")]
+        public static string TryGetConversationFarService(IDbTransaction transaction, Guid conversationHandle)
         {
             EnsureSqlTransaction(transaction);
             var cmd = transaction.Connection.CreateCommand() as SqlCommand;
 
-            cmd.CommandText = "SELECT COUNT(*) FROM " + queueName + " WITH (NOLOCK) WHERE message_type_name = @messageContractName";
-            var param = cmd.Parameters.Add("@messageContractName", SqlDbType.NVarChar, 128);
-            param.Value = messageContractName;
+            cmd.CommandText = "SELECT TOP 1 far_service FROM sys.conversation_endpoints WHERE [conversation_handle] = @ch;";
+            var param = cmd.Parameters.Add("@ch", SqlDbType.UniqueIdentifier);
+            param.Value = conversationHandle;
+
+            cmd.Transaction = transaction as SqlTransaction;
+            return (cmd.ExecuteScalar() as string) ?? "";
+        }
+
+        [SuppressMessage("Microsoft.Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "Cannot use parameter for queueName")]
+        private static int QueryMessageCountInternal(IDbTransaction transaction, string queueName, string messageTypeName)
+        {
+            EnsureSqlTransaction(transaction);
+            var cmd = transaction.Connection.CreateCommand() as SqlCommand;
+
+            cmd.CommandText = "SELECT COUNT(*) FROM " + queueName + " WITH (NOLOCK) WHERE message_type_name = @messageTypeName";
+            var param = cmd.Parameters.Add("@messageTypeName", SqlDbType.NVarChar, 128);
+            param.Value = messageTypeName;
             cmd.Transaction = transaction as SqlTransaction;
 
             return (int)cmd.ExecuteScalar();

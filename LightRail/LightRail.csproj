@@ -43,6 +43,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
@@ -52,44 +53,60 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConsoleLogManager.cs" />
-    <Compile Include="ConsoleLogger.cs" />
-    <Compile Include="DispatchInfo.cs" />
-    <Compile Include="Headers.cs" />
-    <Compile Include="ILightRailClient.cs" />
-    <Compile Include="ILogger.cs" />
-    <Compile Include="ILogManager.cs" />
+    <Compile Include="..\CommonAssemblyInfo.cs">
+      <Link>Properties\CommonAssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="AbstractTransportConfiguration.cs" />
+    <Compile Include="FastServiceLocator\FastContainer.cs" />
+    <Compile Include="FastServiceLocator\FastContainerRegistration.cs" />
+    <Compile Include="FastServiceLocator\FastServiceLocatorImpl.cs" />
+    <Compile Include="IServiceLocator.cs" />
+    <Compile Include="LightRailConfiguration.cs" />
+    <Compile Include="CannotDeserializeMessageException.cs" />
+    <Compile Include="Logging\ConsoleLogFactory.cs" />
+    <Compile Include="Logging\ConsoleLogger.cs" />
+    <Compile Include="Dispatch\MessageHandlerCollection.cs" />
+    <Compile Include="Dispatch\MessageHandlerDispatchBehavior.cs" />
+    <Compile Include="Dispatch\MessageHandlerMethodDispatcher.cs" />
+    <Compile Include="FastXmlTransportMessageSerializer.cs" />
+    <Compile Include="IBus.cs" />
+    <Compile Include="Logging\ILogger.cs" />
+    <Compile Include="Logging\ILoggerFactory.cs" />
     <Compile Include="IMessage.cs" />
     <Compile Include="IMessageMapper.cs" />
     <Compile Include="IMessageSerializer.cs" />
     <Compile Include="IncomingTransportMessage.cs" />
-    <Compile Include="IReceiveMessages.cs" />
-    <Compile Include="ISendMessages.cs" />
+    <Compile Include="IServiceBusEvents.cs" />
+    <Compile Include="IStartableBus.cs" />
+    <Compile Include="ISubscriptionStorage.cs" />
     <Compile Include="ITransport.cs" />
-    <Compile Include="ITransportConfiguration.cs" />
     <Compile Include="JsonMessageSerializer.cs" />
-    <Compile Include="LightRailClient.cs" />
-    <Compile Include="LightRailConfiguration.cs" />
-    <Compile Include="LogEntry.cs" />
-    <Compile Include="LoggerExtensions.cs" />
-    <Compile Include="LoggingEventType.cs" />
+    <Compile Include="Logging\LogEntry.cs" />
+    <Compile Include="Logging\LoggerExtensions.cs" />
+    <Compile Include="Logging\LoggingEventType.cs" />
+    <Compile Include="Logging\LogManager.cs" />
     <Compile Include="MessageAvailable.cs" />
     <Compile Include="MessageContext.cs" />
-    <Compile Include="MessageHandlerCollection.cs" />
+    <Compile Include="MessageEndpointMapping.cs" />
+    <Compile Include="MessageHandlerAttribute.cs" />
+    <Compile Include="MessageProcessedEventArgs.cs" />
     <Compile Include="MessageTypeConventions.cs" />
     <Compile Include="OutgoingTransportMessage.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PipelinedBehavior.cs" />
+    <Compile Include="PoisonMessageDetectedEventArgs.cs" />
     <Compile Include="Reflection\DelegateFactory.cs" />
     <Compile Include="Reflection\ExtensionMethods.cs" />
     <Compile Include="Reflection\MessageMapper.cs" />
-    <Compile Include="SqlServer\HeaderInfo.cs" />
     <Compile Include="InvalidConfigurationException.cs" />
+    <Compile Include="LightRailServiceBus.cs" />
     <Compile Include="SqlServer\ServiceBrokerMessage.cs" />
     <Compile Include="SqlServer\ServiceBrokerMessageTransport.cs" />
     <Compile Include="SqlServer\ServiceBrokerMessageTransportConfiguration.cs" />
     <Compile Include="SqlServer\ServiceBrokerWrapper.cs" />
-    <Compile Include="SqlServer\FastXmlServiceBrokerMessageSerializer.cs" />
-    <Compile Include="Util\Observable.cs" />
+    <Compile Include="SqlServer\SqlServerSubscriptionStorage.cs" />
+    <Compile Include="StandardHeaders.cs" />
+    <Compile Include="TransportMessageFaultManager.cs" />
+    <Compile Include="Util\Guard.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

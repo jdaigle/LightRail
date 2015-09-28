@@ -18,6 +18,7 @@ namespace LightRail.SqlServer
         public string ServiceBrokerContract { get; set; }
         public string ServiceBrokerQueue { get; set; }
         public string ServiceBrokerService { get; set; }
+        public string ServiceBrokerConnectionStringName { get; set; }
         public string ServiceBrokerConnectionString { get; set; }
     }
 }

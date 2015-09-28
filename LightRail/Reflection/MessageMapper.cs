@@ -44,7 +44,9 @@ namespace LightRail.Reflection
             ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(name);
 
             foreach (Type t in types)
+            {
                 InitType(t, moduleBuilder);
+            }
         }
 
         /// <summary>
@@ -334,5 +336,46 @@ namespace LightRail.Reflection
         private static readonly Dictionary<string, Type> nameToType = new Dictionary<string, Type>();
         private static readonly Dictionary<Type, ConstructorInfo> typeToConstructor = new Dictionary<Type, ConstructorInfo>();
         //private static ILog Logger = LogManager.GetLogger(typeof(MessageMapper).Namespace);
+
+        public List<Type> GetMessageTypeHierarchy(Type type)
+        {
+            // TODO cache this operation
+            var types = new List<Type>() { type };
+            foreach (var t in type.GetInterfaces())
+            {
+                if (messageTypeCoventions.IsMessageType(t))
+                {
+                    if (!types.Contains(t))
+                    {
+                        types.Add(t);
+                    }
+                }
+            }
+            var baseType = type.BaseType;
+            while (baseType != null && baseType != typeof(object))
+            {
+                if (messageTypeCoventions.IsMessageType(baseType))
+                {
+                    if (!types.Contains(baseType))
+                    {
+                        types.Add(baseType);
+                    }
+                }
+                baseType = baseType.BaseType;
+            }
+            return types;
+        }
+
+        private static HashSet<string> systemAssemblyNames = new HashSet<string>
+        {
+            "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+            "System.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+        };
+
+        public IEnumerable<string> GetEnclosedMessageTypes(Type type)
+        {
+            // TODO cache this operation
+            return GetMessageTypeHierarchy(type).AsQueryable().Select(x => x.FullName);
+        }
     }
 }

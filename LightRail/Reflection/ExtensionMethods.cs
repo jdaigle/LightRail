@@ -6,7 +6,9 @@
  */
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace LightRail.Reflection
 {
@@ -15,6 +17,18 @@ namespace LightRail.Reflection
     /// </summary>
     public static class ExtensionMethods
     {
+        public static IEnumerable<Type> GetTypesSafely(this Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                return ex.Types.Where(x => x != null);
+            }
+        }
+
         /// <summary>
         /// Useful for finding if a type is (for example) IMessageHandler{T} where T : IMessage.
         /// </summary>
@@ -106,7 +120,7 @@ namespace LightRail.Reflection
 
                     if (args.Length == 2)
                         if (typeof(KeyValuePair<,>).MakeGenericType(args) == t)
-                            result = "LightRail." + result;
+                            result = "LightRail.Serialization." + result;
 
                     lock (TypeToNameLookup)
                         TypeToNameLookup[t] = result;

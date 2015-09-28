@@ -6,7 +6,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using LightRail.Logging;
 using LightRail.SqlServer;
+using LightRail.StructureMap;
 
 namespace LightRail.SampleServer
 {
@@ -17,13 +19,15 @@ namespace LightRail.SampleServer
             // always start with a configuration object
             var config = new LightRailConfiguration();
 
+            config.ServiceLocator = new StructureMapServiceLocator();
+
             // Optional: by default we use the ConsoleLogManager
             // but you can change that by specifying the type
             //config.UseLogger<ConsoleLogManager>();
+            LogManager.UseFactory<Log4NetLoggerFactory>();
 
             // Override to use log4net
             log4net.Config.XmlConfigurator.Configure();
-            config.UseLogger<Log4NetLogManager>();
 
             // Optional: JsonMessageSerializer by default
             // but you can change that by specifying the type
@@ -64,25 +68,9 @@ namespace LightRail.SampleServer
             config.TransportConfigurationAs<ServiceBrokerMessageTransportConfiguration>().ServiceBrokerQueue = "TestListenerQueue";
             config.TransportConfigurationAs<ServiceBrokerMessageTransportConfiguration>().ServiceBrokerService = "TestListenerService";
 
-            // register message handlers. they will execute in the order registered!
-            config.Handle<IMessage>((message, context) =>
-            {
-                Console.WriteLine("IMessage Received");
-            });
-            config.Handle<SampleMessage>((message, context) =>
-            {
-                Console.WriteLine("Message Received: " + message.Data);
-            });
-            config.Handle<IOnly>((message, context) =>
-            {
-                Console.WriteLine("Message (interface) Received: " + message.Data);
-            });
-
-            config.Handle<SampleMessage>((message, context) => Handle(message));
-            config.Handle<IOnly>((message, context) => Handle(message, new object())); // example of currying
 
             // create the client, and start to begin listening
-            var client = LightRailClient.Create(config).Start();
+            var client = config.CreateBus().Start();
 
             // sample sending
             client.Send(new SampleMessage() { Data = "Hello World" }, "TestListenerService");
@@ -97,14 +85,22 @@ namespace LightRail.SampleServer
             }
         }
 
+        [MessageHandler]
         static void Handle(SampleMessage message)
         {
             Console.WriteLine("Message Received: " + message.Data);
         }
-
-        static void Handle(IOnly message, object otherDepedency)
+        
+        [MessageHandler]
+        static void Handle(IOnly message)
         {
             Console.WriteLine("Message Received: " + message.Data);
+        }
+
+        [MessageHandler]
+        static void Handle(IMessage message)
+        {
+            Console.WriteLine("Message Received:");
         }
     }
 

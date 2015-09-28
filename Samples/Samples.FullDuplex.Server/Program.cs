@@ -21,16 +21,20 @@ class Program
         //LogManager.Use<DefaultFactory>()
         //    .Level(LogLevel.Info);
 
-        config.Handle<RequestDataMessage>((message, context) => Handle(message, context.Client));
-
-        var client = LightRailClient.Create(config).Start();
+        var client = config.CreateBus().Start();
 
         Console.WriteLine("Press any key to exit");
         Console.ReadKey();
     }
 
-    static void Handle(RequestDataMessage message, ILightRailClient client)
+    [MessageHandler]
+    static void Handle(RequestDataMessage message, IBus client)
     {
+        //try to uncomment the line below to see the error handling in action
+        // * lightrwail will retry the configured number of times
+        // * when the max retries is reached the message will be given to the faultmanager (in memory in this case)
+        //throw new Exception("Database connection lost");
+
         Console.WriteLine("Received request {0}.", message.DataId);
         Console.WriteLine("String received: {0}.", message.String);
 
@@ -40,6 +44,8 @@ class Program
             String = message.String
         };
 
-        client.Reply(response);
+        client.OutgoingHeaders["MyCustomHeader"] = Guid.NewGuid().ToString();
+
+        client.Send(response, client.CurrentMessageContext[StandardHeaders.ReplyToAddress]);
     }
 }

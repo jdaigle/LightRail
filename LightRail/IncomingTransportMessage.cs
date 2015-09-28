@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Serialization;
-using LightRail.Util;
 
 namespace LightRail
 {
@@ -14,7 +11,7 @@ namespace LightRail
         {
             MessageId = messageId;
             Headers = headers;
-            Headers[LightRail.Headers.MessageId] = messageId;
+            Headers[StandardHeaders.MessageId] = messageId;
             SerializedMessageData = serializedMessagedata;
         }
 

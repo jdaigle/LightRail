@@ -14,22 +14,22 @@ namespace LightRail
 
         public string Serialize(object data)
         {
-            return Jil.JSON.Serialize(data);
+            return Jil.JSON.Serialize(data, Options.ISO8601IncludeInheritedUtc);
         }
 
         public void Serialize(object data, TextWriter output)
         {
-            JSON.Serialize(data, output);
+            JSON.Serialize(data, output, Options.ISO8601IncludeInheritedUtc);
         }
 
         public object Deserialize(string text, Type type)
         {
-            return JSON.Deserialize(text, type);
+            return JSON.Deserialize(text, type, Options.ISO8601IncludeInheritedUtc);
         }
 
         public object Deserialize(TextReader reader, Type type)
         {
-            return JSON.Deserialize(reader, type);
+            return JSON.Deserialize(reader, type, Options.ISO8601IncludeInheritedUtc);
         }
     }
 }

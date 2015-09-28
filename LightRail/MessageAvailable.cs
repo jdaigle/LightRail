@@ -5,7 +5,7 @@ using System.Text;
 
 namespace LightRail
 {
-    public class MessageAvailable
+    public class MessageAvailable : EventArgs
     {
         public IncomingTransportMessage TransportMessage { get; private set; }
 

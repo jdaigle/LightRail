@@ -21,9 +21,7 @@ class Program
         //LogManager.Use<DefaultFactory>()
         //    .Level(LogLevel.Info);
 
-        config.Handle<DataResponseMessage>((message, context) => Handle(message));
-
-        var client = LightRailClient.Create(config).Start();
+        var client = config.CreateBus().Start();
 
         Console.WriteLine("Press enter to send a message");
         Console.WriteLine("Press any key to exit");
@@ -36,7 +34,8 @@ class Program
             {
                 return;
             }
-            Guid guid = Guid.NewGuid();
+
+            var guid = Guid.NewGuid();
             Console.WriteLine("Requesting to get data by id: {0}", guid.ToString("N"));
 
             RequestDataMessage message = new RequestDataMessage
@@ -48,6 +47,7 @@ class Program
         }
     }
 
+    [MessageHandler]
     static void Handle(DataResponseMessage message)
     {
         Console.WriteLine("Response received with description: {0}", message.String);

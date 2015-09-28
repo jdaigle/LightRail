@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using LightRail.Reflection;
 
 namespace LightRail
 {
@@ -40,7 +41,7 @@ namespace LightRail
         public IEnumerable<Type> ScanAssembliesForMessageTypes(IEnumerable<Assembly> assemblies)
         {
             return assemblies
-                .SelectMany(a => a.GetTypes()
+                .SelectMany(a => a.GetTypesSafely()
                                   .Where(t => IsMessageType(t))).ToList();
         }
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LightRail.Logging;
 using log4net;
 
 namespace LightRail
@@ -30,7 +31,7 @@ namespace LightRail
                         log.Debug(entry.Message, entry.Exception);
                     }
                     break;
-                case LoggingEventType.Information:
+                case LoggingEventType.Info:
                     if (entry.Exception == null)
                     {
                         log.Info(entry.Message);
@@ -40,7 +41,7 @@ namespace LightRail
                         log.Info(entry.Message, entry.Exception);
                     }
                     break;
-                case LoggingEventType.Warning:
+                case LoggingEventType.Warn:
                     if (entry.Exception == null)
                     {
                         log.Warn(entry.Message);

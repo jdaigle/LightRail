@@ -6,8 +6,5 @@ using System.Threading.Tasks;
 
 namespace LightRail
 {
-    /// <summary>
-    /// Default marker interface for a message
-    /// </summary>
     public interface IMessage { }
 }
