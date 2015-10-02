@@ -9,9 +9,12 @@ $toolsDir = "$baseDir\tools"
 $coreSlns = "$baseDir\LightRail.sln"
 $testAsms = "LightRail.UnitTests.dll"
 $applyVersionToAssemblies = $false
+$nunitexec = "tools\NUnit\nunit-console.exe"
 
-$nunitexec = ""
-#$nunitexec = "tools\NUnit\nunit-console.exe"
+if ($env:APPVEYOR -eq $true) {
+    $nunitexec = "C:\Tools\NUnit\bin\nunit-console.exe"
+    $applyVersionToAssemblies = $true
+}
 
 include $toolsDir\psake\buildutils.ps1
 
@@ -37,11 +40,6 @@ task Init -depends Clean {
     $currentDirectory = Resolve-Path .
 
     echo "Current Directory: $currentDirectory"
-    
-    if ($env:APPVEYOR -eq $true) {
-        $nunitexec = "C:\Tools\NUnit\bin\nunit-console.exe"
-        $applyVersionToAssemblies = $true
-    }
 }
 
 task Compile -depends Init {
