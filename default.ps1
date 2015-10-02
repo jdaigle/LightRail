@@ -38,7 +38,7 @@ task Init -depends Clean {
     echo "Current Directory: $currentDirectory"
     
     if ($env:APPVEYOR -eq $true) {
-        $nunitexec = "nunit-console"
+        $nunitexec = "C:\Tools\NUnit\bin\nunit-console.exe"
         $applyVersionToAssemblies = $true
     }
 }
