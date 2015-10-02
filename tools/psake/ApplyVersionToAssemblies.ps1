@@ -31,26 +31,26 @@ elseif (-not (Test-Path $Env:APPVEYOR_BUILD_FOLDER))
 Write-Verbose "APPVEYOR_BUILD_FOLDER: $Env:APPVEYOR_BUILD_FOLDER"
 
 # Make sure there is a build number
-if (-not $Env:APPVEYOR_BUILD_NUMBER)
+if (-not $Env:APPVEYOR_BUILD_VERSION)
 {
-    Write-Error ("APPVEYOR_BUILD_NUMBER environment variable is missing.")
+    Write-Error ("APPVEYOR_BUILD_VERSION environment variable is missing.")
     exit 1
 }
-Write-Verbose "APPVEYOR_BUILD_NUMBER: $Env:APPVEYOR_BUILD_NUMBER"
+Write-Verbose "APPVEYOR_BUILD_VERSION: $Env:APPVEYOR_BUILD_VERSION"
 
 # Get and validate the version data
-$VersionData = [regex]::matches($Env:APPVEYOR_BUILD_NUMBER,$VersionRegex)
+$VersionData = [regex]::matches($Env:APPVEYOR_BUILD_VERSION,$VersionRegex)
 switch($VersionData.Count)
 {
    0        
       { 
-         Write-Error "Could not find version number data in APPVEYOR_BUILD_NUMBER."
+         Write-Error "Could not find version number data in APPVEYOR_BUILD_VERSION."
          exit 1
       }
    1 {}
    default 
       { 
-         Write-Warning "Found more than instance of version data in APPVEYOR_BUILD_NUMBER." 
+         Write-Warning "Found more than instance of version data in APPVEYOR_BUILD_VERSION." 
          Write-Warning "Will assume first instance is version."
       }
 }
