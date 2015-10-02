@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/1xfjys03ov02484q?svg=true)](https://ci.appveyor.com/project/JosephDaigle/lightrail)
+
 # LightRail
 
 **LightRail** is an opinionated message broker and enterprise service bus (ESB) framework
