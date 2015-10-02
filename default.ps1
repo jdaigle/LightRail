@@ -46,6 +46,7 @@ task Init -depends Clean {
 
 task Compile -depends Init {
     if ($applyVersionToAssemblies -eq $true) {
+        echo "ApplyVersionToAssemblies"
         exec { &$toolsDir\psake\ApplyVersionToAssemblies.ps1 }
     }
     foreach ($slnFile in $coreSlns) {
@@ -55,6 +56,7 @@ task Compile -depends Init {
 
 task Test -depends Compile {
     foreach ($asm in $testAsms) {
+        echo "Path To NUnit: $nunitexec"
         exec { &$nunitexec $buildDir\$asm /framework=4.0 }
     }
 }
