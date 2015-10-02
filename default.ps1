@@ -10,7 +10,7 @@ $coreSlns = "$baseDir\LightRail.sln"
 $testAsms = "LightRail.UnitTests.dll"
 $applyVersionToAssemblies = $false
 
-$nunitexec = "tools\NUnit\nunit-console.exe"
+#$nunitexec = "tools\NUnit\nunit-console.exe"
 
 include $toolsDir\psake\buildutils.ps1
 
