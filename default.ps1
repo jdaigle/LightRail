@@ -9,7 +9,7 @@ $toolsDir = "$baseDir\tools"
 $coreSlns = "$baseDir\LightRail.sln"
 $testAsms = "LightRail.UnitTests.dll"
 
-$nunitexec = "tools\NUnit\bin\nunit-console.exe"
+$nunitexec = "tools\NUnit\nunit-console.exe"
 
 include $toolsDir\psake\buildutils.ps1
 
