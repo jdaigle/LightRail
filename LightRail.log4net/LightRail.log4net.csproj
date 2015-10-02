@@ -52,6 +52,7 @@
     </Compile>
     <Compile Include="Log4NetLogger.cs" />
     <Compile Include="Log4NetLoggerFactory.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LightRail\LightRail.csproj">

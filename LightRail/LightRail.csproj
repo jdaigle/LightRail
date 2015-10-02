@@ -94,6 +94,7 @@
     <Compile Include="OutgoingTransportMessage.cs" />
     <Compile Include="PipelinedBehavior.cs" />
     <Compile Include="PoisonMessageDetectedEventArgs.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Reflection\DelegateFactory.cs" />
     <Compile Include="Reflection\ExtensionMethods.cs" />
     <Compile Include="Reflection\MessageMapper.cs" />

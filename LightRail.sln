@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.40629.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.SampleServer", "LightRail.SampleServer\LightRail.SampleServer.csproj", "{7C77AFBD-FF65-40FE-A5FC-6EB098D06658}"
 EndProject
@@ -34,6 +34,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.StructureMap", "LightRail.StructureMap\LightRail.StructureMap.csproj", "{3083F3BF-525F-48BA-B6EA-F3C08ED7EB65}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.UnitTests", "LightRail.UnitTests\LightRail.UnitTests.csproj", "{AD53A611-6898-4901-A962-E66F8AF25B0D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.NLog", "LightRail.NLog\LightRail.NLog.csproj", "{6B8DC776-3FAB-46E6-BA16-0571DA491E53}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Unity", "LightRail.Unity\LightRail.Unity.csproj", "{61B5D60F-DF4F-439B-9E29-039E916BCBE1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -73,6 +77,14 @@ Global
 		{AD53A611-6898-4901-A962-E66F8AF25B0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AD53A611-6898-4901-A962-E66F8AF25B0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AD53A611-6898-4901-A962-E66F8AF25B0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B8DC776-3FAB-46E6-BA16-0571DA491E53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B8DC776-3FAB-46E6-BA16-0571DA491E53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B8DC776-3FAB-46E6-BA16-0571DA491E53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B8DC776-3FAB-46E6-BA16-0571DA491E53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61B5D60F-DF4F-439B-9E29-039E916BCBE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61B5D60F-DF4F-439B-9E29-039E916BCBE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61B5D60F-DF4F-439B-9E29-039E916BCBE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61B5D60F-DF4F-439B-9E29-039E916BCBE1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
