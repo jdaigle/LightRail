@@ -38,6 +38,9 @@ task Init -depends Clean {
 }
 
 task Compile -depends Init {
+    if ($env:APPVEYOR -eq $true) {
+      exec { &$toolsDir\psake\ApplyVersionToAssemblies.ps1 }
+    }
     foreach ($slnFile in $coreSlns) {
         exec { msbuild $slnFile /v:minimal /nologo /p:Configuration=Release /m /p:AllowedReferenceRelatedFileExtensions=none /p:OutDir="$buildDir\" }
     }
