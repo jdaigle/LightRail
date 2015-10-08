@@ -8,12 +8,10 @@ $buildDir = "$baseDir\build"
 $toolsDir = "$baseDir\tools"
 $coreSlns = "$baseDir\LightRail.sln"
 $testAsms = "LightRail.UnitTests.dll"
-$applyVersionToAssemblies = $false
 $nunitexec = "tools\NUnit\nunit-console.exe"
 
 if ($env:APPVEYOR -eq $true) {
     $nunitexec = "C:\Tools\NUnit\bin\nunit-console.exe"
-    $applyVersionToAssemblies = $true
 }
 
 include $toolsDir\psake\buildutils.ps1
@@ -43,10 +41,6 @@ task Init -depends Clean {
 }
 
 task Compile -depends Init {
-    if ($applyVersionToAssemblies -eq $true) {
-        echo "ApplyVersionToAssemblies"
-        exec { &$toolsDir\psake\ApplyVersionToAssemblies.ps1 }
-    }
     foreach ($slnFile in $coreSlns) {
         exec { msbuild $slnFile /v:minimal /nologo /p:Configuration=Release /m /p:AllowedReferenceRelatedFileExtensions=none /p:OutDir="$buildDir\" }
     }
