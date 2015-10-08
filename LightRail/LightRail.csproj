@@ -100,9 +100,12 @@
     <Compile Include="Reflection\MessageMapper.cs" />
     <Compile Include="InvalidConfigurationException.cs" />
     <Compile Include="LightRailServiceBus.cs" />
+    <Compile Include="SqlServer\PoisonMessageInfo.cs" />
+    <Compile Include="SqlServer\QueueStatusView.cs" />
     <Compile Include="SqlServer\ServiceBrokerMessage.cs" />
     <Compile Include="SqlServer\ServiceBrokerMessageTransport.cs" />
     <Compile Include="SqlServer\ServiceBrokerMessageTransportConfiguration.cs" />
+    <Compile Include="SqlServer\ServiceBrokerWatcher.cs" />
     <Compile Include="SqlServer\ServiceBrokerWrapper.cs" />
     <Compile Include="SqlServer\SqlServerSubscriptionStorage.cs" />
     <Compile Include="StandardHeaders.cs" />
