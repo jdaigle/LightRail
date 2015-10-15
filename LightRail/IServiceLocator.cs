@@ -13,6 +13,6 @@ namespace LightRail
         T Resolve<T>();
         object Resolve(Type type);
 
-        IServiceLocator CreateChildContainer();
+        IServiceLocator CreateNestedContainer();
     }
 }

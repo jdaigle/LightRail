@@ -37,7 +37,7 @@ namespace LightRail.Unity
             return this.container.Resolve(type);
         }
 
-        public IServiceLocator CreateChildContainer()
+        public IServiceLocator CreateNestedContainer()
         {
             return new UnityServiceLocator(container.CreateChildContainer());
         }

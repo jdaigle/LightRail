@@ -195,7 +195,7 @@ namespace LightRail
 
         private void OnMessageAvailable(MessageAvailable value)
         {
-            using (var childServiceLocator = this.ServiceLocator.CreateChildContainer())
+            using (var childServiceLocator = this.ServiceLocator.CreateNestedContainer())
             {
                 currentMessageContext = new MessageContext(this, value.TransportMessage.MessageId, value.TransportMessage.Headers, childServiceLocator);
 

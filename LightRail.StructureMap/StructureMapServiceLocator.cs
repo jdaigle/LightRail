@@ -40,9 +40,9 @@ namespace LightRail.StructureMap
             return this.container.GetInstance(type);
         }
 
-        public IServiceLocator CreateChildContainer()
+        public IServiceLocator CreateNestedContainer()
         {
-            return new StructureMapServiceLocator(container.CreateChildContainer());
+            return new StructureMapServiceLocator(container.GetNestedContainer());
         }
 
         public void Dispose()

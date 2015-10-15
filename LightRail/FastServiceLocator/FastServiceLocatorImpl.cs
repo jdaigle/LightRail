@@ -30,7 +30,7 @@ namespace LightRail.FastServiceLocator
             return this.container.Resolve(type);
         }
 
-        public IServiceLocator CreateChildContainer()
+        public IServiceLocator CreateNestedContainer()
         {
             return new FastServiceLocatorImpl(this.container.Clone());
         }
