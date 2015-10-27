@@ -1,5 +1,5 @@
 ﻿/* This code is derived from NServiceBus 2.0 
- * https://github.com/NServiceBus/NServiceBus/blob/2.0/src/impl/messageInterfaces/NServiceBus.MessageInterfaces.MessageMapper.Reflection/MessageMapper.cs
+ * https://github.com/Particular/NServiceBus/blob/2.0/src/impl/messageInterfaces/NServiceBus.MessageInterfaces.MessageMapper.Reflection/MessageMapper.cs
  * 
  * Which is licensed under Apache Licence, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0

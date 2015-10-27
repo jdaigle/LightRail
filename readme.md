@@ -39,5 +39,5 @@ This project utilizes the following open source projects:
 * http://logging.apache.org/log4net/
 * http://structuremap.github.io/
 
-Some core code is is derived from [NServiceBus 2.0](https://github.com/NServiceBus/NServiceBus/blob/2.0/src/impl/messageInterfaces/NServiceBus.MessageInterfaces.MessageMapper.Reflection/MessageMapper.cs)
+Some core code is is derived from [NServiceBus 2.0](https://github.com/Particular/NServiceBus/blob/2.0/)
 which is licensed under [Apache Licence, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0). The relevant code files have headers to indicate the attribution.
