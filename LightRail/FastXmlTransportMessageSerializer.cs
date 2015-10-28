@@ -10,25 +10,24 @@ namespace LightRail
     {
         public static void Serialize(OutgoingTransportMessage transportMessage, Stream outputStream)
         {
-            using (var writer = new XmlTextWriter(outputStream, new UnicodeEncoding(false, false))) // SQL Server is UTF16, little endian, no BOM
+            var writer = new XmlTextWriter(outputStream, new UnicodeEncoding(false, false)); // SQL Server is UTF16, little endian, no BOM
+
+            writer.Formatting = Formatting.Indented;
+            writer.WriteStartElement("root");
+            foreach (var item in transportMessage.Headers)
             {
-                writer.Formatting = Formatting.Indented;
-                writer.WriteStartElement("root");
-                foreach (var item in transportMessage.Headers)
-                {
-                    writer.WriteElementString(item.Key, item.Value);
-                }
-                writer.WriteStartElement("body");
-                writer.WriteCData(transportMessage.SerializedMessageData);
-                writer.WriteEndElement(); // </body>
-                writer.WriteEndElement(); // </root>
-                writer.Flush();
+                writer.WriteElementString(item.Key, item.Value);
             }
+            writer.WriteStartElement("body");
+            writer.WriteCData(transportMessage.SerializedMessageData);
+            writer.WriteEndElement(); // </body>
+            writer.WriteEndElement(); // </root>
+            writer.Flush();
         }
 
         public static IncomingTransportMessage Deserialize(string messageId, Stream inputStream)
         {
-            var headers = new Dictionary<string,string>();
+            var headers = new Dictionary<string, string>();
             var serializedMessageData = "";
             using (var reader = new XmlTextReader(inputStream))
             {

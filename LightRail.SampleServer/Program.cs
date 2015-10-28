@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using LightRail.Logging;
-using LightRail.SqlServer;
+using LightRail.Msmq;
 using LightRail.StructureMap;
 
 namespace LightRail.SampleServer
@@ -58,16 +58,13 @@ namespace LightRail.SampleServer
             //config.ExecuteTheseHandlersFirst(typeof(HandlerB), typeof(HandlerA), typeof(HandlerC));
 
             // You must specify the type of transport and transport config
-            config.UseTransport<ServiceBrokerMessageTransport, ServiceBrokerMessageTransportConfiguration>();
+            config.UseTransport<MsmqTransport, MsmqTransportConfiguration>();
 
             // Max Retries changes how often we retry on errors
             config.TransportConfiguration.MaxRetries = 2;
 
             // required ServiceBroker settings
-            config.TransportConfigurationAs<ServiceBrokerMessageTransportConfiguration>().ServiceBrokerConnectionString = "server=localhost;database=servicebus;integrated security=true;";
-            config.TransportConfigurationAs<ServiceBrokerMessageTransportConfiguration>().ServiceBrokerQueue = "TestListenerQueue";
-            config.TransportConfigurationAs<ServiceBrokerMessageTransportConfiguration>().ServiceBrokerService = "TestListenerService";
-
+            config.TransportConfigurationAs<MsmqTransportConfiguration>().InputQueue = "TestQueue";
 
             // create the client, and start to begin listening
             var client = config.CreateBus().Start();
