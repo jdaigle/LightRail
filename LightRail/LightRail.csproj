@@ -115,6 +115,7 @@
     <Compile Include="StandardHeaders.cs" />
     <Compile Include="TransportMessageFaultManager.cs" />
     <Compile Include="Util\Guard.cs" />
+    <Compile Include="Util\LimitedConcurrencyLevelTaskScheduler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

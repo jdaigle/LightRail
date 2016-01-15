@@ -39,6 +39,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.NLog", "LightRail
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Unity", "LightRail.Unity\LightRail.Unity.csproj", "{61B5D60F-DF4F-439B-9E29-039E916BCBE1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.RabbitMQ", "LightRail.RabbitMQ\LightRail.RabbitMQ.csproj", "{B0E5B5E5-5696-4238-9639-1581EF50156D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +87,10 @@ Global
 		{61B5D60F-DF4F-439B-9E29-039E916BCBE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61B5D60F-DF4F-439B-9E29-039E916BCBE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61B5D60F-DF4F-439B-9E29-039E916BCBE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0E5B5E5-5696-4238-9639-1581EF50156D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0E5B5E5-5696-4238-9639-1581EF50156D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0E5B5E5-5696-4238-9639-1581EF50156D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0E5B5E5-5696-4238-9639-1581EF50156D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
