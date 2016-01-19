@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using LightRail.Client.Dispatch;
 using LightRail.Client.Pipeline;
+using LightRail.Client.Transport;
 
 namespace LightRail.Client.Config
 {
-    public class BaseMessageReceiverConfiguration : IMessageReceiverConfiguration
+    public abstract class BaseMessageReceiverConfiguration : IMessageReceiverConfiguration
     {
         protected BaseMessageReceiverConfiguration()
         {
@@ -16,6 +16,10 @@ namespace LightRail.Client.Config
 
         public IServiceBusConfig ServiceBusConfig { get; set; }
         public MessageHandlerCollection MessageHandlers { get; }
+
+        public string Address { get; set; }
+        public int MaxConcurrency { get; set; } = 1;
+        public int MaxRetries { get; set; } = 3;
 
         public MessageHandlerCollection GetCombinedMessageHandlers()
         {
@@ -34,5 +38,7 @@ namespace LightRail.Client.Config
             messageHandlerPipelinedBehaviors.Add(new MessageHandlerDispatchBehavior());
             return PipelinedBehavior.CompileMessageHandlerPipeline(messageHandlerPipelinedBehaviors);
         }
+
+        public abstract ITransportReceiver CreateTransportReceiver();
     }
 }

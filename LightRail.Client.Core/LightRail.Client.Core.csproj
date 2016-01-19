@@ -63,11 +63,13 @@
     <Compile Include="IMessageCreator.cs" />
     <Compile Include="IMessageMapper.cs" />
     <Compile Include="IncomingTransportMessage.cs" />
-    <Compile Include="InMemory\InMemoryConfiguratorExtensions.cs" />
-    <Compile Include="InMemory\InMemoryMessageReceiverConfiguration.cs" />
-    <Compile Include="InMemory\InMemoryServiceBusConfiguration.cs" />
+    <Compile Include="InMemoryQueue\InMemoryQueueConfiguratorExtensions.cs" />
+    <Compile Include="InMemoryQueue\InMemoryQueueMessageReceiverConfiguration.cs" />
+    <Compile Include="InMemoryQueue\InMemoryQueueServiceBusConfiguration.cs" />
     <Compile Include="Config\IMessageReceiverConfiguration.cs" />
     <Compile Include="Config\IServiceBusConfig.cs" />
+    <Compile Include="InMemoryQueue\InMemoryQueueTransportReceiver.cs" />
+    <Compile Include="InMemoryQueue\InMemoryQueueTransportSender.cs" />
     <Compile Include="Transport\ITransportSender.cs" />
     <Compile Include="Logging\ConsoleLogFactory.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
@@ -94,6 +96,7 @@
     <Compile Include="MessageContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Transport\ITransportReceiver.cs" />
+    <Compile Include="Transport\TransportMessageFaultManager.cs" />
     <Compile Include="Util\StringExtensions.cs" />
     <Compile Include="Util\Guard.cs" />
   </ItemGroup>

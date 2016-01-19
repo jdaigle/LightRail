@@ -4,16 +4,16 @@ namespace LightRail.Client
 {
     public class IncomingTransportMessage
     {
-        public IncomingTransportMessage(string messageId, Dictionary<string, string> headers, byte[] serializedMessageBuffer)
+        public IncomingTransportMessage(string messageId, Dictionary<string, string> headers, object decodedMessage)
         {
             MessageId = messageId;
             Headers = headers;
             //Headers[StandardHeaders.MessageId] = messageId;
-            SerializedMessageBuffer = serializedMessageBuffer;
+            DecodedMessage = decodedMessage;
         }
 
         public string MessageId { get; }
         public Dictionary<string, string> Headers { get; }
-        public byte[] SerializedMessageBuffer { get; }
+        public object DecodedMessage { get; }
     }
 }

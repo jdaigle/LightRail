@@ -31,11 +31,13 @@ namespace LightRail.Client
                 });
             }
 
+            this.Transport = config.CreateTransportSender();
+
             List<PipelineMessageReceiver> receivers;
             MessageReceivers = receivers = new List<PipelineMessageReceiver>();
             foreach (var receiverConfig in config.MessageReceivers)
             {
-                var receiver = new PipelineMessageReceiver(receiverConfig, config);
+                var receiver = new PipelineMessageReceiver(this, receiverConfig, config);
                 receivers.Add(receiver);
                 this.startupActions.Add(() => receiver.Start());
             }
@@ -99,6 +101,8 @@ namespace LightRail.Client
             {
                 return;
             }
+            var transportMessage = new OutgoingTransportMessage(new Dictionary<string, string>(), message);
+            Transport.Send(transportMessage, addresses);
         }
 
         private HashSet<string> GetAddressesForMessageType(Type messageType)

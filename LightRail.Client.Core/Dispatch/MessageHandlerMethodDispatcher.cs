@@ -34,6 +34,7 @@ namespace LightRail.Client.Dispatch
             ParameterTypes = methodInfo.GetParameters().Select(x => x.ParameterType).ToList().AsReadOnly();
             HandledMessageType = handledMessageType;
             IsInstanceMethod = !methodInfo.IsStatic;
+            TargetType = methodInfo.DeclaringType;
             _executor = GetExecutor(MethodInfo, Target);
         }
 
@@ -43,6 +44,7 @@ namespace LightRail.Client.Dispatch
             ParameterTypes = methodInfo.GetParameters().Select(x => x.ParameterType).ToList().AsReadOnly();
             HandledMessageType = handledMessageType;
             IsInstanceMethod = !methodInfo.IsStatic;
+            TargetType = methodInfo.DeclaringType;
             _executor = GetExecutor(methodInfo, null);
         }
 
@@ -54,6 +56,14 @@ namespace LightRail.Client.Dispatch
         public IReadOnlyList<Type> ParameterTypes { get; }
         public Type HandledMessageType { get; }
         public object Target { get; }
+        public Type TargetType { get; }
+        public bool RequiresTarget
+        {
+            get
+            {
+                return IsInstanceMethod && Target == null;
+            }
+        }
 
         private static StaticActionExecutor GetExecutor(MethodInfo methodInfo, object instanceTarget)
         {

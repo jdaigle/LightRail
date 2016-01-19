@@ -2,6 +2,7 @@
 using LightRail.Client.Dispatch;
 using LightRail.Client.FastServiceLocator;
 using LightRail.Client.Pipeline;
+using LightRail.Client.Transport;
 
 namespace LightRail.Client.Config
 {
@@ -23,5 +24,7 @@ namespace LightRail.Client.Config
         public IList<MessageEndpointMapping> MessageEndpointMappings { get; }
         public IList<PipelinedBehavior> PipelinedBehaviors { get; }
         public IList<IMessageReceiverConfiguration> MessageReceivers { get; }
+
+        public abstract ITransportSender CreateTransportSender();
     }
 }

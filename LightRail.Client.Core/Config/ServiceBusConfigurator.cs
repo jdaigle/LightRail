@@ -46,6 +46,7 @@ namespace LightRail.Client.Config
             {
                 (_configurator.Config as BaseMessageReceiverConfiguration).ServiceBusConfig = this.Config;
             }
+            _configurator.Config.Address = address;
             cfg(_configurator);
             Config.MessageReceivers.Add(_configurator.Config);
         }

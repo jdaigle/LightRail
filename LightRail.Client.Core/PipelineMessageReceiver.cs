@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,8 +15,9 @@ namespace LightRail.Client
 {
     public class PipelineMessageReceiver
     {
-        public PipelineMessageReceiver(IMessageReceiverConfiguration config, IServiceBusConfig serviceBusConfig)
+        public PipelineMessageReceiver(PipelineServiceBus bus, IMessageReceiverConfiguration config, IServiceBusConfig serviceBusConfig)
         {
+            this.Bus = bus;
             this.Name = Guid.NewGuid().ToString();
 
             this.ServiceLocator = serviceBusConfig.ServiceLocator;
@@ -23,6 +25,7 @@ namespace LightRail.Client
             this.MessageHandlers = config.GetCombinedMessageHandlers();
             this.compiledMessageHandlerPipeline = config.GetCompiledMessageHandlerPipeline();
 
+            this.Transport = config.CreateTransportReceiver();
             this.Transport.MessageAvailable += (sender, args) => OnMessageAvailable(args);
             this.Transport.PoisonMessageDetected += (sender, args) => OnPoisonMessageDetected(args);
             this.startupActions.Add(() => this.Transport.Start());
@@ -55,50 +58,38 @@ namespace LightRail.Client
 
         private void OnMessageAvailable(MessageAvailableEventArgs value)
         {
-            throw new NotImplementedException();
-            //using (var childServiceLocator = this.ServiceLocator.CreateNestedContainer())
-            //{
-            //    var currentMessageContext = new MessageContext(this, value.TransportMessage.MessageId, value.TransportMessage.Headers, childServiceLocator);
+            using (var childServiceLocator = this.ServiceLocator.CreateNestedContainer())
+            {
+                var currentMessageContext = new MessageContext(
+                    bus: this.Bus,
+                    messageID: value.TransportMessage.MessageId,
+                    headers: value.TransportMessage.Headers,
+                    currentMessage: value.TransportMessage.DecodedMessage,
+                    serviceLocator: childServiceLocator);
 
-            //    // register a bunch of things we might want to use during the message handling
-            //    childServiceLocator.RegisterSingleton<IBus>(this);
-            //    childServiceLocator.RegisterSingleton(this.MessageHandlers);
-            //    childServiceLocator.RegisterSingleton<IMessageMapper>(this.MessageMapper);
-            //    childServiceLocator.RegisterSingleton<ITransport>(this.Transport);
-            //    childServiceLocator.RegisterSingleton<MessageContext>(currentMessageContext);
+                // register a bunch of things we might want to use during the message handling
+                childServiceLocator.RegisterSingleton<IBus>(this.Bus);
+                childServiceLocator.RegisterSingleton(this.MessageHandlers);
+                childServiceLocator.RegisterSingleton<IMessageMapper>(this.MessageMapper);
+                childServiceLocator.RegisterSingleton<MessageContext>(currentMessageContext);
 
-            //    try
-            //    {
-            //        object message = null;
-            //        try
-            //        {
-            //            message = DeserializeMessage(value);
-            //        }
-            //        catch (Exception e)
-            //        {
-            //            logger.Error(e, "Cannot deserialize message.");
-            //            // The message cannot be deserialized. There is no reason
-            //            // to retry.
-            //            throw new CannotDeserializeMessageException(e);
-            //        }
-            //        currentMessageContext.CurrentMessage = message;
-            //        currentMessageContext.SerializedMessageData = value.TransportMessage.SerializedMessageData;
+                try
+                {
+                    var stopwatch = Stopwatch.StartNew();
+                    var startTimestamp = DateTime.UtcNow;
 
-            //        var stopwatch = Stopwatch.StartNew();
-            //        var startTimestamp = DateTime.UtcNow;
+                    compiledMessageHandlerPipeline(currentMessageContext).Wait();
 
-            //        compiledMessageHandlerPipeline(currentMessageContext);
+                    var endTimestamp = DateTime.UtcNow;
+                    stopwatch.Stop();
 
-            //        var endTimestamp = DateTime.UtcNow;
-            //        stopwatch.Stop();
-
-            //        OnMessageProcessed(new MessageProcessedEventArgs(currentMessageContext, startTimestamp, endTimestamp, stopwatch.Elapsed.TotalMilliseconds));
-            //    }
-            //    finally
-            //    {
-            //        currentMessageContext = null;
-            //    }
-            //}
+                    OnMessageProcessed(new MessageProcessedEventArgs(currentMessageContext, startTimestamp, endTimestamp, stopwatch.Elapsed.TotalMilliseconds));
+                }
+                finally
+                {
+                    currentMessageContext = null;
+                }
+            }
         }
 
         private void OnMessageProcessed(MessageProcessedEventArgs args)

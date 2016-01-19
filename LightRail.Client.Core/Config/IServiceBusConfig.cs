@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using LightRail.Client.Dispatch;
 using LightRail.Client.Pipeline;
+using LightRail.Client.Transport;
 
 namespace LightRail.Client.Config
 {
@@ -26,5 +27,9 @@ namespace LightRail.Client.Config
         /// A set of message receivers configs.
         /// </summary>
         IList<IMessageReceiverConfiguration> MessageReceivers { get; }
+        /// <summary>
+        /// Creates an instance of the configured transport sender.
+        /// </summary>
+        ITransportSender CreateTransportSender();
     }
 }

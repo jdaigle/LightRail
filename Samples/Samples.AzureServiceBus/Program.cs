@@ -1,7 +1,8 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using LightRail.Client;
-using LightRail.Client.InMemory;
+using LightRail.Client.InMemoryQueue;
 
 namespace Samples.AzureServiceBus
 {
@@ -20,20 +21,30 @@ namespace Samples.AzureServiceBus
 
                 cfg.ReceiveFrom(host, "event_queue", e =>
                 {
-                    e.ScanForHandlersFromAssembly(typeof(SimpleMessageHandler).Assembly);
+                    e.ScanForHandlersFromAssembly(typeof(Program).Assembly);
 
-                    e.Handle<ISampleEventMessage>(async (message, context) =>
+                    e.Handle<SampleCommandMessage>(async (message, context) =>
                     {
-                        Console.WriteLine($"Lambda: {nameof(ISampleEventMessage)}.Data=[{message.Data}]");
+                        Console.WriteLine($"Lambda: {nameof(SampleCommandMessage)}.Data=[{message.Data}]");
                         await Task.Delay(0);
                     });
 
                     e.Handle<SampleCommandMessage>(SimpleMessageHandler.HandleSpecial);
+                    e.Handle<SampleCommandMessage>(SimpleMessageHandler.HandleSpecial2);
                 });
             });
 
             // starts any receive threads
             busControl.Start();
+
+            for (int i = 0; i < 10; i++)
+            {
+                Thread.Sleep(2000);
+                busControl.Send(new SampleCommandMessage()
+                {
+                    Data = DateTime.UtcNow.ToString(),
+                }, "event_queue");
+            }
 
             Console.ReadLine();
 
@@ -53,15 +64,22 @@ namespace Samples.AzureServiceBus
 
     public class SimpleMessageHandler
     {
+        //[MessageHandler]
+        //public async Task Handle(ISampleEventMessage message)
+        //{
+        //    Console.WriteLine($"{nameof(ISampleEventMessage)}.Data=[{message.Data}]");
+        //    await Task.Delay(0);
+        //}
+
         [MessageHandler]
-        public async Task Handle(ISampleEventMessage message)
+        public async Task Handle(SampleCommandMessage message)
         {
-            Console.WriteLine($"{nameof(ISampleEventMessage)}.Data=[{message.Data}]");
+            Console.WriteLine($"{nameof(SampleCommandMessage)}.Data=[{message.Data}]");
             await Task.Delay(0);
         }
 
         [MessageHandler]
-        public async Task Handle(SampleCommandMessage message)
+        public async Task Handle(SampleCommandMessage message, MessageContext context)
         {
             Console.WriteLine($"{nameof(SampleCommandMessage)}.Data=[{message.Data}]");
             await Task.Delay(0);
@@ -72,39 +90,45 @@ namespace Samples.AzureServiceBus
             Console.WriteLine($"Non-Attribute Handler: {nameof(SampleCommandMessage)}.Data=[{message.Data}]");
             await Task.Delay(0);
         }
-    }
 
-    public static class StaticMessageHandler
-    {
-        [MessageHandler]
-        public static async Task Handle(ISampleEventMessage message)
+        public static async Task HandleSpecial2(SampleCommandMessage message, MessageContext context)
         {
-            Console.WriteLine($"{nameof(ISampleEventMessage)}.Data=[{message.Data}]");
-            await Task.Delay(0);
-        }
-
-        [MessageHandler]
-        public static async Task Handle(SampleCommandMessage message)
-        {
-            Console.WriteLine($"{nameof(SampleCommandMessage)}.Data=[{message.Data}]");
+            Console.WriteLine($"Non-Attribute Handler: {nameof(SampleCommandMessage)}.Data=[{message.Data}]");
             await Task.Delay(0);
         }
     }
 
-    public static class StaticMessageHandlerWithDependencies
-    {
-        [MessageHandler]
-        public static async Task Handle(ISampleEventMessage message, MessageContext messageContext)
-        {
-            Console.WriteLine($"{nameof(ISampleEventMessage)}.Data=[{message.Data}]");
-            await Task.Delay(0);
-        }
+    //public static class StaticMessageHandler
+    //{
+    //    [MessageHandler]
+    //    public static async Task Handle(ISampleEventMessage message)
+    //    {
+    //        Console.WriteLine($"{nameof(ISampleEventMessage)}.Data=[{message.Data}]");
+    //        await Task.Delay(0);
+    //    }
 
-        [MessageHandler]
-        public static async Task Handle(SampleCommandMessage message, MessageContext messageContext)
-        {
-            Console.WriteLine($"{nameof(SampleCommandMessage)}.Data=[{message.Data}]");
-            await Task.Delay(0);
-        }
-    }
+    //    [MessageHandler]
+    //    public static async Task Handle(SampleCommandMessage message)
+    //    {
+    //        Console.WriteLine($"{nameof(SampleCommandMessage)}.Data=[{message.Data}]");
+    //        await Task.Delay(0);
+    //    }
+    //}
+
+    //public static class StaticMessageHandlerWithDependencies
+    //{
+    //    [MessageHandler]
+    //    public static async Task Handle(ISampleEventMessage message, MessageContext messageContext)
+    //    {
+    //        Console.WriteLine($"{nameof(ISampleEventMessage)}.Data=[{message.Data}]");
+    //        await Task.Delay(0);
+    //    }
+
+    //    [MessageHandler]
+    //    public static async Task Handle(SampleCommandMessage message, MessageContext messageContext)
+    //    {
+    //        Console.WriteLine($"{nameof(SampleCommandMessage)}.Data=[{message.Data}]");
+    //        await Task.Delay(0);
+    //    }
+    //}
 }

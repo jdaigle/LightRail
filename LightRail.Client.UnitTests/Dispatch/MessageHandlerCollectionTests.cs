@@ -27,6 +27,17 @@ namespace LightRail.Client.Dispatch
         }
 
         [Test]
+        public void Can_Find_and_Call_Instance_Handlers()
+        {
+            var handlers = messageHandlerCollection.GetDispatchersForMessageType(typeof(SampleMessage1));
+            foreach (var handler in handlers)
+            {
+                Assert.True(handler.RequiresTarget);
+                handler.Execute(Activator.CreateInstance(handler.TargetType), new SampleMessage1()).Wait();
+            }
+        }
+
+        [Test]
         public void Can_Find_Static_Handlers()
         {
             var handlers = messageHandlerCollection.GetDispatchersForMessageType(typeof(SampleMessage2));

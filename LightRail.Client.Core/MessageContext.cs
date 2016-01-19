@@ -7,16 +7,15 @@ namespace LightRail.Client
         public IBus Bus { get; }
         public string MessageID { get; }
         public IServiceLocator ServiceLocator { get; }
-        public object CurrentMessage { get; internal set; }
-        public string SerializedMessageData { get; internal set; }
+        public object CurrentMessage { get; }
 
-        private readonly IReadOnlyDictionary<string, string> headers;
+        private readonly IReadOnlyDictionary<string, string> _headers;
 
         public IReadOnlyDictionary<string, string> Headers
         {
             get
             {
-                return headers;
+                return _headers;
             }
         }
 
@@ -27,15 +26,16 @@ namespace LightRail.Client
         {
             get
             {
-                return headers[key];
+                return _headers[key];
             }
         }
 
-        public MessageContext(IBus bus, string messageID, Dictionary<string, string> headers, IServiceLocator serviceLocator)
+        public MessageContext(IBus bus, string messageID, Dictionary<string, string> headers, object currentMessage, IServiceLocator serviceLocator)
         {
             this.Bus = bus;
             this.MessageID = messageID;
-            this.headers = headers;
+            this._headers = headers;
+            this.CurrentMessage = currentMessage;
             this.ServiceLocator = serviceLocator;
         }
     }
