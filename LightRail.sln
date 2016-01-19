@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.SampleServer", "LightRail.SampleServer\LightRail.SampleServer.csproj", "{7C77AFBD-FF65-40FE-A5FC-6EB098D06658}"
 EndProject
@@ -38,6 +38,14 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.NLog", "LightRail.NLog\LightRail.NLog.csproj", "{6B8DC776-3FAB-46E6-BA16-0571DA491E53}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Unity", "LightRail.Unity\LightRail.Unity.csproj", "{61B5D60F-DF4F-439B-9E29-039E916BCBE1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Client.Core", "LightRail.Client.Core\LightRail.Client.Core.csproj", "{90AB6110-EE9C-4021-8458-F14545BB4C9C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Client.Amqp", "LightRail.Client.Amqp\LightRail.Client.Amqp.csproj", "{4844571C-B9D4-4886-808E-495D4F851A94}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.AzureServiceBus", "Samples\Samples.AzureServiceBus\Samples.AzureServiceBus.csproj", "{78512FBA-5BCA-4EB6-8E0C-16197B5388AC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Client.UnitTests", "LightRail.Client.UnitTests\LightRail.Client.UnitTests.csproj", "{C491F223-367B-443C-B5CB-C015DD8B91E7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -85,6 +93,22 @@ Global
 		{61B5D60F-DF4F-439B-9E29-039E916BCBE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61B5D60F-DF4F-439B-9E29-039E916BCBE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61B5D60F-DF4F-439B-9E29-039E916BCBE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90AB6110-EE9C-4021-8458-F14545BB4C9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90AB6110-EE9C-4021-8458-F14545BB4C9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90AB6110-EE9C-4021-8458-F14545BB4C9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90AB6110-EE9C-4021-8458-F14545BB4C9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4844571C-B9D4-4886-808E-495D4F851A94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4844571C-B9D4-4886-808E-495D4F851A94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4844571C-B9D4-4886-808E-495D4F851A94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4844571C-B9D4-4886-808E-495D4F851A94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78512FBA-5BCA-4EB6-8E0C-16197B5388AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78512FBA-5BCA-4EB6-8E0C-16197B5388AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78512FBA-5BCA-4EB6-8E0C-16197B5388AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78512FBA-5BCA-4EB6-8E0C-16197B5388AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C491F223-367B-443C-B5CB-C015DD8B91E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C491F223-367B-443C-B5CB-C015DD8B91E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C491F223-367B-443C-B5CB-C015DD8B91E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C491F223-367B-443C-B5CB-C015DD8B91E7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -94,5 +118,6 @@ Global
 		{844AB21A-62F6-4FE4-8C82-35DD22978AFB} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 		{12A6752F-D35D-4F69-8069-246FA26ACFC1} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 		{50A30FAA-B3FA-4228-8702-785EF0FFEF23} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
+		{78512FBA-5BCA-4EB6-8E0C-16197B5388AC} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 	EndGlobalSection
 EndGlobal
