@@ -1,24 +1,32 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LightRail.Client
 {
     public interface IBus
+        : IMessageCreator
     {
         /// <summary>
-        /// Publishes a message to the current list of subscribers
+        /// Sends a message to the configured destination
         /// </summary>
-        void Publish<T>(T message);
+        void Send<T>(T message);
+        /// <summary>
+        /// Sends a message to a specific address
+        /// </summary>
+        void Send<T>(T message, string address);
 
         /// <summary>
-        /// Gets the message context containing the Id, return address, and headers
-        /// of the message currently being handled on this thread.
-        /// 
-        /// This may be null if a message is not currently being handled on this thread.
+        /// Called whenever a message is successfully processed.
         /// </summary>
-        MessageContext CurrentMessageContext { get; }
+        /// <remarks>
+        /// The event handlers are called asnychronously on a background thread.
+        /// </remarks>
+        event EventHandler<MessageProcessedEventArgs> MessageProcessed;
+        /// <summary>
+        /// Called whenever a poison message is detected by the infrastructure.
+        /// </summary>
+        /// <remarks>
+        /// The event handlers are called asnychronously on a background thread.
+        /// </remarks>
+        event EventHandler<PoisonMessageDetectedEventArgs> PoisonMessageDetected;
     }
 }

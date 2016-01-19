@@ -89,7 +89,7 @@ namespace LightRail.Client.Dispatch
                 MessageHandlerMethodDispatcherTests.TestPassed = true;
                 await Task.Delay(0);
             });
-            executor.Execute("Message", new MessageContext()).Wait();
+            executor.Execute("Message", Helpers.GetUninitializedObject<MessageContext>()).Wait();
             Assert.True(TestPassed, "Did Not Pass");
         }
         [Test]
@@ -103,7 +103,7 @@ namespace LightRail.Client.Dispatch
                 await Task.Delay(0);
             };
             var executor = new MessageHandlerMethodDispatcher(f, null);
-            executor.Execute("Message", new MessageContext()).Wait();
+            executor.Execute("Message", Helpers.GetUninitializedObject<MessageContext>()).Wait();
             Assert.True(TestPassed, "Did Not Pass");
         }
     }

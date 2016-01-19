@@ -7,9 +7,9 @@ using LightRail.Client.Config;
 
 namespace LightRail.Client.InMemory
 {
-    public class InMemoryConfiguration : IServiceBusConfig
+    public class InMemoryConfiguration : BaseServiceBusConfig
     {
-        public void ReceiveFrom(object host, string address, Action<IQueueReceiverConfiguration> cfg)
+        public override void ReceiveFrom(object host, string address, Action<IQueueReceiverConfiguration> cfg)
         {
             throw new NotImplementedException();
         }

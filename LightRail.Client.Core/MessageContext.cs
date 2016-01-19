@@ -4,39 +4,39 @@ namespace LightRail.Client
 {
     public class MessageContext
     {
-        ////public IBus Bus { get; private set; }
-        //public string MessageID { get; private set; }
-        //public IServiceLocator ServiceLocator { get; private set; }
-        //public object CurrentMessage { get; set; }
-        //public string SerializedMessageData { get; set; }
+        public IBus Bus { get; }
+        public string MessageID { get; }
+        public IServiceLocator ServiceLocator { get; }
+        public object CurrentMessage { get; internal set; }
+        public string SerializedMessageData { get; internal set; }
 
-        //private readonly IReadOnlyDictionary<string, string> headers;
+        private readonly IReadOnlyDictionary<string, string> headers;
 
-        //public IReadOnlyDictionary<string, string> Headers
-        //{
-        //    get
-        //    {
-        //        return headers;
-        //    }
-        //}
+        public IReadOnlyDictionary<string, string> Headers
+        {
+            get
+            {
+                return headers;
+            }
+        }
 
-        ///// <summary>
-        ///// Returns the current message header value for the given key.
-        ///// </summary>
-        //public string this[string key]
-        //{
-        //    get
-        //    {
-        //        return headers[key];
-        //    }
-        //}
+        /// <summary>
+        /// Returns the current message header value for the given key.
+        /// </summary>
+        public string this[string key]
+        {
+            get
+            {
+                return headers[key];
+            }
+        }
 
-        //public MessageContext(IBus bus, string messageID, Dictionary<string, string> headers, IServiceLocator serviceLocator)
-        //{
-        //    this.Bus = bus;
-        //    this.MessageID = messageID;
-        //    this.headers = headers;
-        //    this.ServiceLocator = serviceLocator;
-        //}
+        public MessageContext(IBus bus, string messageID, Dictionary<string, string> headers, IServiceLocator serviceLocator)
+        {
+            this.Bus = bus;
+            this.MessageID = messageID;
+            this.headers = headers;
+            this.ServiceLocator = serviceLocator;
+        }
     }
 }

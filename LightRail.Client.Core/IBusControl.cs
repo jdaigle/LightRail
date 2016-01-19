@@ -7,7 +7,7 @@ namespace LightRail.Client
         /// <summary>
         /// Starts message receiver threads.
         /// </summary>
-        void Start();
+        IBus Start();
 
         /// <summary>
         /// Stops message receiver threads while waiting for existing dispatched messages to finish executing.

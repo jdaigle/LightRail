@@ -120,7 +120,7 @@ namespace LightRail.Client.Reflection
 
                     if (args.Length == 2)
                         if (typeof(KeyValuePair<,>).MakeGenericType(args) == t)
-                            result = "LightRail.Serialization." + result;
+                            result = "LightRail.Client.Serialization." + result;
 
                     lock (TypeToNameLookup)
                         TypeToNameLookup[t] = result;
