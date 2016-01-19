@@ -49,16 +49,22 @@ namespace LightRail.Dispatch
             foreach (var method in FindAllMessageHandlerMethods(assembliesToScan))
             {
                 var messageType = FindMessageTypeFromMethodParameters(method);
-                if (!messageTypeToMessageHandlerDictionary.ContainsKey(messageType))
-                {
-                    messageTypeToMessageHandlerDictionary.Add(messageType, new List<MessageHandlerMethodDispatcher>());
-                }
                 var dispatcher = new MessageHandlerMethodDispatcher(method, messageType);
-                messageTypeToMessageHandlerDictionary[messageType].Add(dispatcher);
+                AddMessageHandler(dispatcher);
                 logger.Debug("Associated '{0}' message with static method '{1}'", messageType, method);
             }
 
             this.isInit = true;
+        }
+
+        public void AddMessageHandler(MessageHandlerMethodDispatcher messageHandler)
+        {
+            var messageType = messageHandler.HandledMessageType;
+            if (!messageTypeToMessageHandlerDictionary.ContainsKey(messageType))
+            {
+                messageTypeToMessageHandlerDictionary.Add(messageType, new List<MessageHandlerMethodDispatcher>());
+            }
+            messageTypeToMessageHandlerDictionary[messageType].Add(messageHandler);
         }
 
         public IEnumerable<MessageHandlerMethodDispatcher> GetDispatchersForMessageType(Type messageType)
