@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using LightRail.Client.Config;
-using LightRail.Client.Dispatch;
 using LightRail.Client.Logging;
-using LightRail.Client.Pipeline;
 using LightRail.Client.Reflection;
+using LightRail.Client.Transport;
 using LightRail.Client.Util;
 
 namespace LightRail.Client
@@ -17,16 +15,7 @@ namespace LightRail.Client
         public PipelineServiceBus(IServiceBusConfig config)
         {
             this.Name = Guid.NewGuid().ToString();
-
-            this.ServiceLocator = config.ServiceLocator;
             this.MessageMapper = new ReflectionMessageMapper();
-            this.MessageHandlers = config.MessageHandlers;
-
-            var messageHandlerPipelinedBehaviors = config.PipelinedBehaviors.ToList(); // copy the list
-            // ensure MessageHandlerDispatchBehavior is added to the end
-            messageHandlerPipelinedBehaviors.RemoveAll(x => x is MessageHandlerDispatchBehavior);
-            messageHandlerPipelinedBehaviors.Add(new MessageHandlerDispatchBehavior());
-            this.compiledMessageHandlerPipeline = PipelinedBehavior.CompileMessageHandlerPipeline(messageHandlerPipelinedBehaviors);
 
             this.staticRoutes = new Dictionary<Type, HashSet<string>>();
             foreach (var mapping in config.MessageEndpointMappings.OrderByDescending(m => m))
@@ -42,25 +31,27 @@ namespace LightRail.Client
                 });
             }
 
-            //this.Transport = config.TransportConstructor();
-            this.Transport.MessageAvailable += (sender, messageAvailable) => OnMessageAvailable(messageAvailable);
-            this.Transport.PoisonMessageDetected += (sender, poisonMessageDetected) => OnPoisonMessageDetected(poisonMessageDetected);
-            this.startupActions.Add(() => this.Transport.Start());
+            List<PipelineMessageReceiver> receivers;
+            MessageReceivers = receivers = new List<PipelineMessageReceiver>();
+            foreach (var receiverConfig in config.MessageReceivers)
+            {
+                var receiver = new PipelineMessageReceiver(receiverConfig, config);
+                receivers.Add(receiver);
+                this.startupActions.Add(() => receiver.Start());
+            }
         }
 
         private static ILogger logger = LogManager.GetLogger("LightRail.Client");
 
         public string Name { get; }
-        public ITransport Transport { get; }
-        public MessageHandlerCollection MessageHandlers { get; }
-        public IServiceLocator ServiceLocator { get; }
+        public ITransportSender Transport { get; }
         public IMessageMapper MessageMapper { get; }
+        public IEnumerable<PipelineMessageReceiver> MessageReceivers { get; }
 
         public event EventHandler<MessageProcessedEventArgs> MessageProcessed;
         public event EventHandler<PoisonMessageDetectedEventArgs> PoisonMessageDetected;
 
         private readonly List<Action> startupActions = new List<Action>();
-        private readonly Func<MessageContext, Task> compiledMessageHandlerPipeline;
         private readonly Dictionary<Type, HashSet<String>> staticRoutes;
 
         public IBus Start()
@@ -78,7 +69,10 @@ namespace LightRail.Client
         public void Stop(TimeSpan timeSpan)
         {
             logger.Info("Stopping PipelineServiceBus[{0}]", Name);
-            this.Transport.Stop(timeSpan);
+            foreach (var receiver in MessageReceivers)
+            {
+                receiver.Stop(timeSpan);
+            }
         }
 
         public void Send<T>(T message)
@@ -136,72 +130,6 @@ namespace LightRail.Client
             return addresses;
         }
 
-        private void OnMessageAvailable(MessageAvailableEventArgs value)
-        {
-            throw new NotImplementedException();
-            //using (var childServiceLocator = this.ServiceLocator.CreateNestedContainer())
-            //{
-            //    var currentMessageContext = new MessageContext(this, value.TransportMessage.MessageId, value.TransportMessage.Headers, childServiceLocator);
-
-            //    // register a bunch of things we might want to use during the message handling
-            //    childServiceLocator.RegisterSingleton<IBus>(this);
-            //    childServiceLocator.RegisterSingleton(this.MessageHandlers);
-            //    childServiceLocator.RegisterSingleton<IMessageMapper>(this.MessageMapper);
-            //    childServiceLocator.RegisterSingleton<ITransport>(this.Transport);
-            //    childServiceLocator.RegisterSingleton<MessageContext>(currentMessageContext);
-
-            //    try
-            //    {
-            //        object message = null;
-            //        try
-            //        {
-            //            message = DeserializeMessage(value);
-            //        }
-            //        catch (Exception e)
-            //        {
-            //            logger.Error(e, "Cannot deserialize message.");
-            //            // The message cannot be deserialized. There is no reason
-            //            // to retry.
-            //            throw new CannotDeserializeMessageException(e);
-            //        }
-            //        currentMessageContext.CurrentMessage = message;
-            //        currentMessageContext.SerializedMessageData = value.TransportMessage.SerializedMessageData;
-
-            //        var stopwatch = Stopwatch.StartNew();
-            //        var startTimestamp = DateTime.UtcNow;
-
-            //        compiledMessageHandlerPipeline(currentMessageContext);
-
-            //        var endTimestamp = DateTime.UtcNow;
-            //        stopwatch.Stop();
-
-            //        OnMessageProcessed(new MessageProcessedEventArgs(currentMessageContext, startTimestamp, endTimestamp, stopwatch.Elapsed.TotalMilliseconds));
-            //    }
-            //    finally
-            //    {
-            //        currentMessageContext = null;
-            //    }
-            //}
-        }
-
-        public void OnMessageProcessed(MessageProcessedEventArgs args)
-        {
-            if (MessageProcessed != null)
-            {
-                var callback = MessageProcessed;
-                Task.Factory.StartNew(() => callback(this, args));
-            }
-        }
-
-        public void OnPoisonMessageDetected(PoisonMessageDetectedEventArgs args)
-        {
-            if (PoisonMessageDetected != null)
-            {
-                var callback = PoisonMessageDetected;
-                Task.Factory.StartNew(() => callback(this, args));
-            }
-        }
-
         public T CreateInstance<T>()
         {
             return MessageMapper.CreateInstance<T>();
@@ -215,6 +143,24 @@ namespace LightRail.Client
                 action(instance);
             }
             return instance;
+        }
+
+        internal void OnMessageProcessed(PipelineMessageReceiver sender, MessageProcessedEventArgs args)
+        {
+            if (MessageProcessed != null)
+            {
+                var callback = MessageProcessed;
+                Task.Factory.StartNew(() => callback(sender, args));
+            }
+        }
+
+        internal void OnPoisonMessageDetected(PipelineMessageReceiver sender, PoisonMessageDetectedEventArgs args)
+        {
+            if (PoisonMessageDetected != null)
+            {
+                var callback = PoisonMessageDetected;
+                Task.Factory.StartNew(() => callback(sender, args));
+            }
         }
     }
 }

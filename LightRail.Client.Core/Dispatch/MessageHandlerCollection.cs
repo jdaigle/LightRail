@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -7,7 +8,7 @@ using LightRail.Client.Reflection;
 
 namespace LightRail.Client.Dispatch
 {
-    public class MessageHandlerCollection
+    public class MessageHandlerCollection : IEnumerable<MessageHandlerMethodDispatcher>
     {
         private static ILogger logger = LogManager.GetLogger("LightRail.Dispatch");
 
@@ -15,7 +16,15 @@ namespace LightRail.Client.Dispatch
 
         public void ScanAssembliesAndMapMessageHandlers(IEnumerable<Assembly> assembliesToScan)
         {
-            foreach (var method in FindAllMessageHandlerMethods(assembliesToScan))
+            foreach (var assembly in assembliesToScan)
+            {
+                ScanAssemblyAndMapMessageHandlers(assembly);
+            }
+        }
+
+        public void ScanAssemblyAndMapMessageHandlers(Assembly assembly)
+        {
+            foreach (var method in FindAllMessageHandlerMethods(assembly))
             {
                 var messageType = FindMessageTypeFromMethodParameters(method);
                 AddMessageHandler(method, messageType);
@@ -35,7 +44,11 @@ namespace LightRail.Client.Dispatch
             {
                 messageTypeToMessageHandlerDictionary.Add(messageType, new List<MessageHandlerMethodDispatcher>());
             }
-            messageTypeToMessageHandlerDictionary[messageType].Add(messageHandler);
+            var messageHandlers = messageTypeToMessageHandlerDictionary[messageType];
+            if (!messageHandlers.Any(x => x.MethodInfo == messageHandler.MethodInfo))
+            {
+                messageTypeToMessageHandlerDictionary[messageType].Add(messageHandler);
+            }
         }
 
         public IEnumerable<MessageHandlerMethodDispatcher> GetDispatchersForMessageType(Type messageType)
@@ -54,20 +67,17 @@ namespace LightRail.Client.Dispatch
         }
 
         /// <summary>
-        /// Scans all assemblies and returns a distinct list of all MethodInfo which have the MessageHandlerAttribute
+        /// Scans the assembly and returns a distinct list of all MethodInfo which have the MessageHandlerAttribute
         /// </summary>
-        public static IEnumerable<MethodInfo> FindAllMessageHandlerMethods(IEnumerable<Assembly> assemblies)
+        public static IEnumerable<MethodInfo> FindAllMessageHandlerMethods(Assembly assembly)
         {
-            foreach (var assembly in assemblies)
+            foreach (var type in assembly.GetTypesSafely())
             {
-                foreach (var type in assembly.GetTypesSafely())
+                foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance))
                 {
-                    foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance))
+                    if (IsMessageHandlerMethod(method))
                     {
-                        if (IsMessageHandlerMethod(method))
-                        {
-                            yield return method;
-                        }
+                        yield return method;
                     }
                 }
             }
@@ -86,6 +96,28 @@ namespace LightRail.Client.Dispatch
                 throw new InvalidOperationException(string.Format("Method {0} is marked with [MessageHandlerAttribute] does not have any parameters. The first parameter is the handled message type.", method));
             }
             return parameter.ParameterType;
+        }
+
+        public IEnumerator<MessageHandlerMethodDispatcher> GetEnumerator()
+        {
+            foreach (var col in messageTypeToMessageHandlerDictionary.Values)
+            {
+                foreach (var item in col)
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            foreach (var col in messageTypeToMessageHandlerDictionary.Values)
+            {
+                foreach (var item in col)
+                {
+                    yield return item;
+                }
+            }
         }
     }
 }

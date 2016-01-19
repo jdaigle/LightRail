@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using LightRail.Client;
 using LightRail.Client.InMemory;
@@ -12,7 +9,7 @@ namespace Samples.AzureServiceBus
     {
         public static void Main(string[] args)
         {
-            var busControl = ServiceBus.Create<InMemoryConfiguration>(cfg =>
+            var busControl = ServiceBus.Factory.CreateFromInMemory(cfg =>
             {
                 //var host = cfg.Host(new Uri("amqps://SenderListener:2o6Aj2htucx/Oti9IzyVfBwS2RYCd2+UGfZWYepOx+I=@jdaigle-test-amqp.servicebus.windows.net"), hcfg =>
                 //{
@@ -20,7 +17,7 @@ namespace Samples.AzureServiceBus
                 //});
 
                 object host = null;
-                
+
                 cfg.ReceiveFrom(host, "event_queue", e =>
                 {
                     e.ScanForHandlersFromAssembly(typeof(SimpleMessageHandler).Assembly);

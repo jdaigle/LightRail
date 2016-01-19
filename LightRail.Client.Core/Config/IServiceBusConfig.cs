@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using LightRail.Client.Dispatch;
 using LightRail.Client.Pipeline;
 
@@ -7,34 +6,25 @@ namespace LightRail.Client.Config
 {
     public interface IServiceBusConfig
     {
+        /// <summary>
+        /// The collection of message handlers shared by all message receivers.
+        /// </summary>
         MessageHandlerCollection MessageHandlers { get; }
+        /// <summary>
+        /// A service locator used to resolve message handler dependencies.
+        /// </summary>
         IServiceLocator ServiceLocator { get; }
+        /// <summary>
+        /// A set of static message endpoint mappings for resolving static message routes.
+        /// </summary>
         IList<MessageEndpointMapping> MessageEndpointMappings { get; }
+        /// <summary>
+        /// An ordered list of behaviors that will execute for each message.
+        /// </summary>
         IList<PipelinedBehavior> PipelinedBehaviors { get; }
-
         /// <summary>
-        /// Adds a static route mapping a specific type to an endpoint address.
+        /// A set of message receivers configs.
         /// </summary>
-        void AddMessageEndpointMapping<T>(string endpoint);
-        /// <summary>
-        /// Adds a static route mapping a specific type to an endpoint address.
-        /// </summary>
-        void AddMessageEndpointMapping(string endpoint, Type type);
-        /// <summary>
-        /// Adds a static route mapping all types in an specific assembly, or just a single type, to an endpoint address.
-        /// </summary>
-        void AddMessageEndpointMapping(string endpoint, string assemblyName, string typeFullName = null);
-        /// <summary>
-        /// Adds a static route mapping.
-        /// </summary>
-        void AddMessageEndpointMapping(MessageEndpointMapping mapping);
-
-        /// <summary>
-        /// Adds a PipelinesBehavior which executes for each received message. Behaviors are executed in the order they are
-        /// added to the list. A behavior can be added twice.
-        /// </summary>
-        void AddPipelinedBehavior(PipelinedBehavior behavior);
-
-        void ReceiveFrom(object host, string address, Action<IQueueReceiverConfiguration> cfg);
+        IList<IMessageReceiverConfiguration> MessageReceivers { get; }
     }
 }

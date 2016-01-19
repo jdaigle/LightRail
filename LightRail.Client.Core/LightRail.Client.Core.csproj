@@ -47,8 +47,11 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Config\BaseMessageReceiverConfiguration.cs" />
     <Compile Include="Config\BaseServiceBusConfig.cs" />
     <Compile Include="Config\MessageEndpointMapping.cs" />
+    <Compile Include="Config\MessageReceiverConfigurator.cs" />
+    <Compile Include="Config\ServiceBusFactory.cs" />
     <Compile Include="Dispatch\IMessageHandlerDispatcher.cs" />
     <Compile Include="Dispatch\MessageHandlerCollection.cs" />
     <Compile Include="Dispatch\MessageHandlerMethodDispatcher.cs" />
@@ -60,10 +63,12 @@
     <Compile Include="IMessageCreator.cs" />
     <Compile Include="IMessageMapper.cs" />
     <Compile Include="IncomingTransportMessage.cs" />
-    <Compile Include="InMemory\InMemoryConfiguration.cs" />
-    <Compile Include="Config\IQueueReceiverConfiguration.cs" />
+    <Compile Include="InMemory\InMemoryConfiguratorExtensions.cs" />
+    <Compile Include="InMemory\InMemoryMessageReceiverConfiguration.cs" />
+    <Compile Include="InMemory\InMemoryServiceBusConfiguration.cs" />
+    <Compile Include="Config\IMessageReceiverConfiguration.cs" />
     <Compile Include="Config\IServiceBusConfig.cs" />
-    <Compile Include="ITransport.cs" />
+    <Compile Include="Transport\ITransportSender.cs" />
     <Compile Include="Logging\ConsoleLogFactory.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\ILogger.cs" />
@@ -76,6 +81,7 @@
     <Compile Include="MessageHandlerAttribute.cs" />
     <Compile Include="MessageProcessedEventArgs.cs" />
     <Compile Include="OutgoingTransportMessage.cs" />
+    <Compile Include="PipelineMessageReceiver.cs" />
     <Compile Include="PipelineServiceBus.cs" />
     <Compile Include="Pipeline\MessageHandlerDispatchBehavior.cs" />
     <Compile Include="Pipeline\PipelinedBehavior.cs" />
@@ -87,6 +93,7 @@
     <Compile Include="IServiceLocator.cs" />
     <Compile Include="MessageContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Transport\ITransportReceiver.cs" />
     <Compile Include="Util\StringExtensions.cs" />
     <Compile Include="Util\Guard.cs" />
   </ItemGroup>

@@ -21,6 +21,11 @@ namespace LightRail.Client.Dispatch
             return new MessageHandlerMethodDispatcher((Delegate)method, typeof(T1));
         }
 
+        public static MessageHandlerMethodDispatcher FromDelegate<T1>(Func<T1, Task> method)
+        {
+            return new MessageHandlerMethodDispatcher((Delegate)method, typeof(T1));
+        }
+
         public MessageHandlerMethodDispatcher(Delegate method, Type handledMessageType)
         {
             var methodInfo = method.Method;

@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 
-namespace LightRail.Client
+namespace LightRail.Client.Transport
 {
-    public interface ITransport
+    public interface ITransportReceiver
     {
         /// <summary>
         /// Starts message receiver threads.
@@ -13,12 +12,6 @@ namespace LightRail.Client
         /// Stops message receiver threads and drains any currently executing messages up until the timeSpan elapses
         /// </summary>
         void Stop(TimeSpan timeSpan);
-
-        /// <summary>
-        /// Sends the specified message to the set of addresses
-        /// </summary>
-        void Send(OutgoingTransportMessage transportMessage, IEnumerable<string> addresses);
-
         /// <summary>
         /// Called when a message is read and available
         /// </summary>
