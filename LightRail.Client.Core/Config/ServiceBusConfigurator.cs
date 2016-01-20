@@ -1,10 +1,11 @@
 ﻿using System;
 using LightRail.Client.Pipeline;
+using LightRail.Client.Transport;
 
 namespace LightRail.Client.Config
 {
-    public class ServiceBusConfigurator<TConfig> 
-        where TConfig : IServiceBusConfig, new()
+    public class ServiceBusConfigurator<TConfig>
+        where TConfig : class, IServiceBusConfig, new()
     {
         public TConfig Config { get; }
 
@@ -38,7 +39,19 @@ namespace LightRail.Client.Config
             Config.PipelinedBehaviors.Add(behavior);
         }
 
-        public void ReceiveFrom<T>(object host, string address, Action<MessageReceiverConfigurator<T>> cfg)
+        public TTransportHost Host<TTransportHost>(string uri, Action<TTransportHost> configuator)
+            where TTransportHost : class, ITransportHost
+        {
+            TTransportHost host;
+            Config.Host = host = (TTransportHost)Activator.CreateInstance(typeof(TTransportHost), uri);
+            if (configuator != null)
+            {
+                configuator(host);
+            }
+            return host;
+        }
+
+        public void ReceiveFrom<T>(ITransportHost host, string address, Action<MessageReceiverConfigurator<T>> cfg)
             where T : IMessageReceiverConfiguration, new()
         {
             var _configurator = new MessageReceiverConfigurator<T>();

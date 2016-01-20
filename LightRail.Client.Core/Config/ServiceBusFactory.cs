@@ -9,7 +9,7 @@ namespace LightRail.Client.Config
         private ServiceBusFactory() { }
 
         public IBusControl Create<TConfig>(Action<ServiceBusConfigurator<TConfig>> cfg)
-            where TConfig : IServiceBusConfig, new()
+            where TConfig : class, IServiceBusConfig, new()
         {
             var configurator = new ServiceBusConfigurator<TConfig>();
             cfg(configurator);

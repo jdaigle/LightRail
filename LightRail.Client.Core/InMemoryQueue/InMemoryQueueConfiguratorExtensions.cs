@@ -1,5 +1,6 @@
 ﻿using System;
 using LightRail.Client.Config;
+using LightRail.Client.Transport;
 
 namespace LightRail.Client.InMemoryQueue
 {
@@ -11,7 +12,7 @@ namespace LightRail.Client.InMemoryQueue
         }
 
         public static void ReceiveFrom(this ServiceBusConfigurator<InMemoryQueueServiceBusConfiguration> configurator,
-            object host, string address, Action<MessageReceiverConfigurator<InMemoryQueueMessageReceiverConfiguration>> cfg)
+            ITransportHost host, string address, Action<MessageReceiverConfigurator<InMemoryQueueMessageReceiverConfiguration>> cfg)
         {
             configurator.ReceiveFrom<InMemoryQueueMessageReceiverConfiguration>(host, address, cfg);
         }

@@ -33,8 +33,13 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Amqp.Net, Version=1.1.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\AMQPNetLite.1.1.5\lib\net45\Amqp.Net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Transactions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -46,6 +51,12 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="AmqpHost.cs" />
+    <Compile Include="AmqpTransportSender.cs" />
+    <Compile Include="Config\AmqpMessageReceiverConfiguration.cs" />
+    <Compile Include="Config\AmqpServiceBusConfiguration.cs" />
+    <Compile Include="AmqpConfiguratorExtensions.cs" />
+    <Compile Include="AmqpTransportReceiver.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -53,6 +64,9 @@
       <Project>{90ab6110-ee9c-4021-8458-f14545bb4c9c}</Project>
       <Name>LightRail.Client.Core</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

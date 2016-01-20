@@ -70,6 +70,7 @@
     <Compile Include="Config\IServiceBusConfig.cs" />
     <Compile Include="InMemoryQueue\InMemoryQueueTransportReceiver.cs" />
     <Compile Include="InMemoryQueue\InMemoryQueueTransportSender.cs" />
+    <Compile Include="Transport\ITransportHost.cs" />
     <Compile Include="Transport\ITransportSender.cs" />
     <Compile Include="Logging\ConsoleLogFactory.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
