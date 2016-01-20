@@ -49,6 +49,7 @@ namespace LightRail.Client.Amqp
 
         private bool hasStarted;
         private readonly object startLock = new object();
+        private readonly List<Task> receiverThreads = new List<Task>();
 
         public void Start()
         {
@@ -67,7 +68,7 @@ namespace LightRail.Client.Amqp
 
                 for (int threadIndex = 0; threadIndex < MaxConcurrency; threadIndex++)
                 {
-                    Task.Factory.StartNew(LoopAndReceiveMessage, threadIndex.ToString(), TaskCreationOptions.LongRunning);
+                    receiverThreads.Add(Task.Factory.StartNew(LoopAndReceiveMessage, threadIndex.ToString(), TaskCreationOptions.LongRunning));
                 }
 
                 hasStarted = true;
@@ -77,6 +78,8 @@ namespace LightRail.Client.Amqp
         public void Stop(TimeSpan timeSpan)
         {
             hasStarted = false;
+            var tasks = receiverThreads.ToArray();
+            Task.WaitAll(tasks, timeSpan);
         }
 
         private void LoopAndReceiveMessage(object threadIndex)
@@ -90,68 +93,96 @@ namespace LightRail.Client.Amqp
             {
                 while (hasStarted)
                 {
-                    if (connection == null)
+                    try
                     {
-                        logger.Debug("{0}: Connection Opening", threadName);
-                        connection = new Connection(ampqAddress);
-                        connection.Closed = (sender, error) =>
+                        if (connection == null)
                         {
-                            connection = null;
-                            session = null;
-                            receiverLink = null;
-                            logger.Debug("{0}: Connection Closed", threadName);
-                            if (error != null)
+                            logger.Debug("{0}: Connection Opening", threadName);
+                            connection = new Connection(ampqAddress);
+                            connection.Closed = (sender, error) =>
                             {
-                                logger.Error("{0}: Connection Closed With Error: {1}", threadName, error.Description);
-                            }
-                        };
+                                connection = null;
+                                session = null;
+                                receiverLink = null;
+                                logger.Debug("{0}: Connection Closed", threadName);
+                                if (error != null)
+                                {
+                                    logger.Error("{0}: Connection Closed With Error: {1}", threadName, error.Description);
+                                }
+                            };
+                        }
+                        if (session == null)
+                        {
+                            logger.Debug("{0}: Session Beginning", threadName);
+                            session = new Session(connection);
+                            session.Closed = (sender, error) =>
+                            {
+                                session = null;
+                                receiverLink = null;
+                                logger.Debug("{0}: Session Ended", threadName);
+                                if (error != null)
+                                {
+                                    logger.Error("{0}: Session Ended With Error: {1}", threadName, error.Description);
+                                }
+                            };
+                        }
+                        if (receiverLink == null)
+                        {
+                            logger.Debug("{0}: Link Attaching", threadName);
+                            receiverLink = new ReceiverLink(session, threadName, ReceiverLinkAddress);
+                            receiverLink.Closed = (sender, error) =>
+                            {
+                                session = null;
+                                logger.Debug("{0}: Link Detached", threadName);
+                                if (error != null)
+                                {
+                                    logger.Error("{0}: Link Detached With Error: {1}", threadName, error.Description);
+                                }
+                            };
+                        }
+                        TryReceiveMessage(receiverLink);
                     }
-                    if (session == null)
+                    catch (Exception fatalException)
                     {
-                        logger.Debug("{0}: Session Beginning", threadName);
-                        session = new Session(connection);
-                        session.Closed = (sender, error) =>
+                        logger.Fatal(fatalException, "{0}: A Fatal Top Level Exception Was Caught. Thread will sleep for 10 seconds and try again.", threadName);
+                        try
                         {
-                            session = null;
-                            receiverLink = null;
-                            logger.Debug("{0}: Session Ended", threadName);
-                            if (error != null)
+                            if (receiverLink != null)
                             {
-                                logger.Error("{0}: Session Ended With Error: {1}", threadName, error.Description);
+                                receiverLink.Close();
                             }
-                        };
-                    }
-                    if (receiverLink == null)
-                    {
-                        logger.Debug("{0}: Link Attaching", threadName);
-                        receiverLink = new ReceiverLink(session, threadName, ReceiverLinkAddress);
-                        receiverLink.Closed = (sender, error) =>
-                        {
-                            session = null;
-                            logger.Debug("{0}: Link Detached", threadName);
-                            if (error != null)
+                            if (session != null)
                             {
-                                logger.Error("{0}: Link Detached With Error: {1}", threadName, error.Description);
+                                session.Close();
                             }
-                        };
+                            if (connection != null)
+                            {
+                                connection.Close();
+                            }
+                        }
+                        catch (Exception) { } // intentionally swallow
+                        Thread.Sleep(10000);
                     }
-                    TryReceiveMessage(receiverLink);
                 }
             }
             finally
             {
-                if (receiverLink != null)
+                try
                 {
-                    receiverLink.Close();
+                    if (receiverLink != null)
+                    {
+                        receiverLink.Close();
+                    }
+                    if (session != null)
+                    {
+                        session.Close();
+                    }
+                    if (connection != null)
+                    {
+                        connection.Close();
+                    }
                 }
-                if (session != null)
-                {
-                    session.Close();
-                }
-                if (connection != null)
-                {
-                    connection.Close();
-                }
+                catch (Exception) { } // intentionally swallow
             }
         }
 
