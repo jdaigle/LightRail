@@ -27,12 +27,6 @@ namespace LightRail.Client.Config
         /// A set of message receivers configs.
         /// </summary>
         IList<IMessageReceiverConfiguration> MessageReceivers { get; }
-
-        /// <summary>
-        /// A reference to the configured 
-        /// </summary>
-        ITransportHost Host { get; set; }
-
         /// <summary>
         /// Creates an instance of the configured transport sender.
         /// </summary>

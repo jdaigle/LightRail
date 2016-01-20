@@ -14,10 +14,10 @@ namespace LightRail.Client.Amqp
 {
     public class AmqpTransportReceiver : ITransportReceiver
     {
-        public AmqpTransportReceiver(AmqpHost host, AmqpMessageReceiverConfiguration config, AmqpServiceBusConfiguration serviceBusConfig)
+        public AmqpTransportReceiver(AmqpMessageReceiverConfiguration config, AmqpServiceBusConfiguration serviceBusConfig)
         {
-            this.host = host;
-            QueueName = config.Address;
+            ampqAddress = serviceBusConfig.AmqpAddress;
+            ReceiverLinkAddress = config.ReceiverLinkAddress;
             MaxRetries = config.MaxRetries;
             if (MaxRetries < 0)
             {
@@ -36,8 +36,8 @@ namespace LightRail.Client.Amqp
         public event EventHandler<MessageAvailableEventArgs> MessageAvailable;
         public event EventHandler<PoisonMessageDetectedEventArgs> PoisonMessageDetected;
 
-        private readonly AmqpHost host;
-        public string QueueName { get; }
+        private readonly Address ampqAddress;
+        public string ReceiverLinkAddress { get; }
 
         public int MaxRetries { get; }
         public int MaxConcurrency { get; }
@@ -77,7 +77,7 @@ namespace LightRail.Client.Amqp
 
         private void LoopAndReceiveMessage(object threadIndex)
         {
-            var threadName = $"Receiver[{QueueName}][{threadIndex}]";
+            var threadName = $"Receiver[{ReceiverLinkAddress}][{threadIndex}]";
             logger.Info("{0} Started", threadName);
             Connection connection = null;
             Session session = null;
@@ -89,7 +89,7 @@ namespace LightRail.Client.Amqp
                     if (connection == null)
                     {
                         logger.Debug("{0}: Connection Opening", threadName);
-                        connection = new Connection(host.Address);
+                        connection = new Connection(ampqAddress);
                         connection.Closed = (sender, error) =>
                         {
                             connection = null;
@@ -120,7 +120,7 @@ namespace LightRail.Client.Amqp
                     if (receiverLink == null)
                     {
                         logger.Debug("{0}: Link Attaching", threadName);
-                        receiverLink = new ReceiverLink(session, threadName, QueueName);
+                        receiverLink = new ReceiverLink(session, threadName, ReceiverLinkAddress);
                         receiverLink.Closed = (sender, error) =>
                         {
                             session = null;
@@ -197,7 +197,7 @@ namespace LightRail.Client.Amqp
                     logger.Info("{0}: MaxRetriesExceeded for MessageId={1}. Will not re-enque.", threadName, messageID.ToString());
                     OnPoisonMessageDetected(new PoisonMessageDetectedEventArgs()
                     {
-                        QueueName = QueueName,
+                        QueueName = ReceiverLinkAddress,
                         Retries = MaxRetries,
                         Exception = lastException,
                         MessageId = messageID,

@@ -39,19 +39,7 @@ namespace LightRail.Client.Config
             Config.PipelinedBehaviors.Add(behavior);
         }
 
-        public TTransportHost Host<TTransportHost>(string uri, Action<TTransportHost> configuator)
-            where TTransportHost : class, ITransportHost
-        {
-            TTransportHost host;
-            Config.Host = host = (TTransportHost)Activator.CreateInstance(typeof(TTransportHost), uri);
-            if (configuator != null)
-            {
-                configuator(host);
-            }
-            return host;
-        }
-
-        public void ReceiveFrom<T>(ITransportHost host, string address, Action<MessageReceiverConfigurator<T>> cfg)
+        public void ReceiveFrom<T>(Action<MessageReceiverConfigurator<T>> cfg)
             where T : IMessageReceiverConfiguration, new()
         {
             var _configurator = new MessageReceiverConfigurator<T>();
@@ -59,7 +47,6 @@ namespace LightRail.Client.Config
             {
                 (_configurator.Config as BaseMessageReceiverConfiguration).ServiceBusConfig = this.Config;
             }
-            _configurator.Config.Address = address;
             cfg(_configurator);
             Config.MessageReceivers.Add(_configurator.Config);
         }

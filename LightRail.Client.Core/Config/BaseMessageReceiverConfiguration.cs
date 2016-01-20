@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Threading.Tasks;
 using LightRail.Client.Dispatch;
 using LightRail.Client.Pipeline;
 using LightRail.Client.Transport;
@@ -17,7 +16,6 @@ namespace LightRail.Client.Config
         public IServiceBusConfig ServiceBusConfig { get; set; }
         public MessageHandlerCollection MessageHandlers { get; }
 
-        public string Address { get; set; }
         public int MaxConcurrency { get; set; } = 1;
         public int MaxRetries { get; set; } = 3;
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using Amqp;
 using LightRail.Client.Amqp.Config;
 using LightRail.Client.Config;
 
@@ -11,17 +12,22 @@ namespace LightRail.Client.Amqp
             return factory.Create(cfg);
         }
 
-        public static AmqpHost Host(this ServiceBusConfigurator<AmqpServiceBusConfiguration> _configurator,
-            string uri,
-            Action<AmqpHost> configurator)
+        public static void AmqpAddressFromUri(this ServiceBusConfigurator<AmqpServiceBusConfiguration> configurator,
+            string uri)
         {
-            return _configurator.Host<AmqpHost>(uri, configurator);
+            configurator.Config.AmqpAddress = new Address(uri);
         }
 
         public static void ReceiveFrom(this ServiceBusConfigurator<AmqpServiceBusConfiguration> configurator,
-            AmqpHost host, string address, Action<MessageReceiverConfigurator<AmqpMessageReceiverConfiguration>> cfg)
+            string address,
+            Action<MessageReceiverConfigurator<AmqpMessageReceiverConfiguration>> cfgAction)
         {
-            configurator.ReceiveFrom<AmqpMessageReceiverConfiguration>(host, address, cfg);
+            configurator.ReceiveFrom<AmqpMessageReceiverConfiguration>(cfg =>
+            {
+                cfg.Config.ReceiverLinkAddress = address;
+                if (cfg != null)
+                    cfgAction(cfg);
+            });
         }
     }
 }

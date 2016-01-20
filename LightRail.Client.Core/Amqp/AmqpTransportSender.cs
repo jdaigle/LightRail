@@ -11,13 +11,13 @@ namespace LightRail.Client.Amqp
 {
     public class AmqpTransportSender : ITransportSender
     {
-        public AmqpTransportSender(AmqpHost host, AmqpServiceBusConfiguration config)
+        public AmqpTransportSender(AmqpServiceBusConfiguration config)
         {
-            this.host = host;
+            ampqAddress = config.AmqpAddress;
         }
 
         private static ILogger logger = LogManager.GetLogger("LightRail.Client.Amqp");
-        private readonly AmqpHost host;
+        private readonly Address ampqAddress;
 
         public void Send(OutgoingTransportMessage transportMessage, IEnumerable<string> addresses)
         {
@@ -39,25 +39,31 @@ namespace LightRail.Client.Amqp
             {
                 message.ApplicationProperties[pair.Key] = pair.Value;
             }
-            var session = host.GetOrOpenSession();
+
+            var connection = new Connection(ampqAddress);
+            var session = new Session(connection);
             // Azure does not support Amqp transactions "The server was unable to process the request; please retry the operation. If the problem persists, please contact your Service Bus administrator and provide the tracking id..TrackingId:583da4f8d58d4fa59dc9521c6f799cb8_GWIN-AN5B307EEHM,TimeStamp:11.7.2014. 7:44:17"
-            //using (var ts = new TransactionScope())
-            //{
-            foreach (var address in addresses)
+            try
             {
-                logger.Info("Sending Message {0} to {1}", message.Properties.MessageId, address);
-                var senderLink = new SenderLink(session, Guid.NewGuid().ToString(), address);
-                try
+                foreach (var address in addresses)
                 {
-                    senderLink.Send(message);
-                }
-                finally
-                {
-                    senderLink.Close();
+                    logger.Info("Sending Message {0} to {1}", message.Properties.MessageId, address);
+                    var senderLink = new SenderLink(session, Guid.NewGuid().ToString(), address);
+                    try
+                    {
+                        senderLink.Send(message);
+                    }
+                    finally
+                    {
+                        senderLink.Close();
+                    }
                 }
             }
-            //ts.Complete();
-            //}
+            finally
+            {
+                session.Close();
+                connection.Close();
+            }
         }
     }
 }

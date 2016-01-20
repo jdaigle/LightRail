@@ -1,13 +1,16 @@
-﻿using LightRail.Client.Config;
+﻿using Amqp;
+using LightRail.Client.Config;
 using LightRail.Client.Transport;
 
 namespace LightRail.Client.Amqp.Config
 {
     public class AmqpServiceBusConfiguration : BaseServiceBusConfig
     {
+        public Address AmqpAddress { get; set; }
+
         public override ITransportSender CreateTransportSender()
         {
-            return new AmqpTransportSender((AmqpHost)this.Host, this);
+            return new AmqpTransportSender(this);
         }
     }
 }

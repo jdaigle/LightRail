@@ -13,9 +13,15 @@ namespace LightRail.Client.InMemoryQueue
         }
 
         public static void ReceiveFrom(this ServiceBusConfigurator<InMemoryQueueServiceBusConfiguration> configurator,
-            ITransportHost host, string address, Action<MessageReceiverConfigurator<InMemoryQueueMessageReceiverConfiguration>> cfg)
+            string address,
+            Action<MessageReceiverConfigurator<InMemoryQueueMessageReceiverConfiguration>> cfgAction)
         {
-            configurator.ReceiveFrom<InMemoryQueueMessageReceiverConfiguration>(host, address, cfg);
+            configurator.ReceiveFrom<InMemoryQueueMessageReceiverConfiguration>(cfg =>
+            {
+                cfg.Config.Address = address;
+                if (cfg != null)
+                    cfgAction(cfg);
+            });
         }
     }
 }

@@ -12,11 +12,9 @@ namespace Samples.AzureServiceBus
         {
             var busControl = ServiceBus.Factory.CreateFromAmqp(cfg =>
             {
-                var host = cfg.Host("amqps://SenderListener:Euwi1XOtdRCn0A1DvmgnwJSjlIMvyeHUjY61I4GkuOI=@jdaigle-test-amqp.servicebus.windows.net", hcfg =>
-                {
-                });
+                cfg.AmqpAddressFromUri("amqps://SenderListener:Euwi1XOtdRCn0A1DvmgnwJSjlIMvyeHUjY61I4GkuOI=@jdaigle-test-amqp.servicebus.windows.net");
 
-                cfg.ReceiveFrom(host, "event_queue", e =>
+                cfg.ReceiveFrom("event_queue", e =>
                 {
                     e.Config.MaxConcurrency = 5;
                     //  e.ScanForHandlersFromAssembly(typeof(Program).Assembly);
@@ -35,7 +33,7 @@ namespace Samples.AzureServiceBus
                     });
                 });
 
-                cfg.ReceiveFrom(host, "event_queue/$DeadLetterQueue", e =>
+                cfg.ReceiveFrom("event_queue/$DeadLetterQueue", e =>
                 {
                     Thread.Sleep(5000);
                     e.Config.MaxConcurrency = 1;
@@ -54,7 +52,7 @@ namespace Samples.AzureServiceBus
             }
 
             Console.WriteLine("Press Any Key To Exit.");
-            Console.ReadLine();
+            Console.ReadKey();
 
             busControl.Stop(TimeSpan.FromSeconds(30));
         }
