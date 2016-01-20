@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Reflection;
-using System.Threading.Tasks;
 using LightRail.Client.Dispatch;
 
 namespace LightRail.Client.Config
@@ -18,6 +17,11 @@ namespace LightRail.Client.Config
         public void ScanForHandlersFromAssembly(Assembly assembly)
         {
             Config.MessageHandlers.ScanAssemblyAndMapMessageHandlers(assembly);
+        }
+
+        public void ScanForHandlersFromCurrentAssembly()
+        {
+            Config.MessageHandlers.ScanAssemblyAndMapMessageHandlers(Assembly.GetCallingAssembly());
         }
 
         public void Handle<TMessage>(Action<TMessage> messageHandler)
