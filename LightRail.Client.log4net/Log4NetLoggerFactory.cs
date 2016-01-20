@@ -1,12 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using LightRail.Client.Logging;
+using log4net.Config;
 using LogManager = log4net.LogManager;
 
 namespace LightRail.Client.log4net
 {
     public class Log4NetLoggerFactory : ILoggerFactory
     {
+        static Log4NetLoggerFactory()
+        {
+            XmlConfigurator.Configure();
+        }
+
         private readonly static object loggerCacheLock = new object();
         private readonly static Dictionary<string, ILogger> loggerCache = new Dictionary<string, ILogger>(StringComparer.InvariantCultureIgnoreCase);
 
@@ -25,7 +31,6 @@ namespace LightRail.Client.log4net
             }
             return loggerCache[name];
         }
-
 
         public ILogger GetLogger(Type type)
         {
