@@ -25,10 +25,6 @@ namespace LightRail.Client.InMemoryQueue
             {
                 MaxConcurrency = 0;
             }
-            if (MaxConcurrency > 0)
-            {
-                workerThreadPool = new Semaphore(MaxConcurrency, MaxConcurrency);
-            }
             faultManager = new TransportMessageFaultManager(MaxRetries);
         }
 
@@ -46,11 +42,11 @@ namespace LightRail.Client.InMemoryQueue
 
         public int MaxRetries { get; }
         public int MaxConcurrency { get; }
-        private readonly Semaphore workerThreadPool;
         private readonly TransportMessageFaultManager faultManager;
 
         private bool hasStarted;
         private readonly object startLock = new object();
+        private readonly List<Task> receiverThreads = new List<Task>();
 
         public void Start()
         {
@@ -69,9 +65,9 @@ namespace LightRail.Client.InMemoryQueue
                 queue = queues.GetOrAdd(QueueName, new ConcurrentQueue<object>());
                 queueNotifier = queueNotifiers.GetOrAdd(QueueName, new AutoResetEvent(false));
 
-                if (MaxConcurrency > 0)
+                for (int threadIndex = 0; threadIndex < MaxConcurrency; threadIndex++)
                 {
-                    Task.Factory.StartNew(LoopAndReceiveMessage, TaskCreationOptions.LongRunning);
+                    receiverThreads.Add(Task.Factory.StartNew(LoopAndReceiveMessage, threadIndex.ToString(), TaskCreationOptions.LongRunning));
                 }
 
                 hasStarted = true;
@@ -81,14 +77,15 @@ namespace LightRail.Client.InMemoryQueue
         public void Stop(TimeSpan timeSpan)
         {
             hasStarted = false;
+            var tasks = receiverThreads.ToArray();
+            Task.WaitAll(tasks, timeSpan);
         }
 
-        private void LoopAndReceiveMessage()
+        private void LoopAndReceiveMessage(object threadIndex)
         {
             logger.Info("Receiving messages on in memory queue [{0}]", QueueName);
             while (hasStarted)
             {
-                workerThreadPool.WaitOne(); // will block if reached max level of concurrency
                 TryReceiveMessage();
             }
         }
@@ -100,26 +97,11 @@ namespace LightRail.Client.InMemoryQueue
             {
                 queueNotifier.WaitOne();
             }
-
             if (message == null)
             {
-                workerThreadPool.Release(1);
                 return;
             }
-
-            // move work to a different thread.
-            Task.Run(() =>
-            {
-                // TryHandleHessage _should not_ throw an exception.
-                try
-                {
-                    TryHandleMessage(message);
-                }
-                finally
-                {
-                    workerThreadPool.Release(1); // release this semaphore back to the pool regardless of what happened
-                }
-            });
+            TryHandleMessage(message);
         }
 
         private void TryHandleMessage(object message)

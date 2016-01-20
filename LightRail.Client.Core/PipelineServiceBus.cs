@@ -66,7 +66,7 @@ namespace LightRail.Client
 
         public void Stop()
         {
-            Stop(TimeSpan.MaxValue);
+            Stop(TimeSpan.FromMilliseconds(int.MaxValue));
         }
 
         public void Stop(TimeSpan timeSpan)
