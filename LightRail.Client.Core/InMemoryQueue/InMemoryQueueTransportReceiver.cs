@@ -95,7 +95,7 @@ namespace LightRail.Client.InMemoryQueue
             object message = null;
             if (!queue.TryDequeue(out message))
             {
-                queueNotifier.WaitOne();
+                queueNotifier.WaitOne(TimeSpan.FromSeconds(1));
             }
             if (message == null)
             {
