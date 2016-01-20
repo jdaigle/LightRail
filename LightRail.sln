@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.AzureServiceBus", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Client.UnitTests", "LightRail.Client.UnitTests\LightRail.Client.UnitTests.csproj", "{C491F223-367B-443C-B5CB-C015DD8B91E7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.Extensions", "Samples\Samples.Extensions\Samples.Extensions.csproj", "{C5D6BA95-24E1-4520-9ABE-9520126183A5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -103,6 +105,10 @@ Global
 		{C491F223-367B-443C-B5CB-C015DD8B91E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C491F223-367B-443C-B5CB-C015DD8B91E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C491F223-367B-443C-B5CB-C015DD8B91E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5D6BA95-24E1-4520-9ABE-9520126183A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5D6BA95-24E1-4520-9ABE-9520126183A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5D6BA95-24E1-4520-9ABE-9520126183A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5D6BA95-24E1-4520-9ABE-9520126183A5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -113,5 +119,6 @@ Global
 		{12A6752F-D35D-4F69-8069-246FA26ACFC1} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 		{50A30FAA-B3FA-4228-8702-785EF0FFEF23} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 		{78512FBA-5BCA-4EB6-8E0C-16197B5388AC} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
+		{C5D6BA95-24E1-4520-9ABE-9520126183A5} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 	EndGlobalSection
 EndGlobal
