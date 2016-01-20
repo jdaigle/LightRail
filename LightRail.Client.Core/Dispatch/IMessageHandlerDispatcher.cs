@@ -11,7 +11,7 @@ namespace LightRail.Client.Dispatch
         /// is an instance method, then the first parameter should the instance.
         /// </summary>
         /// <param name="parameters"></param>
-        Task Execute(params object[] parameters);
+        void Execute(params object[] parameters);
 
         bool IsInstanceMethod { get; }
         IReadOnlyList<Type> ParameterTypes { get; }

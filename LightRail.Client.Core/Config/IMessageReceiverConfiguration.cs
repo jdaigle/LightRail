@@ -35,7 +35,7 @@ namespace LightRail.Client.Config
         /// <summary>
         /// Returns a compiled message pipeline.
         /// </summary>
-        Func<MessageContext, Task> GetCompiledMessageHandlerPipeline();
+        Action<MessageContext> GetCompiledMessageHandlerPipeline();
 
         /// <summary>
         /// Returns an instance of the configured transport receiver.

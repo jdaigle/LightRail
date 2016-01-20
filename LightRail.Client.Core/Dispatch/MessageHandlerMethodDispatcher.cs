@@ -11,17 +11,17 @@ namespace LightRail.Client.Dispatch
     {
         private StaticActionExecutor _executor;
 
-        public async Task Execute(params object[] parameters)
+        public void Execute(params object[] parameters)
         {
-            await _executor(parameters);
+            _executor(parameters);
         }
 
-        public static MessageHandlerMethodDispatcher FromDelegate<T1>(Func<T1, MessageContext, Task> method)
+        public static MessageHandlerMethodDispatcher FromDelegate<T1>(Action<T1, MessageContext> method)
         {
             return new MessageHandlerMethodDispatcher((Delegate)method, typeof(T1));
         }
 
-        public static MessageHandlerMethodDispatcher FromDelegate<T1>(Func<T1, Task> method)
+        public static MessageHandlerMethodDispatcher FromDelegate<T1>(Action<T1> method)
         {
             return new MessageHandlerMethodDispatcher((Delegate)method, typeof(T1));
         }
@@ -48,8 +48,8 @@ namespace LightRail.Client.Dispatch
             _executor = GetExecutor(methodInfo, null);
         }
 
-        private delegate Task StaticActionExecutor(object[] parameters);
-        private delegate Task InstanceActionExecutor(object instance, object[] parameters);
+        private delegate void StaticActionExecutor(object[] parameters);
+        private delegate void InstanceActionExecutor(object instance, object[] parameters);
 
         public bool IsInstanceMethod { get; }
         public MethodInfo MethodInfo { get; }
@@ -86,7 +86,7 @@ namespace LightRail.Client.Dispatch
             if (methodInfo.IsStatic)
             {
                 MethodCallExpression methodCall = Expression.Call(null, methodInfo, parameters);
-                AssertMethodCallIsTask(methodCall);
+                AssertMethodCallIsVoid(methodCall);
 
                 // methodCall is "static method((T0) parameters[0], (T1) parameters[1], ...)"
                 Expression<StaticActionExecutor> lambda = Expression.Lambda<StaticActionExecutor>(methodCall, parametersParameter);
@@ -98,7 +98,7 @@ namespace LightRail.Client.Dispatch
                 UnaryExpression instanceCast = Expression.Convert(instanceParameter, methodInfo.ReflectedType);
 
                 MethodCallExpression methodCall = Expression.Call(instanceCast, methodInfo, parameters);
-                AssertMethodCallIsTask(methodCall);
+                AssertMethodCallIsVoid(methodCall);
 
                 // methodCall is "[instance] method((T0) parameters[0], (T1) parameters[1], ...)"
                 Expression<InstanceActionExecutor> lambda = Expression.Lambda<InstanceActionExecutor>(methodCall, instanceParameter, parametersParameter);
@@ -111,11 +111,11 @@ namespace LightRail.Client.Dispatch
             }
         }
 
-        private static void AssertMethodCallIsTask(MethodCallExpression methodCall)
+        private static void AssertMethodCallIsVoid(MethodCallExpression methodCall)
         {
-            if (methodCall.Type != typeof(Task))
+            if (methodCall.Type != typeof(void))
             {
-                throw new Exception("Message handler methods must be async and return a Task.");
+                throw new Exception("Message handler methods must have a void return type.");
             }
         }
 
@@ -123,7 +123,7 @@ namespace LightRail.Client.Dispatch
         {
             return delegate (object[] parameters)
             {
-                return action(target, parameters);
+                action(target, parameters);
             };
         }
 
@@ -140,7 +140,7 @@ namespace LightRail.Client.Dispatch
                 {
                     _p[i - 1] = parameters[i];
                 }
-                return action(parameters[0], _p);
+                action(parameters[0], _p);
             };
         }
     }

@@ -42,7 +42,7 @@ namespace LightRail.Client
         public IMessageMapper MessageMapper { get; }
 
         private readonly List<Action> startupActions = new List<Action>();
-        private readonly Func<MessageContext, Task> compiledMessageHandlerPipeline;
+        private readonly Action<MessageContext> compiledMessageHandlerPipeline;
 
         public void Start()
         {
@@ -78,7 +78,7 @@ namespace LightRail.Client
                     var stopwatch = Stopwatch.StartNew();
                     var startTimestamp = DateTime.UtcNow;
 
-                    compiledMessageHandlerPipeline(currentMessageContext).Wait();
+                    compiledMessageHandlerPipeline(currentMessageContext);
 
                     var endTimestamp = DateTime.UtcNow;
                     stopwatch.Stop();

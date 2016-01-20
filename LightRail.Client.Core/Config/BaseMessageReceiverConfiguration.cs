@@ -30,7 +30,7 @@ namespace LightRail.Client.Config
             return MessageHandlers;
         }
 
-        public Func<MessageContext, Task> GetCompiledMessageHandlerPipeline()
+        public Action<MessageContext> GetCompiledMessageHandlerPipeline()
         {
             var messageHandlerPipelinedBehaviors = ServiceBusConfig.PipelinedBehaviors.ToList(); // copy the list
             // ensure MessageHandlerDispatchBehavior is added to the end

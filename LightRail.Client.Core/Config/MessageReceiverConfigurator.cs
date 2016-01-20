@@ -20,12 +20,12 @@ namespace LightRail.Client.Config
             Config.MessageHandlers.ScanAssemblyAndMapMessageHandlers(assembly);
         }
 
-        public void Handle<TMessage>(Func<TMessage, Task> messageHandler)
+        public void Handle<TMessage>(Action<TMessage> messageHandler)
         {
             Config.MessageHandlers.AddMessageHandler(MessageHandlerMethodDispatcher.FromDelegate(messageHandler));
         }
 
-        public void Handle<TMessage>(Func<TMessage, MessageContext, Task> messageHandler)
+        public void Handle<TMessage>(Action<TMessage, MessageContext> messageHandler)
         {
             Config.MessageHandlers.AddMessageHandler(MessageHandlerMethodDispatcher.FromDelegate(messageHandler));
         }

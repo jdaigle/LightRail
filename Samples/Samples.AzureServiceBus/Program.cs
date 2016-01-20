@@ -30,9 +30,8 @@ namespace Samples.AzureServiceBus
                     //  e.Handle<SampleCommandMessage>(SimpleMessageHandler.HandleSpecial);
                     //  e.Handle<SampleCommandMessage>(SimpleMessageHandler.HandleSpecial2);
 
-                    e.Handle<object>(async (message, context) =>
+                    e.Handle<object>((message, context) =>
                     {
-                        await Task.Delay(0);
                     });
                 });
 

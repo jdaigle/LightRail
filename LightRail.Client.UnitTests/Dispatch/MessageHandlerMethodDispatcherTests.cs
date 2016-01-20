@@ -22,7 +22,7 @@ namespace LightRail.Client.Dispatch
         public void TestsShouldWork()
         {
             var executor = new MessageHandlerMethodDispatcher(typeof(MessageHandler).GetMethod("TestTest"), null);
-            Assert.Throws<AggregateException>(() => executor.Execute().Wait());
+            Assert.Throws<Exception>(() => executor.Execute(), "Test");
         }
 
         [Test]
@@ -30,7 +30,7 @@ namespace LightRail.Client.Dispatch
         {
             var executor = new MessageHandlerMethodDispatcher(typeof(MessageHandler).GetMethod("StaticHandleNoParam"), null);
             Assert.False(executor.IsInstanceMethod);
-            executor.Execute().Wait();
+            executor.Execute();
             Assert.True(TestPassed, "Did Not Pass");
         }
 
@@ -39,7 +39,7 @@ namespace LightRail.Client.Dispatch
         {
             var executor = new MessageHandlerMethodDispatcher(typeof(MessageHandler).GetMethod("StaticHandleSingleParam"), null);
             Assert.False(executor.IsInstanceMethod);
-            executor.Execute("p1").Wait();
+            executor.Execute("p1");
             Assert.True(TestPassed, "Did Not Pass");
         }
 
@@ -48,7 +48,7 @@ namespace LightRail.Client.Dispatch
         {
             var executor = new MessageHandlerMethodDispatcher(typeof(MessageHandler).GetMethod("StaticHandleManyParam"), null);
             Assert.False(executor.IsInstanceMethod);
-            executor.Execute("p1", "p2", "p3").Wait();
+            executor.Execute("p1", "p2", "p3");
             Assert.True(TestPassed, "Did Not Pass");
         }
 
@@ -57,7 +57,7 @@ namespace LightRail.Client.Dispatch
         {
             var executor = new MessageHandlerMethodDispatcher(typeof(MessageHandler).GetMethod("InstanceHandleNoParam"), null);
             Assert.True(executor.IsInstanceMethod);
-            executor.Execute(new MessageHandler()).Wait();
+            executor.Execute(new MessageHandler());
             Assert.True(TestPassed, "Did Not Pass");
         }
 
@@ -66,7 +66,7 @@ namespace LightRail.Client.Dispatch
         {
             var executor = new MessageHandlerMethodDispatcher(typeof(MessageHandler).GetMethod("InstanceHandleSingleParam"), null);
             Assert.True(executor.IsInstanceMethod);
-            executor.Execute(new MessageHandler(), "p1").Wait();
+            executor.Execute(new MessageHandler(), "p1");
             Assert.True(TestPassed, "Did Not Pass");
         }
 
@@ -75,89 +75,80 @@ namespace LightRail.Client.Dispatch
         {
             var executor = new MessageHandlerMethodDispatcher(typeof(MessageHandler).GetMethod("InstanceHandleManyParam"), null);
             Assert.True(executor.IsInstanceMethod);
-            executor.Execute(new MessageHandler(), "p1", "p2", "p3").Wait();
+            executor.Execute(new MessageHandler(), "p1", "p2", "p3");
             Assert.True(TestPassed, "Did Not Pass");
         }
 
         [Test]
         public void Can_Call_Lambda()
         {
-            var executor = MessageHandlerMethodDispatcher.FromDelegate<object>(async (message, messageContext) =>
+            var executor = MessageHandlerMethodDispatcher.FromDelegate<object>((message, messageContext) =>
             {
                 Assert.NotNull(message);
                 Assert.NotNull(messageContext);
                 MessageHandlerMethodDispatcherTests.TestPassed = true;
-                await Task.Delay(0);
             });
-            executor.Execute("Message", Helpers.GetUninitializedObject<MessageContext>()).Wait();
+            executor.Execute("Message", Helpers.GetUninitializedObject<MessageContext>());
             Assert.True(TestPassed, "Did Not Pass");
         }
         [Test]
         public void Can_Call_Lambda_Alt()
         {
-            Func<object, MessageContext, Task> f = async (message, messageContext) =>
+            Action<object, MessageContext> f = (message, messageContext) =>
             {
                 Assert.NotNull(message);
                 Assert.NotNull(messageContext);
                 MessageHandlerMethodDispatcherTests.TestPassed = true;
-                await Task.Delay(0);
             };
             var executor = new MessageHandlerMethodDispatcher(f, null);
-            executor.Execute("Message", Helpers.GetUninitializedObject<MessageContext>()).Wait();
+            executor.Execute("Message", Helpers.GetUninitializedObject<MessageContext>());
             Assert.True(TestPassed, "Did Not Pass");
         }
     }
 
     public class MessageHandler
     {
-        public static async Task TestTest()
+        public static void TestTest()
         {
-            await Task.Delay(0);
             throw new Exception("Test");
         }
 
-        public static async Task StaticHandleNoParam()
+        public static void StaticHandleNoParam()
         {
             MessageHandlerMethodDispatcherTests.TestPassed = true;
-            await Task.Delay(0);
         }
 
-        public static async Task StaticHandleSingleParam(string p1)
+        public static void StaticHandleSingleParam(string p1)
         {
             Assert.IsNotNullOrEmpty(p1);
             MessageHandlerMethodDispatcherTests.TestPassed = true;
-            await Task.Delay(0);
         }
 
-        public static async Task StaticHandleManyParam(string p1, string p2, string p3)
+        public static void StaticHandleManyParam(string p1, string p2, string p3)
         {
             Assert.IsNotNullOrEmpty(p1);
             Assert.IsNotNullOrEmpty(p2);
             Assert.IsNotNullOrEmpty(p3);
             MessageHandlerMethodDispatcherTests.TestPassed = true;
-            await Task.Delay(0);
         }
 
-        public async Task InstanceHandleNoParam()
+        public void InstanceHandleNoParam()
         {
             MessageHandlerMethodDispatcherTests.TestPassed = true;
-            await Task.Delay(0);
         }
 
-        public async Task InstanceHandleSingleParam(string p1)
+        public void InstanceHandleSingleParam(string p1)
         {
             Assert.IsNotNullOrEmpty(p1);
             MessageHandlerMethodDispatcherTests.TestPassed = true;
-            await Task.Delay(0);
         }
 
-        public async Task InstanceHandleManyParam(string p1, string p2, string p3)
+        public void InstanceHandleManyParam(string p1, string p2, string p3)
         {
             Assert.IsNotNullOrEmpty(p1);
             Assert.IsNotNullOrEmpty(p2);
             Assert.IsNotNullOrEmpty(p3);
             MessageHandlerMethodDispatcherTests.TestPassed = true;
-            await Task.Delay(0);
         }
     }
 }

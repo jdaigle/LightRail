@@ -33,7 +33,7 @@ namespace LightRail.Client.Dispatch
             foreach (var handler in handlers)
             {
                 Assert.True(handler.RequiresTarget);
-                handler.Execute(Activator.CreateInstance(handler.TargetType), new SampleMessage1()).Wait();
+                handler.Execute(Activator.CreateInstance(handler.TargetType), new SampleMessage1());
             }
         }
 
@@ -78,42 +78,36 @@ namespace LightRail.Client.Dispatch
     public class MessageHandlers
     {
         [MessageHandler]
-        public async Task Handle(SampleMessage1 message)
+        public void Handle(SampleMessage1 message)
         {
-            await Task.Delay(0);
         }
 
         [MessageHandler]
-        public static async Task Handle(SampleMessage2 message)
+        public static void Handle(SampleMessage2 message)
         {
-            await Task.Delay(0);
         }
 
         [MessageHandler]
-        public static async Task Handle(SampleInterface1 message)
+        public static void Handle(SampleInterface1 message)
         {
-            await Task.Delay(0);
         }
 
         [MessageHandler]
-        public static async Task Handle(SampleMessage3 message)
+        public static void Handle(SampleMessage3 message)
         {
-            await Task.Delay(0);
         }
     }
 
     public static class MessageHandlers2
     {
         [MessageHandler]
-        public static async Task Handle(SampleInterface1 message)
+        public static void Handle(SampleInterface1 message)
         {
-            await Task.Delay(0);
         }
 
         [MessageHandler]
-        public static async Task Handle(SampleInterface2 message)
+        public static void Handle(SampleInterface2 message)
         {
-            await Task.Delay(0);
         }
     }
 }

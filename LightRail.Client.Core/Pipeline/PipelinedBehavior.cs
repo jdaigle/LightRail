@@ -10,18 +10,18 @@ namespace LightRail.Client.Pipeline
     {
         private static readonly ILogger logger = LogManager.GetLogger("LightRail.Client.PipelinedBehavior");
 
-        protected abstract Task Invoke(MessageContext context, Func<Task> next);
+        protected abstract void Invoke(MessageContext context, Action next);
 
-        public async Task Invoke(MessageContext context, Func<MessageContext, Task> next)
+        public void Invoke(MessageContext context, Action<MessageContext> next)
         {
             int nextInvoked = 0;
 #if DEBUG
             logger.Debug("Pre-Invoke Behavior [{0}]", GetType().FullName);
 #endif
-            await Invoke(context, async () =>
+            Invoke(context, () =>
             {
                 nextInvoked++;
-                await next(context);
+                next(context);
             });
 #if DEBUG
             if (System.Diagnostics.Debugger.IsAttached) // there is a weird issue here where Debug.Assert on a Task thread seems to sometimes lockup the program
@@ -35,9 +35,9 @@ namespace LightRail.Client.Pipeline
 #endif
         }
 
-        private static readonly Func<MessageContext, Task> EmptyAction = new Func<MessageContext, Task>(m => Task.Delay(0));
+        private static readonly Action<MessageContext> EmptyAction = m => { };
 
-        public static Func<MessageContext, Task> CompileMessageHandlerPipeline(IEnumerable<PipelinedBehavior> behaviors)
+        public static Action<MessageContext> CompileMessageHandlerPipeline(IEnumerable<PipelinedBehavior> behaviors)
         {
             if (!behaviors.Any())
             {
@@ -45,7 +45,7 @@ namespace LightRail.Client.Pipeline
             }
             var behavior = behaviors.First();
             var compiledInnerBehaviors = CompileMessageHandlerPipeline(behaviors.Skip(1));
-            return new Func<MessageContext, Task>(m => behavior.Invoke(m, compiledInnerBehaviors));
+            return m => behavior.Invoke(m, compiledInnerBehaviors);
         }
     }
 }

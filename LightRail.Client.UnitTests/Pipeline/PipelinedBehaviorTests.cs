@@ -15,7 +15,7 @@ namespace LightRail.Client.Pipeline
         {
             var behaviors = new PipelinedBehavior[] { new Behavior1(), new Behavior2() };
             var pipeline = PipelinedBehavior.CompileMessageHandlerPipeline(behaviors);
-            pipeline.Invoke(null).Wait();
+            pipeline.Invoke(null);
             Assert.AreEqual(2, Assert.Counter);
         }
 
@@ -24,35 +24,34 @@ namespace LightRail.Client.Pipeline
         {
             var behaviors = new PipelinedBehavior[] { new Behavior1(), new BadBehavior(), new Behavior2() };
             var pipeline = PipelinedBehavior.CompileMessageHandlerPipeline(behaviors);
-            pipeline.Invoke(null).Wait();
+            pipeline.Invoke(null);
             Assert.AreEqual(2, Assert.Counter);
         }
     }
 
     public class Behavior1 : PipelinedBehavior
     {
-        protected override async Task Invoke(MessageContext context, Func<Task> next)
+        protected override void Invoke(MessageContext context, Action next)
         {
             Assert.True(true);
-            await next();
+            next();
         }
     }
 
     public class Behavior2 : PipelinedBehavior
     {
-        protected override async Task Invoke(MessageContext context, Func<Task> next)
+        protected override void Invoke(MessageContext context, Action next)
         {
             Assert.True(true);
-            await next();
+            next();
         }
     }
 
     public class BadBehavior : PipelinedBehavior
     {
-        protected override async Task Invoke(MessageContext context, Func<Task> next)
+        protected override void Invoke(MessageContext context, Action next)
         {
             Assert.True(true);
-            await Task.Delay(0);
         }
     }
 }
