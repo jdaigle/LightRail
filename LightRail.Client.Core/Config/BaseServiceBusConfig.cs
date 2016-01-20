@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using LightRail.Client.Dispatch;
 using LightRail.Client.FastServiceLocator;
 using LightRail.Client.Pipeline;
+using LightRail.Client.Reflection;
 using LightRail.Client.Transport;
 
 namespace LightRail.Client.Config
@@ -18,9 +19,11 @@ namespace LightRail.Client.Config
 
             // defaults
             ServiceLocator = new FastServiceLocatorImpl(new FastContainer());
+            MessageMapper = new ReflectionMessageMapper();
         }
 
-        public IServiceLocator ServiceLocator { get; }
+        public IMessageMapper MessageMapper { get; set; }
+        public IServiceLocator ServiceLocator { get; set; }
         public MessageHandlerCollection MessageHandlers { get; }
         public IList<MessageEndpointMapping> MessageEndpointMappings { get; }
         public IList<PipelinedBehavior> PipelinedBehaviors { get; }

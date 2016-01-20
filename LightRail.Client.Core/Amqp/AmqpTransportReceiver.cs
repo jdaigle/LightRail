@@ -28,6 +28,8 @@ namespace LightRail.Client.Amqp
             {
                 MaxConcurrency = 0;
             }
+            messageMapper = serviceBusConfig.MessageMapper;
+            messageEncoder = serviceBusConfig.MessageEncoder;
             faultManager = new TransportMessageFaultManager(MaxRetries);
         }
 
@@ -42,6 +44,8 @@ namespace LightRail.Client.Amqp
         public int MaxRetries { get; }
         public int MaxConcurrency { get; }
         private readonly TransportMessageFaultManager faultManager;
+        private readonly IMessageMapper messageMapper;
+        private readonly IMessageEncoder messageEncoder;
 
         private bool hasStarted;
         private readonly object startLock = new object();
@@ -188,28 +192,49 @@ namespace LightRail.Client.Amqp
                     }
                 }
 
-                // TODO: decode message
-                var transportMessage = new IncomingTransportMessage(messageID, headers, amqpMessage.Body);
-
-                Exception lastException = null;
-                if (faultManager.HasMaxRetriesExceeded(transportMessage, out lastException))
+                object message = null;
+                try
                 {
-                    logger.Info("{0}: MaxRetriesExceeded for MessageId={1}. Will not re-enque.", threadName, messageID.ToString());
+                    message = DecodeMessage(amqpMessage);
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e, "{0}: Cannot Decode Message. Will not re-enqueue.", threadName);
                     OnPoisonMessageDetected(new PoisonMessageDetectedEventArgs()
                     {
                         QueueName = ReceiverLinkAddress,
                         Retries = MaxRetries,
-                        Exception = lastException,
+                        Exception = e,
                         MessageId = messageID,
-                        ErrorCode = "MaxRetriesExceeded",
+                        ErrorCode = "DecodeException",
                     });
                 }
-                else
+
+                if (message != null)
                 {
-                    logger.Debug("{0}: Notifying observers of new TransportMessage for MessageId={1}.", threadName, messageID.ToString());
-                    OnMessageAvailable(transportMessage);
-                    faultManager.ClearFailuresForMessage(messageID);
+                    var transportMessage = new IncomingTransportMessage(messageID, headers, message);
+
+                    Exception lastException = null;
+                    if (faultManager.HasMaxRetriesExceeded(transportMessage, out lastException))
+                    {
+                        logger.Error(lastException, "{0}: MaxRetriesExceeded for MessageId={1}. Will not re-enqueue.", threadName, messageID.ToString());
+                        OnPoisonMessageDetected(new PoisonMessageDetectedEventArgs()
+                        {
+                            QueueName = ReceiverLinkAddress,
+                            Retries = MaxRetries,
+                            Exception = lastException,
+                            MessageId = messageID,
+                            ErrorCode = "MaxRetriesExceeded",
+                        });
+                    }
+                    else
+                    {
+                        logger.Debug("{0}: Notifying observers of new TransportMessage for MessageId={1}.", threadName, messageID.ToString());
+                        OnMessageAvailable(transportMessage);
+                        faultManager.ClearFailuresForMessage(messageID);
+                    }
                 }
+
                 receiverLink.Accept(amqpMessage);
                 logger.Debug("{0}: Accepting MessageId={1}", threadName, messageID.ToString());
             }
@@ -220,6 +245,24 @@ namespace LightRail.Client.Amqp
                 logger.Error(e, "{0}: Exception caught handling MessageId={1}. Rejecting.", threadName, messageID.ToString());
                 Thread.Sleep(1000); // TODO possibly implement a backoff with the fault manager based on number of retries?
             }
+        }
+
+        private object DecodeMessage(Message amqpMessage)
+        {
+            var contentType = amqpMessage.ApplicationProperties["LightRail.ContentType"] as string ?? "";
+            var enclosedMessageTypes = amqpMessage.ApplicationProperties["LightRail.EnclosedMessageTypes"] as string ?? "";
+            Type messageType = null;
+            foreach (var typeName in enclosedMessageTypes.Split(','))
+            {
+                messageType = messageMapper.GetMappedTypeFor(typeName);
+                if (messageType != null)
+                {
+                    break;
+                }
+            }
+            var messageBodyBuffer = amqpMessage.Body as byte[];
+            var message = messageEncoder.Decode(messageBodyBuffer, messageType);
+            return message;
         }
 
         private void OnMessageAvailable(IncomingTransportMessage transportMessage)

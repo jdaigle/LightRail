@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using Amqp;
 using Amqp.Framing;
-using Amqp.Types;
 using LightRail.Client.Amqp.Config;
 using LightRail.Client.Logging;
 using LightRail.Client.Transport;
@@ -14,27 +14,29 @@ namespace LightRail.Client.Amqp
         public AmqpTransportSender(AmqpServiceBusConfiguration config)
         {
             ampqAddress = config.AmqpAddress;
+            messageEncoder = config.MessageEncoder;
+            messageMapper = config.MessageMapper;
         }
 
         private static ILogger logger = LogManager.GetLogger("LightRail.Client.Amqp");
         private readonly Address ampqAddress;
+        private readonly IMessageEncoder messageEncoder;
+        private readonly IMessageMapper messageMapper;
 
         public void Send(OutgoingTransportMessage transportMessage, IEnumerable<string> addresses)
         {
-            // TODO: O.M.G. this is terrible
-            var map = new Map();
-            foreach (var prop in transportMessage.Message.GetType().GetProperties())
-            {
-                map[prop.Name] = prop.GetValue(transportMessage.Message);
-            }
+            var messageBuffer = messageEncoder.Encode(transportMessage.Message);
 
-            var message = new Message(map);
+            var message = new Message(messageBuffer);
             message.Header = new Header();
             message.Header.Durable = true;
             message.Properties = new Properties();
             message.Properties.CreationTime = DateTime.UtcNow;
             message.Properties.MessageId = Guid.NewGuid().ToString();
             message.Properties.ReplyTo = "TODO";
+            message.ApplicationProperties = new ApplicationProperties();
+            message.ApplicationProperties["LightRail.ContentType"] = messageEncoder.ContentType;
+            message.ApplicationProperties["LightRail.EnclosedMessageTypes"] = string.Join(",", messageMapper.GetEnclosedMessageTypes(transportMessage.Message.GetType()).Distinct());
             foreach (var pair in transportMessage.Headers)
             {
                 message.ApplicationProperties[pair.Key] = pair.Value;

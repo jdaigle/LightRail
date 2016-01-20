@@ -15,7 +15,8 @@ namespace LightRail.Client
         public PipelineServiceBus(IServiceBusConfig config)
         {
             this.Name = Guid.NewGuid().ToString();
-            this.MessageMapper = new ReflectionMessageMapper();
+
+            this.MessageMapper = config.MessageMapper;
 
             this.staticRoutes = new Dictionary<Type, HashSet<string>>();
             foreach (var mapping in config.MessageEndpointMappings.OrderByDescending(m => m))

@@ -21,9 +21,12 @@ namespace LightRail.Client
             this.Name = Guid.NewGuid().ToString();
 
             this.ServiceLocator = serviceBusConfig.ServiceLocator;
-            this.MessageMapper = new ReflectionMessageMapper();
+            this.MessageMapper = serviceBusConfig.MessageMapper;
             this.MessageHandlers = config.GetCombinedMessageHandlers();
             this.compiledMessageHandlerPipeline = config.GetCompiledMessageHandlerPipeline();
+
+            // initialize all known message types
+            this.MessageMapper.Initialize(this.MessageHandlers.Select(x => x.HandledMessageType));
 
             this.Transport = config.CreateTransportReceiver();
             this.Transport.MessageAvailable += (sender, args) => OnMessageAvailable(args);

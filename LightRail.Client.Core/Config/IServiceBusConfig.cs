@@ -16,6 +16,11 @@ namespace LightRail.Client.Config
         /// </summary>
         IServiceLocator ServiceLocator { get; }
         /// <summary>
+        /// Enables looking up interfaced mapped to generated concrete types
+        /// and vice versa.
+        /// </summary>
+        IMessageMapper MessageMapper { get; }
+        /// <summary>
         /// A set of static message endpoint mappings for resolving static message routes.
         /// </summary>
         IList<MessageEndpointMapping> MessageEndpointMappings { get; }

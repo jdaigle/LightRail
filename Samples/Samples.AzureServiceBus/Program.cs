@@ -28,14 +28,14 @@ namespace Samples.AzureServiceBus
                     //  e.Handle<SampleCommandMessage>(SimpleMessageHandler.HandleSpecial);
                     //  e.Handle<SampleCommandMessage>(SimpleMessageHandler.HandleSpecial2);
 
-                    e.Handle<object>((message, context) =>
+                    e.Handle<SampleCommandMessage>((message, context) =>
                     {
+                        Console.WriteLine("MESSAGE RECEIVED!" + message.Data);
                     });
                 });
 
                 cfg.ReceiveFrom("event_queue/$DeadLetterQueue", e =>
                 {
-                    Thread.Sleep(5000);
                     e.Config.MaxConcurrency = 1;
                 });
             });
