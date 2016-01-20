@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 
 namespace Samples.Extensions
 {
@@ -7,12 +6,14 @@ namespace Samples.Extensions
     {
         public static void Main(string[] args)
         {
+            // Comment or uncomment the samples as you wish
             new Logging.Sample().Execute();
+            new StructureMap.Sample().Execute();
+            new Unity.Sample().Execute();
 
-            var prev = Console.ForegroundColor;
+
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("Press Any Key To Quite");
-            Console.ForegroundColor = prev;
             Console.ReadKey();
         }
     }

@@ -2,27 +2,32 @@
 using System.Threading;
 using LightRail.Client;
 using LightRail.Client.InMemoryQueue;
-using LightRail.Client.log4net;
-using LightRail.Client.Logging;
-using LightRail.Client.NLog;
+using LightRail.Client.StructureMap;
+using StructureMap;
 
-namespace Samples.Extensions.Logging
+namespace Samples.Extensions.StructureMap
 {
     public class Sample
     {
         public void Execute()
         {
-            // Logging is statically assigned at startup and should not be
-            // changed. So uncomment the logger you want to use.
-
-            //UseLog4Net();
-            //UseNLog();
+            // setup your container as you normally would
+            // note that all message handlers execute in a Nested Container instance!
+            var container = new Container(cfg =>
+            {
+                cfg.For<IRepository>().Use<RepositoryImpl>();
+                cfg.ForSingletonOf<SomethingContext>().Use(new SomethingContext());
+                cfg.For<IDoSomething>().Use<DoSomethingImpl>().AlwaysUnique();
+            });
 
             // Create an InMemory ServiceBus
             var bus = ServiceBus.Factory.CreateFromInMemory(cfg =>
             {
+                // StructureMapServiceLocator is simply a wrapper around an IContainer
+                cfg.Config.ServiceLocator = new StructureMapServiceLocator(container);
+
                 // Listen for Messages on the named Queue
-                cfg.ReceiveFrom("DemoQueue", r =>
+                cfg.ReceiveFrom("StructureMap.DemoQueue", r =>
                 {
                     // Register all handlers in the current assembly
                     r.ScanForHandlersFromCurrentAssembly();
@@ -34,24 +39,12 @@ namespace Samples.Extensions.Logging
 
             for (int i = 0; i < 10; i++)
             {
-                bus.Send(new Message1(), "DemoQueue");
+                bus.Send(new Message2(), "StructureMap.DemoQueue");
             }
             Thread.Sleep(1000);
 
             // Stop the Service (stops any receivers) and blocks waiting for current messages to finish processing.
             bus.Stop();
-        }
-
-        private static void UseNLog()
-        {
-            // Override the default LogManager to use Log4Net
-            LogManager.UseFactory<NLogLoggerFactory>();
-        }
-
-        private static void UseLog4Net()
-        {
-            // Override the default LogManager to use Log4Net
-            LogManager.UseFactory<Log4NetLoggerFactory>();
         }
     }
 }

@@ -74,6 +74,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Message2.cs" />
+    <Compile Include="MessageHandlerWithDependencies.cs" />
+    <Compile Include="Unity\Sample.cs" />
+    <Compile Include="StructureMap\Sample.cs" />
     <Compile Include="Logging\Sample.cs" />
     <Compile Include="Message1.cs" />
     <Compile Include="Program.cs" />
