@@ -45,10 +45,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\LightRail.Client.Amqp\LightRail.Client.Amqp.csproj">
-      <Project>{4844571c-b9d4-4886-808e-495d4f851a94}</Project>
-      <Name>LightRail.Client.Amqp</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\LightRail.Client.Core\LightRail.Client.Core.csproj">
       <Project>{90ab6110-ee9c-4021-8458-f14545bb4c9c}</Project>
       <Name>LightRail.Client.Core</Name>

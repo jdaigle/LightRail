@@ -1,7 +1,7 @@
 ﻿using LightRail.Client.Config;
 using LightRail.Client.Transport;
 
-namespace LightRail.Client.InMemoryQueue
+namespace LightRail.Client.InMemoryQueue.Config
 {
     public class InMemoryQueueMessageReceiverConfiguration : BaseMessageReceiverConfiguration
     {

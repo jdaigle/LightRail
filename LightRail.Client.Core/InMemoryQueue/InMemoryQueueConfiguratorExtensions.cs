@@ -1,5 +1,6 @@
 ﻿using System;
 using LightRail.Client.Config;
+using LightRail.Client.InMemoryQueue.Config;
 using LightRail.Client.Transport;
 
 namespace LightRail.Client.InMemoryQueue

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using LightRail.Client.Config;
+using LightRail.Client.InMemoryQueue.Config;
 using LightRail.Client.Logging;
 using LightRail.Client.Transport;
 

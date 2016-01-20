@@ -33,6 +33,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Amqp.Net, Version=1.1.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\AMQPNetLite.1.1.5\lib\net45\Amqp.Net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Web" />
@@ -47,6 +51,12 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Amqp\AmqpConfiguratorExtensions.cs" />
+    <Compile Include="Amqp\AmqpHost.cs" />
+    <Compile Include="Amqp\AmqpTransportReceiver.cs" />
+    <Compile Include="Amqp\AmqpTransportSender.cs" />
+    <Compile Include="Amqp\Config\AmqpMessageReceiverConfiguration.cs" />
+    <Compile Include="Amqp\Config\AmqpServiceBusConfiguration.cs" />
     <Compile Include="Config\BaseMessageReceiverConfiguration.cs" />
     <Compile Include="Config\BaseServiceBusConfig.cs" />
     <Compile Include="Config\MessageEndpointMapping.cs" />
@@ -64,8 +74,8 @@
     <Compile Include="IMessageMapper.cs" />
     <Compile Include="IncomingTransportMessage.cs" />
     <Compile Include="InMemoryQueue\InMemoryQueueConfiguratorExtensions.cs" />
-    <Compile Include="InMemoryQueue\InMemoryQueueMessageReceiverConfiguration.cs" />
-    <Compile Include="InMemoryQueue\InMemoryQueueServiceBusConfiguration.cs" />
+    <Compile Include="InMemoryQueue\Config\InMemoryQueueMessageReceiverConfiguration.cs" />
+    <Compile Include="InMemoryQueue\Config\InMemoryQueueServiceBusConfiguration.cs" />
     <Compile Include="Config\IMessageReceiverConfiguration.cs" />
     <Compile Include="Config\IServiceBusConfig.cs" />
     <Compile Include="InMemoryQueue\InMemoryQueueTransportReceiver.cs" />
@@ -100,6 +110,9 @@
     <Compile Include="Transport\TransportMessageFaultManager.cs" />
     <Compile Include="Util\StringExtensions.cs" />
     <Compile Include="Util\Guard.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
