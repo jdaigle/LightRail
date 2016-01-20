@@ -17,7 +17,7 @@ namespace LightRail.Client.Config
         public MessageHandlerCollection MessageHandlers { get; }
 
         public int MaxConcurrency { get; set; } = 1;
-        public int MaxRetries { get; set; } = 3;
+        public int MaxRetries { get; set; } = 5;
 
         public MessageHandlerCollection GetCombinedMessageHandlers()
         {

@@ -13,11 +13,13 @@ namespace LightRail.Client.Config
         MessageHandlerCollection MessageHandlers { get; }
         /// <summary>
         /// A service locator used to resolve message handler dependencies.
+        /// Defaults to a new instance of "LightRail.Client.FastServiceLocator.FastServiceLocatorImpl"
         /// </summary>
         IServiceLocator ServiceLocator { get; }
         /// <summary>
-        /// Enables looking up interfaced mapped to generated concrete types
+        /// Enables looking up interfaced mapped to generated concrete types.
         /// and vice versa.
+        ///  Defaults to a new instance of "LightRail.Client.Reflection.ReflectionMessageMapper"
         /// </summary>
         IMessageMapper MessageMapper { get; }
         /// <summary>

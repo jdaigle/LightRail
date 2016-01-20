@@ -19,7 +19,7 @@ namespace LightRail.Client.Amqp.Config
         /// <summary>
         /// Encodes/Decodes messages sent & received in AMQP transfers. Defaults to LightRail.Client.JsonMessageEncoder
         /// </summary>
-        public IMessageEncoder MessageEncoder { get; set; }
+        public IMessageEncoder MessageEncoder { get; set; } // TODO: ideally we would default the AMQP's native wire format, but Amqp.Net doesn't easily support this.
 
         public override ITransportSender CreateTransportSender()
         {

@@ -8,11 +8,13 @@ namespace LightRail.Client.Config
     {
         /// <summary>
         /// The maximum number of concurrent threads that will handle received messages.
+        /// Default value is "1".
         /// </summary>
         int MaxConcurrency { get; set; }
         /// <summary>
         /// The maximum number of times a received message will be retried by
         /// this process before declaring the message "poison".
+        /// Default value is "5".
         /// </summary>
         int MaxRetries { get; set; }
         /// <summary>
