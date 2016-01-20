@@ -49,6 +49,7 @@
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\CommonAssemblyInfo.cs">
@@ -72,10 +73,12 @@
     <Compile Include="FastServiceLocator\FastServiceLocatorImpl.cs" />
     <Compile Include="IBus.cs" />
     <Compile Include="IBusControl.cs" />
+    <Compile Include="IBusEvents.cs" />
     <Compile Include="IMessageCreator.cs" />
     <Compile Include="IMessageEncoder.cs" />
     <Compile Include="IMessageMapper.cs" />
-    <Compile Include="IncomingTransportMessage.cs" />
+    <Compile Include="Transport\FastXmlTransportMessageSerializer.cs" />
+    <Compile Include="Transport\IncomingTransportMessage.cs" />
     <Compile Include="InMemoryQueue\InMemoryQueueConfiguratorExtensions.cs" />
     <Compile Include="InMemoryQueue\Config\InMemoryQueueMessageReceiverConfiguration.cs" />
     <Compile Include="InMemoryQueue\Config\InMemoryQueueServiceBusConfiguration.cs" />
@@ -93,15 +96,15 @@
     <Compile Include="Logging\LoggerExtensions.cs" />
     <Compile Include="Logging\LoggingEventType.cs" />
     <Compile Include="Logging\LogManager.cs" />
-    <Compile Include="MessageAvailableEventArgs.cs" />
+    <Compile Include="Transport\MessageAvailableEventArgs.cs" />
     <Compile Include="MessageHandlerAttribute.cs" />
     <Compile Include="MessageProcessedEventArgs.cs" />
-    <Compile Include="OutgoingTransportMessage.cs" />
+    <Compile Include="Transport\OutgoingTransportMessage.cs" />
     <Compile Include="PipelineMessageReceiver.cs" />
     <Compile Include="PipelineServiceBus.cs" />
     <Compile Include="Pipeline\MessageHandlerDispatchBehavior.cs" />
     <Compile Include="Pipeline\PipelinedBehavior.cs" />
-    <Compile Include="PoisonMessageDetectedEventArgs.cs" />
+    <Compile Include="Transport\PoisonMessageDetectedEventArgs.cs" />
     <Compile Include="Reflection\ExtensionMethods.cs" />
     <Compile Include="Reflection\ReflectionMessageMapper.cs" />
     <Compile Include="ServiceBus.cs" />

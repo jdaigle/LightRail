@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace LightRail.Client
+namespace LightRail.Client.Transport
 {
     public class OutgoingTransportMessage
     {

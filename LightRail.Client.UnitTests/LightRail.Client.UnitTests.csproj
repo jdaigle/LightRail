@@ -54,6 +54,7 @@
     <Compile Include="Pipeline\PipelinedBehaviorTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Reflection\ReflectionMessageMapperTests.cs" />
+    <Compile Include="Transport\FastXmlTransportMessageSerializerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

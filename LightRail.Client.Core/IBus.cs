@@ -1,9 +1,8 @@
-﻿using System;
-
-namespace LightRail.Client
+﻿namespace LightRail.Client
 {
     public interface IBus
         : IMessageCreator
+        , IBusEvents
     {
         /// <summary>
         /// Sends a message to the configured destination
@@ -13,20 +12,5 @@ namespace LightRail.Client
         /// Sends a message to a specific address
         /// </summary>
         void Send<T>(T message, string address);
-
-        /// <summary>
-        /// Called whenever a message is successfully processed.
-        /// </summary>
-        /// <remarks>
-        /// The event handlers are called asnychronously on a background thread.
-        /// </remarks>
-        event EventHandler<MessageProcessedEventArgs> MessageProcessed;
-        /// <summary>
-        /// Called whenever a poison message is detected by the infrastructure.
-        /// </summary>
-        /// <remarks>
-        /// The event handlers are called asnychronously on a background thread.
-        /// </remarks>
-        event EventHandler<PoisonMessageDetectedEventArgs> PoisonMessageDetected;
     }
 }

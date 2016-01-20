@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace LightRail.Client
+namespace LightRail.Client.Transport
 {
     public class MessageAvailableEventArgs : EventArgs
     {
