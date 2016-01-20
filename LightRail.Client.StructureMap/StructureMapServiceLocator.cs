@@ -1,7 +1,7 @@
 ﻿using System;
 using StructureMap;
 
-namespace LightRail.StructureMap
+namespace LightRail.Client.StructureMap
 {
     public class StructureMapServiceLocator : IServiceLocator
     {

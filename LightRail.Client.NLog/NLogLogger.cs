@@ -1,19 +1,40 @@
-﻿using LightRail.Logging;
+﻿using System;
+using LightRail.Client.Logging;
+using ILogger = NLog.ILogger;
 
-namespace LightRail
+namespace LightRail.Client.NLog
 {
     public class NLogLogger : Logging.ILogger
     {
-        private readonly NLog.ILogger logger;
+        private readonly ILogger logger;
 
-        public NLogLogger(NLog.ILogger log)
+        public NLogLogger(ILogger log)
         {
             this.logger = log;
         }
 
+        public bool IsLogEventEnabled(LoggingEventType eventType)
+        {
+            switch (eventType)
+            {
+                case LoggingEventType.Debug:
+                    return logger.IsDebugEnabled;
+                case LoggingEventType.Info:
+                    return logger.IsInfoEnabled;
+                case LoggingEventType.Warn:
+                    return logger.IsWarnEnabled;
+                case LoggingEventType.Error:
+                    return logger.IsErrorEnabled;
+                case LoggingEventType.Fatal:
+                    return logger.IsFatalEnabled;
+                default:
+                    return false;
+            }
+        }
+
         public void Log(LogEntry entry)
         {
-            switch (entry.Severity)
+            switch (entry.EventType)
             {
                 case LoggingEventType.Debug:
                     if (entry.Exception == null)

@@ -1,7 +1,7 @@
-﻿using LightRail.Logging;
+﻿using LightRail.Client.Logging;
 using log4net;
 
-namespace LightRail
+namespace LightRail.Client.log4net
 {
     public class Log4NetLogger : ILogger
     {
@@ -12,9 +12,28 @@ namespace LightRail
             this.log = log;
         }
 
+        public bool IsLogEventEnabled(LoggingEventType eventType)
+        {
+            switch (eventType)
+            {
+                case LoggingEventType.Debug:
+                    return log.IsDebugEnabled;
+                case LoggingEventType.Info:
+                    return log.IsInfoEnabled;
+                case LoggingEventType.Warn:
+                    return log.IsWarnEnabled;
+                case LoggingEventType.Error:
+                    return log.IsErrorEnabled;
+                case LoggingEventType.Fatal:
+                    return log.IsFatalEnabled;
+                default:
+                    return false;
+            }
+        }
+
         public void Log(LogEntry entry)
         {
-            switch (entry.Severity)
+            switch (entry.EventType)
             {
                 case LoggingEventType.Debug:
                     if (entry.Exception == null)

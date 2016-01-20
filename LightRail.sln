@@ -29,15 +29,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.FullDuplex.Server",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.FullDuplex.Shared", "Samples\Samples.FullDuplex.Shared\Samples.FullDuplex.Shared.csproj", "{50A30FAA-B3FA-4228-8702-785EF0FFEF23}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.log4net", "LightRail.log4net\LightRail.log4net.csproj", "{BE5D75E0-8612-47EC-BEE8-9541D1D613C6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Client.log4net", "LightRail.Client.log4net\LightRail.Client.log4net.csproj", "{BE5D75E0-8612-47EC-BEE8-9541D1D613C6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.StructureMap", "LightRail.StructureMap\LightRail.StructureMap.csproj", "{3083F3BF-525F-48BA-B6EA-F3C08ED7EB65}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Client.StructureMap", "LightRail.Client.StructureMap\LightRail.Client.StructureMap.csproj", "{3083F3BF-525F-48BA-B6EA-F3C08ED7EB65}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.UnitTests", "LightRail.UnitTests\LightRail.UnitTests.csproj", "{AD53A611-6898-4901-A962-E66F8AF25B0D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.NLog", "LightRail.NLog\LightRail.NLog.csproj", "{6B8DC776-3FAB-46E6-BA16-0571DA491E53}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Client.NLog", "LightRail.Client.NLog\LightRail.Client.NLog.csproj", "{6B8DC776-3FAB-46E6-BA16-0571DA491E53}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Unity", "LightRail.Unity\LightRail.Unity.csproj", "{61B5D60F-DF4F-439B-9E29-039E916BCBE1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Client.Unity", "LightRail.Client.Unity\LightRail.Client.Unity.csproj", "{61B5D60F-DF4F-439B-9E29-039E916BCBE1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Client.Core", "LightRail.Client.Core\LightRail.Client.Core.csproj", "{90AB6110-EE9C-4021-8458-F14545BB4C9C}"
 EndProject

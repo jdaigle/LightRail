@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.Practices.Unity;
 
-namespace LightRail.Unity
+namespace LightRail.Client.Unity
 {
     public class UnityServiceLocator : IServiceLocator
     {

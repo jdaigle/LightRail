@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using LightRail.Logging;
+using LightRail.Client.Logging;
+using LogManager = NLog.LogManager;
 
-namespace LightRail
+namespace LightRail.Client.NLog
 {
-    public class Log4NetLoggerFactory : ILoggerFactory
+    public class NLogLoggerFactory : ILoggerFactory
     {
         private readonly static object loggerCacheLock = new object();
         private readonly static Dictionary<string, ILogger> loggerCache = new Dictionary<string, ILogger>(StringComparer.InvariantCultureIgnoreCase);
@@ -17,7 +18,7 @@ namespace LightRail
                 {
                     if (!loggerCache.ContainsKey(name))
                     {
-                        var logger = new Log4NetLogger(log4net.LogManager.GetLogger(name));
+                        var logger = new NLogLogger(LogManager.GetLogger(name));
                         loggerCache[name] = logger;
                     }
                 }
