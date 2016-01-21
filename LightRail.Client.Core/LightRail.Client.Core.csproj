@@ -63,7 +63,6 @@
     <Compile Include="Config\BaseMessageReceiverConfiguration.cs" />
     <Compile Include="Config\BaseServiceBusConfig.cs" />
     <Compile Include="Config\MessageEndpointMapping.cs" />
-    <Compile Include="Config\MessageReceiverConfigurator.cs" />
     <Compile Include="Config\ServiceBusFactory.cs" />
     <Compile Include="Dispatch\IMessageHandlerDispatcher.cs" />
     <Compile Include="Dispatch\MessageHandlerCollection.cs" />
@@ -108,7 +107,6 @@
     <Compile Include="Reflection\ExtensionMethods.cs" />
     <Compile Include="Reflection\ReflectionMessageMapper.cs" />
     <Compile Include="ServiceBus.cs" />
-    <Compile Include="Config\ServiceBusConfigurator.cs" />
     <Compile Include="IServiceLocator.cs" />
     <Compile Include="MessageContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

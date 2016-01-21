@@ -24,7 +24,7 @@ namespace Samples.Extensions.StructureMap
             var bus = ServiceBus.Factory.CreateFromInMemory(cfg =>
             {
                 // StructureMapServiceLocator is simply a wrapper around an IContainer
-                cfg.Config.ServiceLocator = new StructureMapServiceLocator(container);
+                cfg.ServiceLocator = new StructureMapServiceLocator(container);
 
                 // Listen for Messages on the named Queue
                 cfg.ReceiveFrom("StructureMap.DemoQueue", r =>

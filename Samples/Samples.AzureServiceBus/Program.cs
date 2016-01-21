@@ -16,7 +16,7 @@ namespace Samples.AzureServiceBus
 
                 cfg.ReceiveFrom("event_queue", e =>
                 {
-                    e.Config.MaxConcurrency = 5;
+                    e.MaxConcurrency = 5;
                     //  e.ScanForHandlersFromAssembly(typeof(Program).Assembly);
 
                     //e.Handle<SampleCommandMessage>(async (message, context) =>
@@ -36,7 +36,7 @@ namespace Samples.AzureServiceBus
 
                 cfg.ReceiveFrom("event_queue/$DeadLetterQueue", e =>
                 {
-                    e.Config.MaxConcurrency = 1;
+                    e.MaxConcurrency = 1;
                 });
             });
             // starts any receive threads

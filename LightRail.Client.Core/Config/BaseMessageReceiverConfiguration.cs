@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 using LightRail.Client.Dispatch;
 using LightRail.Client.Pipeline;
 using LightRail.Client.Transport;
@@ -18,6 +19,26 @@ namespace LightRail.Client.Config
 
         public int MaxConcurrency { get; set; } = 1;
         public int MaxRetries { get; set; } = 5;
+
+        public void ScanForHandlersFromAssembly(Assembly assembly)
+        {
+            MessageHandlers.ScanAssemblyAndMapMessageHandlers(assembly);
+        }
+
+        public void ScanForHandlersFromCurrentAssembly()
+        {
+            MessageHandlers.ScanAssemblyAndMapMessageHandlers(Assembly.GetCallingAssembly());
+        }
+
+        public void Handle<TMessage>(Action<TMessage> messageHandler)
+        {
+            MessageHandlers.AddMessageHandler(MessageHandlerMethodDispatcher.FromDelegate(messageHandler));
+        }
+
+        public void Handle<TMessage>(Action<TMessage, MessageContext> messageHandler)
+        {
+            MessageHandlers.AddMessageHandler(MessageHandlerMethodDispatcher.FromDelegate(messageHandler));
+        }
 
         public MessageHandlerCollection GetCombinedMessageHandlers()
         {

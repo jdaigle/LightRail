@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using LightRail.Client.Dispatch;
 using LightRail.Client.Pipeline;
 using LightRail.Client.Transport;
@@ -38,5 +39,14 @@ namespace LightRail.Client.Config
         /// Creates an instance of the configured transport sender.
         /// </summary>
         ITransportSender CreateTransportSender();
+
+        void AddMessageEndpointMapping<T>(string endpoint);
+        void AddMessageEndpointMapping(string endpoint, Type type);
+        void AddMessageEndpointMapping(string endpoint, string assemblyName, string typeFullName = null);
+        void AddMessageEndpointMapping(MessageEndpointMapping mapping);
+        void AddPipelinedBehavior(PipelinedBehavior behavior);
+
+        void ReceiveFrom<T>(Action<T> cfg) where T : IMessageReceiverConfiguration, new();
+        IBusControl CreateServiceBus();
     }
 }

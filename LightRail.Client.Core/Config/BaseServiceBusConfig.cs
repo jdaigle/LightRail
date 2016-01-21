@@ -28,6 +28,49 @@ namespace LightRail.Client.Config
         public IList<MessageEndpointMapping> MessageEndpointMappings { get; }
         public IList<PipelinedBehavior> PipelinedBehaviors { get; }
         public IList<IMessageReceiverConfiguration> MessageReceivers { get; }
+
         public abstract ITransportSender CreateTransportSender();
+
+        public void AddMessageEndpointMapping<T>(string endpoint)
+        {
+            AddMessageEndpointMapping(endpoint, typeof(T));
+        }
+
+        public void AddMessageEndpointMapping(string endpoint, Type type)
+        {
+            AddMessageEndpointMapping(endpoint, type.Assembly.FullName, type.FullName);
+        }
+
+        public void AddMessageEndpointMapping(string endpoint, string assemblyName, string typeFullName = null)
+        {
+            AddMessageEndpointMapping(new MessageEndpointMapping(endpoint, assemblyName, typeFullName));
+        }
+
+        public void AddMessageEndpointMapping(MessageEndpointMapping mapping)
+        {
+            MessageEndpointMappings.Add(mapping);
+        }
+
+        public void AddPipelinedBehavior(PipelinedBehavior behavior)
+        {
+            PipelinedBehaviors.Add(behavior);
+        }
+
+        public void ReceiveFrom<T>(Action<T> cfg)
+            where T : IMessageReceiverConfiguration, new()
+        {
+            var _config = new T();
+            if (_config is BaseMessageReceiverConfiguration)
+            {
+                (_config as BaseMessageReceiverConfiguration).ServiceBusConfig = this;
+            }
+            cfg(_config);
+            MessageReceivers.Add(_config);
+        }
+
+        public IBusControl CreateServiceBus()
+        {
+            return new PipelineServiceBus(this);
+        }
     }
 }

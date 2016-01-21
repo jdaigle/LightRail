@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using LightRail.Client.Dispatch;
 using LightRail.Client.Transport;
 
@@ -33,5 +34,10 @@ namespace LightRail.Client.Config
         /// Returns an instance of the configured transport receiver.
         /// </summary>
         ITransportReceiver CreateTransportReceiver();
+
+        void ScanForHandlersFromAssembly(Assembly assembly);
+        void ScanForHandlersFromCurrentAssembly();
+        void Handle<TMessage>(Action<TMessage> messageHandler);
+        void Handle<TMessage>(Action<TMessage, MessageContext> messageHandler);
     }
 }

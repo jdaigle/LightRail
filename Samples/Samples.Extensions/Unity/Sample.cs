@@ -28,7 +28,7 @@ namespace Samples.Extensions.Unity
             var bus = ServiceBus.Factory.CreateFromInMemory(cfg =>
             {
                 // UnityServiceLocator is simply a wrapper around an IUnityContainer
-                cfg.Config.ServiceLocator = new LightRail.Client.Unity.UnityServiceLocator(container);
+                cfg.ServiceLocator = new LightRail.Client.Unity.UnityServiceLocator(container);
 
                 // Listen for Messages on the named Queue
                 cfg.ReceiveFrom("Unity.DemoQueue", r =>
