@@ -7,7 +7,7 @@ $baseDir  = resolve-path .
 $buildDir = "$baseDir\build"
 $toolsDir = "$baseDir\tools"
 $coreSlns = "$baseDir\LightRail.sln"
-$testAsms = "LightRail.UnitTests.dll"
+$testAsms = "LightRail.Client.UnitTests.dll"
 $nunitexec = "tools\NUnit\nunit-console.exe"
 
 if ($env:APPVEYOR -eq $true) {
