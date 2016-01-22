@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Client.UnitTests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.Extensions", "Samples\Samples.Extensions\Samples.Extensions.csproj", "{C5D6BA95-24E1-4520-9ABE-9520126183A5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Server", "LightRail.Server\LightRail.Server.csproj", "{F7555974-E163-4E4C-91AA-969638899A67}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -103,6 +105,10 @@ Global
 		{C5D6BA95-24E1-4520-9ABE-9520126183A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C5D6BA95-24E1-4520-9ABE-9520126183A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C5D6BA95-24E1-4520-9ABE-9520126183A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7555974-E163-4E4C-91AA-969638899A67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7555974-E163-4E4C-91AA-969638899A67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7555974-E163-4E4C-91AA-969638899A67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7555974-E163-4E4C-91AA-969638899A67}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
