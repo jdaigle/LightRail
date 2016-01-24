@@ -2,7 +2,7 @@
 
 [assembly: AssemblyCompany("Joseph Daigle")]
 [assembly: AssemblyProduct("LightRail")]
-[assembly: AssemblyCopyright("Copyright ©  2015")]
+[assembly: AssemblyCopyright("Copyright ©  2016")]
 
 //Given a version number MAJOR.MINOR.PATCH, increment the:
 
