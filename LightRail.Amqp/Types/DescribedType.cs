@@ -39,6 +39,11 @@ namespace LightRail.Amqp.Types
             EncodeValue(buffer);
         }
 
+        public void Decode(ByteBuffer buffer)
+        {
+            DecodeValue(buffer);
+        }
+
         protected abstract void EncodeValue(ByteBuffer buffer);
         protected abstract void DecodeValue(ByteBuffer buffer);
     }

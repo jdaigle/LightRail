@@ -19,7 +19,7 @@ namespace LightRail.Amqp.Messaging
     public sealed class DeliveryAnnotations : DescribedList
     {
         public DeliveryAnnotations()
-            : base(Descriptor.DeliveryAnnotations)
+            : base(MessagingDescriptors.DeliveryAnnotations)
         {
         }
 

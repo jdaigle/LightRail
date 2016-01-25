@@ -16,6 +16,8 @@ namespace LightRail.Server.Network
     {
         private static readonly ILogger logger = LogManager.GetLogger("LightRail.Server.Network.TcpListener");
 
+        private const int maxBufferSize = 64 * 1024; // 64 KB
+
         public int ListenPort { get; } = Constants.AmqpPort;
         public int MaxConnections { get; } = 100;
 
@@ -28,9 +30,8 @@ namespace LightRail.Server.Network
 
         public TcpListener()
         {
-            var bufferSize = 64 * 1024; // 64 KB
-            var bufferPoolSize = bufferSize * 2 * MaxConnections; // bufferSize * 2 * maxConn (one send/reiv buffer each per conn)
-            _memoryBufferPool = new PinnedMemoryBufferPool(bufferPoolSize, bufferSize);
+            var bufferPoolSize = maxBufferSize * 2 * MaxConnections; // bufferSize * 2 * maxConn (one send/reiv buffer each per conn)
+            _memoryBufferPool = new PinnedMemoryBufferPool(bufferPoolSize, maxBufferSize);
 
             _acceptSocketAsyncEventArgs = new SocketAsyncEventArgs();
             _acceptSocketAsyncEventArgs.Completed += AsyncEventCompleted;
@@ -98,14 +99,14 @@ namespace LightRail.Server.Network
             e.AcceptSocket.NoDelay = true;
 #if DEBUG
             var ipAddress = (e.AcceptSocket.RemoteEndPoint as IPEndPoint);
-            logger.Debug("Connection Accepting From {0}:{1}", ipAddress.Address.ToString(), ipAddress.Port.ToString());
+            logger.Trace("Connection Accepting From {0}:{1}", ipAddress.Address.ToString(), ipAddress.Port.ToString());
 #endif
 
             SocketAsyncEventArgs args;
             if (!_receiveSocketAsyncEventArgs.TryPop(out args))
             {
                 // TODO too many connections
-                logger.Debug("Too Many Connections.");
+                logger.Trace("Too Many Connections.");
                 TryCloseSocket(e.AcceptSocket);
                 return;
             }
@@ -170,16 +171,15 @@ namespace LightRail.Server.Network
                     Disconnect(e);
                     return;
                 }
+
                 var bytesReceived = e.BytesTransferred;
-                logger.Debug("Received {0} bytes from {1}", bytesReceived, connection.IPAddress);
-                // TODO: handle data
+                logger.Trace("Received {0} bytes from {1}", bytesReceived, connection.IPAddress);
+
                 byte[] buffer = new byte[bytesReceived];
                 Array.Copy(e.Buffer, e.Offset, buffer, 0, bytesReceived);
-                if (buffer.Length == 1 && buffer[0] == Encoding.ASCII.GetBytes("q")[0])
-                {
-                    Disconnect(e);
-                }
-                SendDataAsync(connection, buffer, 0, bytesReceived);
+                connection.HandleReceived(new ByteBuffer(buffer, 0, bytesReceived, bytesReceived));
+
+                // loop to receive more data
                 StartReceive(e);
             }
             catch (Exception ex)
@@ -195,27 +195,25 @@ namespace LightRail.Server.Network
         /// <param name="buffer">The data buffer to send.</param>
         /// <param name="offset">The offset in the data buffer to send.</param>
         /// <param name="length">The length of the data to send.</param>
-        public void SendDataAsync(TcpConnectionState connection, byte[] buffer, int offset, int length)
+        public void SendAsync(TcpConnectionState connection, byte[] buffer, int offset, int length)
         {
-            try
+            SocketAsyncEventArgs e;
+            if (!_sendSocketAsyncEventArgs.TryPop(out e))
             {
-                SocketAsyncEventArgs e;
-                if (!_sendSocketAsyncEventArgs.TryPop(out e))
-                {
-                    e = new SocketAsyncEventArgs();
-                    e.UserToken = connection;
-                    e.Completed += AsyncEventCompleted;
-                }
-                _memoryBufferPool.SetBuffer(e);
-                Array.Copy(buffer, offset, e.Buffer, e.Offset, length); // copy to output buffer
-                if (connection.Socket.SendAsync(e) == false)
-                {
-                    CompleteSend(e);
-                }
+                e = new SocketAsyncEventArgs();
+                e.UserToken = connection;
+                e.Completed += AsyncEventCompleted;
             }
-            catch (Exception ex)
+            if (length > maxBufferSize)
             {
-                logger.Fatal(ex, "Exception in Echo()");
+                throw new InvalidOperationException($"Cannot Send Buffer of Length {length}. Max Buffer Sized = {maxBufferSize}. Chunking has not been implemented.");
+            }
+            _memoryBufferPool.SetBuffer(e);
+            Array.Copy(buffer, offset, e.Buffer, e.Offset, length); // copy to output buffer
+            e.SetBuffer(e.Offset, length);
+            if (connection.Socket.SendAsync(e) == false)
+            {
+                CompleteSend(e);
             }
         }
 
@@ -241,6 +239,7 @@ namespace LightRail.Server.Network
                     Disconnect(e);
                     return;
                 }
+                logger.Trace("Sent {0} Bytes", e.BytesTransferred);
                 // todo: determine if need to loop and send more?
                 // finished sending...
                 _memoryBufferPool.FreeBuffer(e);

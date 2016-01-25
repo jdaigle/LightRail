@@ -29,7 +29,19 @@ namespace LightRail.Amqp.Types
 
         protected override void DecodeValue(ByteBuffer buffer)
         {
-            throw new NotImplementedException();
+            var formatCode = Encoder.ReadFormatCode(buffer);
+            // ensure it is a list format code or null
+            if (formatCode == FormatCode.List0 ||
+                formatCode == FormatCode.List8 ||
+                formatCode == FormatCode.List32 ||
+                formatCode == FormatCode.Null)
+            {
+                Encoder.ReadList(buffer, formatCode, DecodeListItem);
+            }
+            else
+            {
+                throw new AmqpException(ErrorCode.FramingError, $"Invalid Format Code For Frame: {formatCode.ToHex()}");
+            }
         }
     }
 }

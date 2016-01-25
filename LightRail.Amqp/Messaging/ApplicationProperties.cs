@@ -13,7 +13,7 @@ namespace LightRail.Amqp.Messaging
     public sealed class ApplicationProperties : DescribedList
     {
         public ApplicationProperties()
-            : base(Descriptor.ApplicationProperties)
+            : base(MessagingDescriptors.ApplicationProperties)
         {
         }
 

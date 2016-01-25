@@ -23,7 +23,7 @@ namespace LightRail.Amqp.Messaging
     public class MessageAnnotations : DescribedList
     {
         public MessageAnnotations()
-            : base(Descriptor.MessageAnnotations)
+            : base(MessagingDescriptors.MessageAnnotations)
         {
         }
 

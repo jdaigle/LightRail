@@ -21,6 +21,7 @@
 //  ------------------------------------------------------------------------------------
 
 using System;
+using System.Diagnostics;
 
 namespace LightRail.Amqp
 {
@@ -48,7 +49,7 @@ namespace LightRail.Amqp
         /// </summary>
         /// <param name="buffer">The byte array.</param>
         /// <param name="offset">The start position.</param>
-        /// <param name="count">The number of bytes "read".</param>
+        /// <param name="count">The number of bytes available to read.</param>
         /// <param name="capacity">The total size of the byte array from offset.</param>
         public ByteBuffer(byte[] buffer, int offset, int count, int capacity)
             : this(buffer, offset, count, capacity, false)
@@ -70,7 +71,7 @@ namespace LightRail.Amqp
         /// </summary>
         /// <param name="buffer">The byte array.</param>
         /// <param name="offset">The start position.</param>
-        /// <param name="count">The number of bytes "read".</param>
+        /// <param name="count">The number of bytes available to read.</param>
         /// <param name="capacity">The total size of the byte array from offset.</param>
         /// <param name="autoGrow">If the buffer should auto-grow when a write size is larger than the buffer size.</param>
         public ByteBuffer(byte[] buffer, int offset, int count, int capacity, bool autoGrow)
@@ -209,6 +210,16 @@ namespace LightRail.Amqp
             newBufferStartOffset = 0;
             newBufferSize = requestedNewBufferSize;
             Array.Copy(oldBuffer, oldBufferStartOffset, newBuffer, 0, dataSizeToCopy);
+        }
+
+        [Conditional("DEBUG")]
+        public static void WriteBufferToConsole(ByteBuffer buffer, int offset, int length)
+        {
+            for (int i = 0; i < length; i = i + 8)
+            {
+                var len = Math.Min(8, buffer.buffer.Length - offset - i);
+                Console.WriteLine(BitConverter.ToString(buffer.buffer, offset + i, len));
+            }
         }
     }
 }

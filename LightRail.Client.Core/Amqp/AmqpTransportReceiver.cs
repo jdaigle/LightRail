@@ -16,7 +16,7 @@ namespace LightRail.Client.Amqp
     {
         public AmqpTransportReceiver(AmqpMessageReceiverConfiguration config, AmqpServiceBusConfiguration serviceBusConfig)
         {
-            ampqAddress = serviceBusConfig.AmqpAddress;
+            amqpAddress = serviceBusConfig.AmqpAddress;
             ReceiverLinkAddress = config.ReceiverLinkAddress;
             MaxRetries = config.MaxRetries;
             if (MaxRetries < 0)
@@ -38,7 +38,7 @@ namespace LightRail.Client.Amqp
         public event EventHandler<MessageAvailableEventArgs> MessageAvailable;
         public event EventHandler<PoisonMessageDetectedEventArgs> PoisonMessageDetected;
 
-        private readonly Address ampqAddress;
+        private readonly Address amqpAddress;
         public string ReceiverLinkAddress { get; }
 
         public int MaxRetries { get; }
@@ -98,7 +98,7 @@ namespace LightRail.Client.Amqp
                         if (connection == null)
                         {
                             logger.Debug("{0}: Connection Opening", threadName);
-                            connection = new Connection(ampqAddress);
+                            connection = new Connection(amqpAddress);
                             connection.Closed = (sender, error) =>
                             {
                                 connection = null;

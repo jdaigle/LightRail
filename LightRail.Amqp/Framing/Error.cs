@@ -3,10 +3,10 @@ using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Framing
 {
-    public sealed class Error : DescribedList
+    public sealed class Error : AmqpFrame
     {
         public Error()
-            : base(Descriptor.Error)
+            : base(FrameCodec.Error)
         {
         }
 
@@ -28,7 +28,7 @@ namespace LightRail.Amqp.Framing
 
         protected override int CalculateListSize()
         {
-            if (Info != null || Info.Count == 0) return 3;
+            if (Info != null && Info.Count > 0) return 3;
             if (Description != null) return 2;
             return 1;
         }

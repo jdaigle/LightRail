@@ -15,7 +15,7 @@ namespace LightRail.Amqp.Messaging
     public class Header : DescribedList
     {
         public Header()
-            :base(Descriptor.Header)
+            :base(MessagingDescriptors.Header)
         {
         }
 

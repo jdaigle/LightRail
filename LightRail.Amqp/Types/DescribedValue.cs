@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace LightRail.Amqp.Types
+﻿namespace LightRail.Amqp.Types
 {
-    public class DescribedValue<T> : DescribedType
+    public sealed class DescribedValue<T> : DescribedType
     {
         public DescribedValue(Descriptor descriptor, T value)
             : base(descriptor)

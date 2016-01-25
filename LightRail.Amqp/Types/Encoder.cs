@@ -24,7 +24,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
+using LightRail.Amqp.Framing;
 
 namespace LightRail.Amqp.Types
 {
@@ -472,11 +474,12 @@ namespace LightRail.Amqp.Types
         /// Writes a list value to a buffer.
         /// </summary>
         /// <param name="buffer">The buffer to write.</param>
-        /// <param name="value">The list value.</param>
+        /// <param name="listLength">The length of the list to write</param>
+        /// <param name="writeListValue">A callback to encode the value at the specific list index to the buffer.</param>
         /// <param name="arrayEncoding">if true, will force the primative to be written in it's largest representation.</param>
-        public static void WriteList(ByteBuffer buffer, int listSize, Action<ByteBuffer, int, bool> writeListValue, bool arrayEncoding)
+        public static void WriteList(ByteBuffer buffer, int listLength, Action<ByteBuffer, int, bool> writeListValue, bool arrayEncoding)
         {
-            if (listSize == 0 && !arrayEncoding)
+            if (listLength == 0 && !arrayEncoding)
             {
                 AmqpBitConverter.WriteUByte(buffer, FormatCode.List0);
             }
@@ -487,18 +490,18 @@ namespace LightRail.Amqp.Types
                 AmqpBitConverter.WriteUInt(buffer, 0);
                 AmqpBitConverter.WriteUInt(buffer, 0);
 
-                for (int i = 0; i < listSize; ++i)
+                for (int i = 0; i < listLength; ++i)
                 {
                     writeListValue(buffer, i, arrayEncoding);
                 }
 
                 int size = buffer.WriteOffset - pos - 9;
 
-                if (!arrayEncoding && size < byte.MaxValue && listSize <= byte.MaxValue)
+                if (!arrayEncoding && size < byte.MaxValue && listLength <= byte.MaxValue)
                 {
                     buffer.Buffer[pos] = FormatCode.List8;
                     buffer.Buffer[pos + 1] = (byte)(size + 1);
-                    buffer.Buffer[pos + 2] = (byte)listSize;
+                    buffer.Buffer[pos + 2] = (byte)listLength;
                     Array.Copy(buffer.Buffer, pos + 9, buffer.Buffer, pos + 3, size);
                     buffer.ShrinkWrite(6);
                 }
@@ -506,7 +509,7 @@ namespace LightRail.Amqp.Types
                 {
                     buffer.Buffer[pos] = FormatCode.List32;
                     AmqpBitConverter.WriteInt(buffer.Buffer, pos + 1, size + 4);
-                    AmqpBitConverter.WriteInt(buffer.Buffer, pos + 5, listSize);
+                    AmqpBitConverter.WriteInt(buffer.Buffer, pos + 5, listLength);
                 }
             }
         }
@@ -665,7 +668,7 @@ namespace LightRail.Amqp.Types
         public static T ReadObject<T>(ByteBuffer buffer, byte formatCode)
         {
             var codec = GetTypeCodec(formatCode);
-            if(codec is NullTypeCodec)
+            if (codec is NullTypeCodec)
             {
                 return default(T);
             }
@@ -693,24 +696,35 @@ namespace LightRail.Amqp.Types
             }
 
             var descriptor = new Descriptor(Encoder.ReadBoxedObject(buffer));
+
+            Descriptor knownDescriptor = null;
+            if (knownDescribedTypeDescriptors.TryGetValue(descriptor.Code, out knownDescriptor))
+            {
+                Func<object> ctor;
+                if (knownDescribedTypeConstructors.TryGetValue(descriptor.Code, out ctor))
+                {
+                    var instance = ctor() as DescribedType;
+                    Action<ByteBuffer, AmqpFrame> frameDecoder;
+                    if (knownFrameDecoders.TryGetValue(descriptor.Code, out frameDecoder))
+                    {
+                        frameDecoder(buffer, instance as AmqpFrame);
+                    }
+                    else
+                    {
+                        // fallback to direct decode
+                        instance.Decode(buffer);
+                    }
+                    return instance;
+                }
+                else
+                {
+                    throw new AmqpException(ErrorCode.DecodeError, $"Missing Constructor For Known Described Type {knownDescriptor.ToString()}");
+                }
+            }
+            // TODO: boxed object
             object value = Encoder.ReadBoxedObject(buffer);
             var describedType = typeof(DescribedValue<>).MakeGenericType(value.GetType());
             return Activator.CreateInstance(describedType, descriptor, value);
-            // TODO: knownDescribed types
-
-            //CreateDescribed create = null;
-            //if ((create = (CreateDescribed)knownDescrided[descriptor]) == null)
-            //{
-            //    object value = Encoder.ReadObject(buffer);
-            //    described = new DescribedValue(descriptor, value);
-            //}
-            //else
-            //{
-            //    described = create();
-            //    described.DecodeValue(buffer);
-            //}
-
-            //return described;
         }
 
         /// <summary>
@@ -1038,16 +1052,38 @@ namespace LightRail.Amqp.Types
             return (Symbol)ReadString(buffer, formatCode, FormatCode.Symbol8, FormatCode.Symbol32, "symbol");
         }
 
+
         /// <summary>
         /// Reads a list value from a buffer.
         /// </summary>
         /// <param name="buffer">The buffer to read.</param>
         /// <param name="formatCode">The format code of the value.</param>
-        public static AmqpList ReadList(ByteBuffer buffer, byte formatCode)
+        public static AmqpList ReadBoxedList(ByteBuffer buffer, byte formatCode)
         {
             if (formatCode == FormatCode.Null)
             {
                 return null;
+            }
+
+            var list = new AmqpList();
+            ReadList(buffer, formatCode, (_byteBuffer, _index) =>
+            {
+                list.Add(ReadBoxedObject(buffer));
+            });
+            return list;
+        }
+
+        /// <summary>
+        /// Reads a list value from a buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer to read.</param>
+        /// <param name="formatCode">The format code of the value.</param>
+        /// <param name="decodeValue">A callback to decode the value of the specific list inde.x</param>
+        public static void ReadList(ByteBuffer buffer, byte formatCode, Action<ByteBuffer, int> decodeValue)
+        {
+            if (formatCode == FormatCode.Null)
+            {
+                return; // nothing to decode
             }
 
             int size;
@@ -1071,13 +1107,10 @@ namespace LightRail.Amqp.Types
                 throw InvalidFormatCodeException(formatCode, buffer.ReadOffset);
             }
 
-            var value = new AmqpList();
             for (int i = 0; i < count; ++i)
             {
-                value.Add(ReadBoxedObject(buffer));
+                decodeValue(buffer, i);
             }
-
-            return value;
         }
 
         /// <summary>
@@ -1418,7 +1451,7 @@ namespace LightRail.Amqp.Types
                 new TypeCodec<AmqpList>
                 {
                     Encode = WriteBoxedList,
-                    Decode = ReadList,
+                    Decode = ReadBoxedList,
                 },
                 // 19: map
                 new TypeCodec<Map>
@@ -1566,6 +1599,27 @@ namespace LightRail.Amqp.Types
             }
 
             return null;
+        }
+
+        private static readonly Dictionary<ulong, Descriptor> knownDescribedTypeDescriptors = new Dictionary<ulong, Descriptor>();
+        private static readonly Dictionary<ulong, Func<object>> knownDescribedTypeConstructors = new Dictionary<ulong, Func<object>>();
+        private static readonly Dictionary<ulong, Action<ByteBuffer, AmqpFrame>> knownFrameDecoders = new Dictionary<ulong, Action<ByteBuffer, AmqpFrame>>();
+
+        internal static void RegisterKnownDescriptor(Descriptor descriptor, Type describedType)
+        {
+            knownDescribedTypeDescriptors.Add(descriptor.Code, descriptor);
+            if (describedType != null)
+            {
+                var ctor = describedType.GetConstructor(new Type[0]);
+                if (ctor != null)
+                {
+                    knownDescribedTypeConstructors.Add(descriptor.Code, () => ctor.Invoke(null));
+                }
+                if (typeof(AmqpFrame).IsAssignableFrom(describedType))
+                {
+                    knownFrameDecoders.Add(descriptor.Code, AmqpFrame.CompileDecoder(describedType));
+                }
+            }
         }
     }
 }

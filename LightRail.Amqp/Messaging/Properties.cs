@@ -6,7 +6,7 @@ namespace LightRail.Amqp.Messaging
     public class Properties : DescribedList
     {
         public Properties()
-            : base(Descriptor.Properties)
+            : base(MessagingDescriptors.Properties)
         {
         }
 

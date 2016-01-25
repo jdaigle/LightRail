@@ -16,7 +16,7 @@ namespace LightRail.Amqp.Messaging
     public class Footer : DescribedList
     {
         public Footer()
-            : base(Descriptor.Footer)
+            : base(MessagingDescriptors.Footer)
         {
         }
 

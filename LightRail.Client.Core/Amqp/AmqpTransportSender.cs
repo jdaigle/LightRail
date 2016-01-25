@@ -13,13 +13,13 @@ namespace LightRail.Client.Amqp
     {
         public AmqpTransportSender(AmqpServiceBusConfiguration config)
         {
-            ampqAddress = config.AmqpAddress;
+            amqpAddress = config.AmqpAddress;
             messageEncoder = config.MessageEncoder;
             messageMapper = config.MessageMapper;
         }
 
         private static ILogger logger = LogManager.GetLogger("LightRail.Client.Amqp");
-        private readonly Address ampqAddress;
+        private readonly Address amqpAddress;
         private readonly IMessageEncoder messageEncoder;
         private readonly IMessageMapper messageMapper;
 
@@ -42,7 +42,7 @@ namespace LightRail.Client.Amqp
                 message.ApplicationProperties[pair.Key] = pair.Value;
             }
 
-            var connection = new Connection(ampqAddress);
+            var connection = new Connection(amqpAddress);
             var session = new Session(connection);
             // Azure does not support Amqp transactions "The server was unable to process the request; please retry the operation. If the problem persists, please contact your Service Bus administrator and provide the tracking id..TrackingId:583da4f8d58d4fa59dc9521c6f799cb8_GWIN-AN5B307EEHM,TimeStamp:11.7.2014. 7:44:17"
             try
