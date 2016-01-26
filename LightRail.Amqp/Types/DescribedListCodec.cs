@@ -143,8 +143,8 @@ namespace LightRail.Amqp.Types
                 // special handling of nested described type
                 if (typeof(DescribedType).IsAssignableFrom(propertyType))
                 {
-                    var value = (prop.Getter(_instance) as DescribedType);
-                    value.Encode(_buffer);
+                    var describedValue = (prop.Getter(_instance) as DescribedType);
+                    describedValue.Encode(_buffer);
                     return;
                 }
 
@@ -166,8 +166,14 @@ namespace LightRail.Amqp.Types
 
             var encoder = new Action<ByteBuffer, DescribedList>((buffer, instance) =>
             {
-                var listLength = properties.Count(x => x.Value.Getter(instance) != null);
-                Encoder.WriteList(buffer, listLength, (_buffer, _index, _arrayEncoding) => getIndexedValue(instance, _buffer, _index, _arrayEncoding), true);
+                var notNullCount =
+                    properties
+                        .Where(x => x.Value.Getter(instance) == null)
+                        .Select(x => (int?)x.Key)
+                        .OrderBy(x => x)
+                        .FirstOrDefault()
+                        ?? properties.Count;
+                Encoder.WriteList(buffer, notNullCount, (_buffer, _index, _arrayEncoding) => getIndexedValue(instance, _buffer, _index, _arrayEncoding), true);
             });
 
             knownFrameEncoders.Add(descriptor.Code, encoder);
