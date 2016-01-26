@@ -48,6 +48,15 @@ namespace LightRail.Amqp
         /// Initializes a new buffer from a byte array.
         /// </summary>
         /// <param name="buffer">The byte array.</param>
+        public ByteBuffer(byte[] buffer)
+            :this(buffer, 0, buffer.Length, buffer.Length, false)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new buffer from a byte array.
+        /// </summary>
+        /// <param name="buffer">The byte array.</param>
         /// <param name="offset">The start position.</param>
         /// <param name="count">The number of bytes available to read.</param>
         /// <param name="capacity">The total size of the byte array from offset.</param>

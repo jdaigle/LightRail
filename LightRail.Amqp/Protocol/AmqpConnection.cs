@@ -13,14 +13,20 @@ namespace LightRail.Amqp.Protocol
         private static readonly byte[] protocol1 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x01, 0x01, 0x00, 0x00 };
         private static readonly byte[] protocol2 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x02, 0x01, 0x00, 0x00 };
 
-        private const uint   defaultMaxFrameSize = 256 * 1024;
+        private const uint defaultMaxFrameSize = 256 * 1024;
         private const ushort defaultMaxChannelCount = 256;
-        private const uint   defaultMaxIdleTimeout = 30 * 60 * 1000;
+        private const uint defaultMaxIdleTimeout = 30 * 60 * 1000;
 
         public AmqpConnection(ISocket socket)
+            : this(socket, null)
+        {
+        }
+
+        public AmqpConnection(ISocket socket, AmqpSettings settings)
         {
             this.socket = socket;
             State = ConnectionStateEnum.START;
+            containerId = settings?.ContainerId ?? Guid.NewGuid().ToString("N");
         }
 
         private readonly ISocket socket;
@@ -37,7 +43,7 @@ namespace LightRail.Amqp.Protocol
             {
                 while (buffer.LengthAvailableToRead > 0)
                 {
-                    if (IsLikelyProtocolHeader(buffer))
+                    if (State.IsExpectingProtocolHeader())
                     {
                         HandleHeaderNegotiation(buffer);
                         continue;
@@ -187,11 +193,11 @@ namespace LightRail.Amqp.Protocol
         {
             byte protocolId = 0;
             byte[] protocolVersion = null;
-            if (frameBuffer.LengthAvailableToRead < 8 ||
-                !TryParseProtocolHeader(frameBuffer, out protocolId, out protocolVersion))
+            if (!TryParseProtocolHeader(frameBuffer, out protocolId, out protocolVersion))
             {
                 logger.Debug("Received Invalid Protocol Header");
                 // invalid protocol header
+                socket.SendAsync(protocol0, 0, 8);
                 EndConnection();
                 return;
             }
@@ -251,9 +257,9 @@ namespace LightRail.Amqp.Protocol
                 return false;
 
             var valid = true;
-            if (frameBuffer.Buffer[frameBuffer.ReadOffset + 0] != 'A' &&
-                frameBuffer.Buffer[frameBuffer.ReadOffset + 1] != 'M' &&
-                frameBuffer.Buffer[frameBuffer.ReadOffset + 2] != 'Q' &&
+            if (frameBuffer.Buffer[frameBuffer.ReadOffset + 0] != 'A' ||
+                frameBuffer.Buffer[frameBuffer.ReadOffset + 1] != 'M' ||
+                frameBuffer.Buffer[frameBuffer.ReadOffset + 2] != 'Q' ||
                 frameBuffer.Buffer[frameBuffer.ReadOffset + 3] != 'P')
             {
                 valid = false;

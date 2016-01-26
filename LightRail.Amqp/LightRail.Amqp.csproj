@@ -52,6 +52,8 @@
     <Compile Include="ErrorCode.cs" />
     <Compile Include="Framing\AmqpFrame.cs" />
     <Compile Include="Framing\AmqpFrameCodec.cs" />
+    <Compile Include="Protocol\AmqpSettings.cs" />
+    <Compile Include="Protocol\ConnectionStateEnumExtensions.cs" />
     <Compile Include="Types\AmqpDescribedListIndexAttribute.cs" />
     <Compile Include="Framing\Open.cs" />
     <Compile Include="Framing\Error.cs" />
