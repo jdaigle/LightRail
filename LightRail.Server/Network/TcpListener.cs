@@ -281,12 +281,12 @@ namespace LightRail.Server.Network
         /// Marks a specific connection for graceful shutdown. The next receive or send to be posted
         /// will fail and close the connection.
         /// </summary>
-        public void Disconnect(TcpConnectionState connection)
+        public void Disconnect(TcpConnectionState connection, SocketShutdown socketShutdown)
         {
             try
             {
-                logger.Debug("Shutting Down Socket to {0}", connection.IPAddress);
-                connection.Socket.Shutdown(SocketShutdown.Both);
+                logger.Debug("Shutting Down Socket to {0} Side = {1}", connection.IPAddress, socketShutdown.ToString());
+                connection.Socket.Shutdown(socketShutdown);
             }
             catch (Exception e)
             {

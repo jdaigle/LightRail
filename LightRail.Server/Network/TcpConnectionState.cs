@@ -45,7 +45,17 @@ namespace LightRail.Server.Network
 
         public void Close()
         {
-            tcpListener.Disconnect(this);
+            tcpListener.Disconnect(this, SocketShutdown.Both);
+        }
+
+        public void CloseRead()
+        {
+            tcpListener.Disconnect(this, SocketShutdown.Receive);
+        }
+
+        public void CloseWrite()
+        {
+            tcpListener.Disconnect(this, SocketShutdown.Send);
         }
     }
 }

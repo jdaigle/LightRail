@@ -33,8 +33,8 @@ namespace LightRail.Amqp.Protocol
         public ConnectionStateEnum State { get; private set; }
         private string containerId = Guid.NewGuid().ToString("N");
         private Open receivedOpenFrame;
-        private uint connectionMaxFrameSize = 512;
-        private ushort connectionChannelMax = defaultMaxChannelCount;
+        private uint connectionMaxFrameSize = 512; // initial
+        private ushort connectionChannelMax = 0; // initial
         private uint connectionMaxIdleTimeout = defaultMaxIdleTimeout;
 
         public void HandleReceivedBuffer(ByteBuffer buffer)
@@ -43,6 +43,10 @@ namespace LightRail.Amqp.Protocol
             {
                 while (buffer.LengthAvailableToRead > 0)
                 {
+                    if (State.ShouldIgnoreReceivedData())
+                    {
+                        return;
+                    }
                     if (State.IsExpectingProtocolHeader())
                     {
                         HandleHeaderNegotiation(buffer);
@@ -97,19 +101,36 @@ namespace LightRail.Amqp.Protocol
         {
             if (State == ConnectionStateEnum.OPENED)
             {
+                if (frame is Close)
+                {
+                    State = ConnectionStateEnum.CLOSED_RCVD;
+                    var close = frame as Close;
+                    if (close.Error != null)
+                    {
+                        logger.Debug("Closing with Error {0}-{1}", close.Error.Condition, close.Error.Description);
+                    }
+                    SendFrame(new Close(), 0);
+                    CloseSocketConnection();
+                    return;
+                }
                 // TODO pass frame to Session
                 throw new NotImplementedException("TODO pass frame to session");
             }
             else if (State == ConnectionStateEnum.CLOSED_RCVD)
             {
                 // no more packets expects, so just ignore
-                throw new NotImplementedException("TODO pass frame to session");
+                // technically this is an invalid state for this implementation
+                // since we will always immediately send the "close" frame in response
+                return;
             }
             else if (State == ConnectionStateEnum.DISCARDING || State == ConnectionStateEnum.CLOSE_SENT)
             {
-                // TODO: check for close frame, ignore all others.
-                throw new NotImplementedException("Check for close Frame. Ignore All Others.");
-                //return;
+                // Check for close frame. Ignore all others.
+                if (frame is Close)
+                {
+                    CloseSocketConnection();
+                }
+                return;
             }
             else if (State == ConnectionStateEnum.END)
             {
@@ -133,7 +154,7 @@ namespace LightRail.Amqp.Protocol
                     SendFrame(new Open()
                     {
                         ContainerID = containerId,
-                        Hostname = "",
+                        Hostname = receivedOpenFrame.Hostname,
                         MaxFrameSize = connectionMaxFrameSize,
                         ChannelMax = connectionChannelMax,
                         IdleTimeOut = connectionMaxIdleTimeout,
@@ -143,6 +164,9 @@ namespace LightRail.Amqp.Protocol
             }
             else if (State == ConnectionStateEnum.OPEN_RCVD)
             {
+                // technically this is an invalid state for this implementation
+                // since we will always immediately send the "open" frame in response
+
                 if (receivedOpenFrame == null)
                 {
                     throw new AmqpException(ErrorCode.InternalError, $"Current state == OPEN_RCVD but openFrame == null");
@@ -151,18 +175,18 @@ namespace LightRail.Amqp.Protocol
                 SendFrame(new Open()
                 {
                     ContainerID = containerId,
-                    Hostname = "",
+                    Hostname = receivedOpenFrame.Hostname,
                     MaxFrameSize = connectionMaxFrameSize,
                     ChannelMax = connectionChannelMax,
                     IdleTimeOut = connectionMaxIdleTimeout,
                 }, 0);
                 // TODO what data did we get? Negotiate open and send back frame.
-                EndConnection();
+                CloseSocketConnection();
             }
             else if (State == ConnectionStateEnum.CLOSE_PIPE)
             {
                 // TODO: currently illegal state
-                EndConnection();
+                CloseSocketConnection();
             }
             else
             {
@@ -203,7 +227,7 @@ namespace LightRail.Amqp.Protocol
                 logger.Debug("Received Invalid Protocol Header");
                 // invalid protocol header
                 socket.SendAsync(protocol0, 0, 8);
-                EndConnection();
+                CloseSocketConnection();
                 return;
             }
 
@@ -214,7 +238,7 @@ namespace LightRail.Amqp.Protocol
                 logger.Debug("Received Invalid Protocol Version");
                 // invalid protocol version
                 socket.SendAsync(protocol0, 0, 8);
-                EndConnection();
+                CloseSocketConnection();
                 return;
             }
 
@@ -230,24 +254,29 @@ namespace LightRail.Amqp.Protocol
             {
                 // TODO: not yet supported
                 socket.SendAsync(protocol0, 0, 8);
-                EndConnection();
+                CloseSocketConnection();
             }
             else if (protocolId == 0x02)
             {
                 // TODO: not yet supported
                 socket.SendAsync(protocol0, 0, 8);
-                EndConnection();
+                CloseSocketConnection();
             }
             else
             {
                 logger.Debug("Invalid Protocol ID AMQP.{0}.1.0.0!!", ((int)protocolId));
                 // invalid protocol id
                 socket.SendAsync(protocol0, 0, 8);
-                EndConnection();
+                CloseSocketConnection();
             }
         }
 
-        private void EndConnection()
+        public void CloseConnection(Error errorFrame)
+        {
+            throw new NotImplementedException("Have Not Yet Implemeneted Close.");
+        }
+
+        private void CloseSocketConnection()
         {
             State = ConnectionStateEnum.END;
             socket.Close();

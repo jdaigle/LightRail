@@ -9,5 +9,12 @@
                    state == ConnectionStateEnum.OPEN_PIPE ||
                    state == ConnectionStateEnum.OC_PIPE;
         }
+
+        public static bool ShouldIgnoreReceivedData(this ConnectionStateEnum state)
+        {
+            return state == ConnectionStateEnum.END ||
+                   state == ConnectionStateEnum.CLOSED_RCVD;
+        }
+
     }
 }

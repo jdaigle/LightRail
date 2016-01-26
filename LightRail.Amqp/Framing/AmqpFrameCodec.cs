@@ -15,6 +15,11 @@ namespace LightRail.Amqp.Framing
             byte frameType = AmqpBitConverter.ReadUByte(buffer);
             ushort channelNumber = AmqpBitConverter.ReadUShort(buffer);
 
+            if (dataOffset < 2)
+            {
+                throw new AmqpException(ErrorCode.FramingError, $"DOFF must be >= 2. Value is {dataOffset.ToHex()}");
+            }
+
             // data offset is always counted in 4-byte words. header total length is 8 bytes
             int bodyStartOffset = 4 * dataOffset;
             // forward the reader the number of bytes needed to reach the frame body
