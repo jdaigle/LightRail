@@ -27,11 +27,12 @@ namespace LightRail.Amqp.Protocol
         public void Accepts_Protocol_0_Version_1_0_0()
         {
             //If the requested protocol version is supported, the server MUST send its own protocol header with the
-            // requested version to the socket, and then proceed according to the protocol definition.
+            // requested version to the socket, and then proceed according to the protocol definition.
+
             connection.HandleReceivedBuffer(new ByteBuffer(protocol0));
 
-            Assert.AreEqual(1, socket.SentBuffers.Count);
-            CollectionAssert.AreEqual(protocol0, socket.SentBuffers[0].Item1);
+            Assert.AreEqual(1, socket.SentBufferFrames.Count);
+            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
             Assert.AreEqual(ConnectionStateEnum.HDR_EXCH, connection.State);
             Assert.True(socket.IsNotClosed);
         }
@@ -40,13 +41,14 @@ namespace LightRail.Amqp.Protocol
         public void Can_Pipeline_Frames_After_Accepted_Protocol_Header()
         {
             //If the requested protocol version is supported, the server MUST send its own protocol header with the
-            // requested version to the socket, and then proceed according to the protocol definition.
+            // requested version to the socket, and then proceed according to the protocol definition.
+
             var buffer = new ByteBuffer(protocol0, 0, protocol0.Length, protocol0.Length, true);
             AmqpFrameCodec.EncodeFrame(buffer, new Open(), 0);
             connection.HandleReceivedBuffer(buffer);
 
-            Assert.GreaterOrEqual(socket.SentBuffers.Count, 1);
-            CollectionAssert.AreEqual(protocol0, socket.SentBuffers[0].Item1);
+            Assert.GreaterOrEqual(socket.SentBufferFrames.Count, 1);
+            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
             Assert.False(ConnectionStateEnum.HDR_EXCH.IsExpectingProtocolHeader());
         }
 
@@ -58,8 +60,8 @@ namespace LightRail.Amqp.Protocol
 
             connection.HandleReceivedBuffer(new ByteBuffer(protocol1));
 
-            Assert.AreEqual(1, socket.SentBuffers.Count);
-            CollectionAssert.AreEqual(protocol0, socket.SentBuffers[0].Item1);
+            Assert.AreEqual(1, socket.SentBufferFrames.Count);
+            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);
         }
@@ -72,8 +74,8 @@ namespace LightRail.Amqp.Protocol
 
             connection.HandleReceivedBuffer(new ByteBuffer(protocol2));
 
-            Assert.AreEqual(1, socket.SentBuffers.Count);
-            CollectionAssert.AreEqual(protocol0, socket.SentBuffers[0].Item1);
+            Assert.AreEqual(1, socket.SentBufferFrames.Count);
+            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);
         }
@@ -86,8 +88,8 @@ namespace LightRail.Amqp.Protocol
 
             connection.HandleReceivedBuffer(new ByteBuffer(malformedProtocol0));
 
-            Assert.AreEqual(1, socket.SentBuffers.Count);
-            CollectionAssert.AreEqual(protocol0, socket.SentBuffers[0].Item1);
+            Assert.AreEqual(1, socket.SentBufferFrames.Count);
+            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);
         }
@@ -100,8 +102,8 @@ namespace LightRail.Amqp.Protocol
 
             connection.HandleReceivedBuffer(new ByteBuffer(incorrectVerProtocol0));
 
-            Assert.AreEqual(1, socket.SentBuffers.Count);
-            CollectionAssert.AreEqual(protocol0, socket.SentBuffers[0].Item1);
+            Assert.AreEqual(1, socket.SentBufferFrames.Count);
+            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);
         }

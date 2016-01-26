@@ -45,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Protocol\BaseProtocolTests.cs" />
+    <Compile Include="Protocol\EmptyAMQPFrameTests.cs" />
     <Compile Include="Protocol\InterceptingSocket.cs" />
     <Compile Include="Protocol\VersionNegotiationTests.cs" />
     <Compile Include="Types\EncoderTests.cs" />

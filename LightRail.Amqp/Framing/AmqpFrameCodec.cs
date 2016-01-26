@@ -20,6 +20,12 @@ namespace LightRail.Amqp.Framing
             // forward the reader the number of bytes needed to reach the frame body
             buffer.CompleteRead((bodyStartOffset - 8));
 
+            if (frameSize == bodyStartOffset)
+            {
+                // empty frame body
+                return null;
+            }
+
             // we're expecting a described list...
             var formatCode = Encoder.ReadFormatCode(buffer);
             if (formatCode != FormatCode.Described)
@@ -56,12 +62,15 @@ namespace LightRail.Amqp.Framing
             AmqpBitConverter.WriteUByte(buffer, 0x00); // frame type = AMQP frame
             AmqpBitConverter.WriteUShort(buffer, channelNumber);
 
-            // frame body
-            frame.Encode(buffer);
+            // frame body, may be null/empty
+            if (frame != null)
+            {
+                frame.Encode(buffer);
+            }
 
             // frame size
             int frameSize = buffer.WriteOffset - frameStartOffset;
-            AmqpBitConverter.WriteInt(buffer.Buffer, frameStartOffset, frameStartOffset);
+            AmqpBitConverter.WriteInt(buffer.Buffer, frameStartOffset, frameSize);
         }
     }
 }

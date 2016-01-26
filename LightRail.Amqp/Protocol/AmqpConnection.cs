@@ -49,6 +49,11 @@ namespace LightRail.Amqp.Protocol
                         continue;
                     }
                     var frame = AmqpFrameCodec.DecodeFrame(buffer);
+                    if (frame == null)
+                    {
+                        logger.Trace("Received Empty Frame");
+                        continue;
+                    }
                     if (logger.IsTraceEnabled)
                         logger.Trace("Received Frame: {0}", frame.ToString());
                     HandleReceivedFrame(frame);

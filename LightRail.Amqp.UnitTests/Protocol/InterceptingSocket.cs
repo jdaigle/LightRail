@@ -7,12 +7,12 @@ namespace LightRail.Amqp.Protocol
     {
         public void Reset()
         {
-            SentBuffers.Clear();
+            SentBufferFrames.Clear();
             CloseCount = 0;
             Closed = false;
         }
 
-        public List<Tuple<byte[], int, int>> SentBuffers { get; set; } = new List<Tuple<byte[], int, int>>();
+        public List<Tuple<byte[], int, int>> SentBufferFrames { get; set; } = new List<Tuple<byte[], int, int>>();
         public int CloseCount { get; set; } = 0;
 
         public Action<byte[], int, int> OnSendAsync { get; set; }
@@ -27,7 +27,7 @@ namespace LightRail.Amqp.Protocol
 
         public void SendAsync(byte[] buffer, int offset, int length)
         {
-            SentBuffers.Add(new Tuple<byte[], int, int>(buffer, offset, length));
+            SentBufferFrames.Add(new Tuple<byte[], int, int>(buffer, offset, length));
             if (OnSendAsync != null)
                 OnSendAsync(buffer, offset, length);
         }
