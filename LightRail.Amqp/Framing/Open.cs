@@ -3,6 +3,28 @@ using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Framing
 {
+    /// <summary>
+    /// Negotiate connection parameters.
+    /// 
+    /// <type name = "open" class="composite" source="list" provides="frame">
+    ///     <descriptor name = "amqp:open:list" code="0x00000000:0x00000010"/>
+    ///     <field name = "container-id" type="string" mandatory="true"/>
+    ///     <field name = "hostname" type="string"/>
+    ///     <field name = "max-frame-size" type="uint" default="4294967295"/>
+    ///     <field name = "channel-max" type="ushort" default="65535"/>
+    ///     <field name = "idle-time-out" type="milliseconds"/>
+    ///     <field name = "outgoing-locales" type="ietf-language-tag" multiple="true"/>
+    ///     <field name = "incoming-locales" type="ietf-language-tag" multiple="true"/>
+    ///     <field name = "offered-capabilities" type="symbol" multiple="true"/>
+    ///     <field name = "desired-capabilities" type="symbol" multiple="true"/>
+    ///     <field name = "properties" type="fields"/>
+    /// </type>
+    /// 
+    /// The first frame sent on a connection in either direction MUST contain an open performative. Note that the connection
+    /// header which is sent first on the connection is not a frame.
+    /// 
+    /// The fields indicate the capabilities and limitations of the sending peer.
+    /// </summary>
     public sealed class Open : AmqpFrame
     {
         public Open()

@@ -2,6 +2,17 @@
 
 namespace LightRail.Amqp.Framing
 {
+    /// <summary>
+    /// Details of an error.
+    /// 
+    /// <type name = "error" class="composite" source="list">
+    ///     <descriptor name = "amqp:error:list" code="0x00000000:0x0000001d"/>
+    ///     <field name = "condition" type="symbol" requires="error-condition" mandatory="true"/>
+    ///     <field name = "description" type="string"/>
+    ///     <field name = "info" type="fields"/>
+    /// </type>
+    /// 
+    /// </summary>
     public sealed class Error : AmqpFrame
     {
         public Error()
