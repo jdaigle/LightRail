@@ -157,7 +157,21 @@ namespace LightRail.Amqp.Protocol
                 receivedOpenFrame = frame as Open;
                 if (receivedOpenFrame == null)
                 {
-                    throw new AmqpException(ErrorCode.IllegalState, $"Excepted Open Frame. Instead Frame is {frame.Descriptor.ToString()}");
+                    logger.Trace($"Excepted Open Frame. Instead Frame is {frame.Descriptor.ToString()}");
+                    if (State == ConnectionStateEnum.OPEN_SENT)
+                    {
+                        CloseConnection(new Error()
+                        {
+                            Condition = ErrorCode.IllegalState,
+                            Description = $"Excepted Open Frame. Instead Frame is {frame.Descriptor.ToString()}",
+                        });
+                        CloseSocketConnection();
+                    }
+                    else
+                    {
+                        CloseSocketConnection();
+                    }
+                    return;
                 }
                 connectionMaxFrameSize = Math.Min(DefaultMaxFrameSize, receivedOpenFrame.MaxFrameSize);
                 connectionChannelMax = Math.Min(DefaultMaxChannelCount, receivedOpenFrame.ChannelMax);
@@ -231,7 +245,7 @@ namespace LightRail.Amqp.Protocol
             catch (Exception ex)
             {
                 logger.Fatal(ex, "Fatal Exception Trying to Send Error Frame");
-                socket.Close();
+                CloseSocketConnection();
             }
         }
 
