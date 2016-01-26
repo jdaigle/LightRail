@@ -10,10 +10,10 @@ namespace LightRail.Amqp.Framing
             int frameStartOffset = buffer.ReadOffset;
 
             // frame header
-            uint frameSize = Encoder.ReadUInt(buffer, FormatCode.UInt);
-            byte dataOffset = Encoder.ReadUByte(buffer, FormatCode.UByte);
-            byte frameType = Encoder.ReadUByte(buffer, FormatCode.UByte);
-            ushort channelNumber = Encoder.ReadUShort(buffer, FormatCode.UShort);
+            uint frameSize = AmqpBitConverter.ReadUInt(buffer);
+            byte dataOffset = AmqpBitConverter.ReadUByte(buffer);
+            byte frameType = AmqpBitConverter.ReadUByte(buffer);
+            ushort channelNumber = AmqpBitConverter.ReadUShort(buffer);
 
             // data offset is always counted in 4-byte words. header total length is 8 bytes
             int bodyStartOffset = 4 * dataOffset;
@@ -42,6 +42,26 @@ namespace LightRail.Amqp.Framing
             {
                 throw new AmqpException(ErrorCode.FramingError, $"Invalid Frame Descriptor Format Code = {descriptorFormatCode.ToHex()}");
             }
+        }
+
+        public static void EncodeFrame(ByteBuffer buffer, AmqpFrame frame, ushort channelNumber)
+        {
+            buffer.ValidateWrite(8);
+
+            var frameStartOffset = buffer.WriteOffset;
+
+            // header
+            buffer.AppendWrite(FixedWidth.UInt); // placeholder for frame size
+            AmqpBitConverter.WriteUByte(buffer, 0x02); // data offset (2*4 = 8 bytes to account for header)
+            AmqpBitConverter.WriteUByte(buffer, 0x00); // frame type = AMQP frame
+            AmqpBitConverter.WriteUShort(buffer, channelNumber);
+
+            // frame body
+            frame.Encode(buffer);
+
+            // frame size
+            int frameSize = buffer.WriteOffset - frameStartOffset;
+            AmqpBitConverter.WriteInt(buffer.Buffer, frameStartOffset, frameStartOffset);
         }
     }
 }

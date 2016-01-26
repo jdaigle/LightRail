@@ -132,7 +132,7 @@ namespace LightRail.Amqp.Protocol
                         MaxFrameSize = connectionMaxFrameSize,
                         ChannelMax = connectionChannelMax,
                         IdleTimeOut = connectionMaxIdleTimeout,
-                    });
+                    }, 0);
                 }
                 State = ConnectionStateEnum.OPENED;
             }
@@ -150,7 +150,7 @@ namespace LightRail.Amqp.Protocol
                     MaxFrameSize = connectionMaxFrameSize,
                     ChannelMax = connectionChannelMax,
                     IdleTimeOut = connectionMaxIdleTimeout,
-                });
+                }, 0);
                 // TODO what data did we get? Negotiate open and send back frame.
                 EndConnection();
             }
@@ -166,11 +166,11 @@ namespace LightRail.Amqp.Protocol
             }
         }
 
-        private void SendFrame(AmqpFrame frame)
+        private void SendFrame(AmqpFrame frame, ushort channelNumber)
         {
             // TODO: get pinned send buffer from socket to prevent an unneccessary array copy
             var buffer = new ByteBuffer((int?)receivedOpenFrame?.MaxFrameSize ?? 512, false);
-            frame.Encode(buffer);
+            AmqpFrameCodec.EncodeFrame(buffer, frame, channelNumber);
             if (logger.IsTraceEnabled)
                 logger.Trace("Sending Frame: {0}", frame.ToString());
             socket.SendAsync(buffer);
@@ -180,7 +180,7 @@ namespace LightRail.Amqp.Protocol
         {
             try
             {
-                SendFrame(errorFrame);
+                SendFrame(errorFrame, 0);
             }
             catch (Exception ex)
             {

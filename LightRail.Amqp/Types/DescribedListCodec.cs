@@ -141,7 +141,7 @@ namespace LightRail.Amqp.Types
                 var codec = Encoder.GetTypeCodec(prop.PropertyType);
                 if (!prop.PropertyType.IsAssignableFrom(codec.Type))
                 {
-                    throw new AmqpException(ErrorCode.InternalError, $"Cannot Decode Type {codec.Type} into {prop.PropertyType} for Index {_index} Property = {prop.Name}");
+                    throw new AmqpException(ErrorCode.InternalError, $"Cannot Encode Type {codec.Type} into {prop.PropertyType} for Index {_index} Property = {prop.Name}");
                 }
                 codec.EncodeBoxedValue(_buffer, prop.Getter(_instance), _arrayEncoding); // TODO boxing!!!
             });
@@ -181,6 +181,11 @@ namespace LightRail.Amqp.Types
                 }
                 var prop = properties[_index];
                 var formatCode = Encoder.ReadFormatCode(_buffer);
+                if (formatCode == FormatCode.Null)
+                {
+                    // null value, return
+                    return;
+                }
                 var codec = Encoder.GetTypeCodec(formatCode);
                 if (!prop.PropertyType.IsAssignableFrom(codec.Type))
                 {
