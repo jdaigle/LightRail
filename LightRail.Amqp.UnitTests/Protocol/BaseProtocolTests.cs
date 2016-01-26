@@ -30,6 +30,23 @@ namespace LightRail.Amqp.Protocol
             socket.Reset();
         }
 
+        protected void Given_Open_Connection()
+        {
+            Given_Exchanged_Headers();
+
+            EncodeAndSend(new Open()
+            {
+                ContainerID = Guid.NewGuid().ToString(),
+                Hostname = "localhost",
+            });
+
+            Assert.NotNull(DecodeLastFrame() as Open);
+            Assert.AreEqual(ConnectionStateEnum.OPENED, connection.State);
+            Assert.True(socket.IsNotClosed);
+
+            socket.Reset();
+        }
+
         protected void EncodeAndSend(AmqpFrame frame)
         {
             var buffer = new ByteBuffer(512, true);

@@ -1,4 +1,5 @@
-﻿using LightRail.Amqp.Framing;
+﻿using System.Threading;
+using LightRail.Amqp.Framing;
 using NUnit.Framework;
 
 namespace LightRail.Amqp.Protocol
@@ -21,7 +22,7 @@ namespace LightRail.Amqp.Protocol
         [Test]
         public void May_Send_Empty_AMQP_Frame()
         {
-            Given_Exchanged_Headers();
+            Given_Open_Connection();
 
             var buffer = new ByteBuffer(8, true);
             AmqpFrameCodec.EncodeFrame(buffer, null, 0);
@@ -29,6 +30,18 @@ namespace LightRail.Amqp.Protocol
 
             Assert.True(socket.IsNotClosed);
             CollectionAssert.IsEmpty(socket.SentBufferFrames);
+        }
+
+        [Test]
+        public void Receiving_Frame_Increments_Idle_Timer()
+        {
+            Given_Open_Connection();
+
+            var last = connection.LastFrameReceivedDateTime;
+            Thread.Sleep(10);
+            EncodeAndSend(null);
+
+            Assert.Greater(connection.LastFrameReceivedDateTime, last);
         }
     }
 }
