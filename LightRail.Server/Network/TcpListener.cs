@@ -60,10 +60,10 @@ namespace LightRail.Server.Network
             switch (e.LastOperation)
             {
                 case SocketAsyncOperation.Accept:
-                    CompleteAccept(e);
+                    CompleteAccept(e, true);
                     break;
                 case SocketAsyncOperation.Receive:
-                    CompleteReceive(e);
+                    CompleteReceive(e, true);
                     break;
                 case SocketAsyncOperation.Send:
                     CompleteSend(e);
@@ -81,10 +81,12 @@ namespace LightRail.Server.Network
         /// <param name="e">null if posted from startup, otherwise a <b>SocketAsyncEventArgs</b> for reuse.</param>
         private void StartAccept(SocketAsyncEventArgs e)
         {
+            acceptAgain:
             e.AcceptSocket = null;
             if (_listenSocket.AcceptAsync(e) == false)
             {
-                CompleteAccept(e);
+                CompleteAccept(e, false);
+                goto acceptAgain;
             }
         }
 
@@ -93,7 +95,7 @@ namespace LightRail.Server.Network
         /// and then setup a Receive chain to begin receiving data.
         /// </summary>
         /// <param name="e">Information about the Accept call.</param>
-        private void CompleteAccept(SocketAsyncEventArgs e)
+        private void CompleteAccept(SocketAsyncEventArgs e, bool startAccept)
         {
             // setup the connected socket
             e.AcceptSocket.NoDelay = true;
@@ -120,7 +122,8 @@ namespace LightRail.Server.Network
             StartReceive(args);
 
             // Loop to accept another connection.
-            StartAccept(e);
+            if (startAccept)
+                StartAccept(e);
         }
 
         /// <summary>
@@ -129,6 +132,7 @@ namespace LightRail.Server.Network
         /// <param name="e">Used to store information about the Receive call.</param>
         private void StartReceive(SocketAsyncEventArgs e)
         {
+            receiveAgain:
             try
             {
                 var connection = e.UserToken as TcpConnectionState;
@@ -142,7 +146,8 @@ namespace LightRail.Server.Network
                     e.SetBuffer(connection.ReceiveBufferOffset, connection.ReceiverBufferSize);
                     if (connection.Socket.ReceiveAsync(e) == false)
                     {
-                        CompleteReceive(e);
+                        CompleteReceive(e, false);
+                        goto receiveAgain;
                     }
                 }
             }
@@ -158,7 +163,7 @@ namespace LightRail.Server.Network
         /// listeners and thus the buffer is cleared after every call.
         /// </summary>
         /// <param name="e">Information about the Receive call.</param>
-        private void CompleteReceive(SocketAsyncEventArgs e)
+        private void CompleteReceive(SocketAsyncEventArgs e, bool startReceive)
         {
             try
             {
@@ -189,7 +194,8 @@ namespace LightRail.Server.Network
                 connection.HandleReceived(new ByteBuffer(buffer, 0, bytesReceived, bytesReceived));
 
                 // loop to receive more data
-                StartReceive(e);
+                if (startReceive)
+                    StartReceive(e);
             }
             catch (Exception ex)
             {
