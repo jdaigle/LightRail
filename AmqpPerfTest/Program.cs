@@ -1,131 +1,111 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Amqp;
+using Amqp.Framing;
 
 namespace AmqpPerfTest
 {
     class Program
     {
+        static Address amqpAddress = new Address("localhost", 5672, user: null, password: null, scheme: "AMQP");
+        static Connection connection = null;
+        static Session session = null;
+        static ReceiverLink receiverLink = null;
+
         static void Main(string[] args)
         {
             while (true)
             {
-                var amqpAddress = new Address("localhost", 5672, user: null, password: null, scheme: "AMQP");
 
-                Connection connection = null;
-                Session session = null;
-                ReceiverLink receiverLink = null;
                 try
                 {
                     try
                     {
-                        if (connection == null)
-                        {
-                            Console.WriteLine("Connection Opening");
-                            connection = new Connection(amqpAddress);
-                            connection.Closed = (sender, error) =>
-                            {
-                                connection = null;
-                                session = null;
-                                receiverLink = null;
-                                Console.WriteLine("Connection Closed");
-                                if (error != null)
-                                {
-                                    Console.Error.WriteLine("Connection Closed With Error: " + error.Condition + " " + error.Description);
-                                }
-                            };
-                        }
-                        if (session == null)
-                        {
-                            Console.WriteLine("Connection Beginning");
-                            session = new Session(connection);
-                            session.Closed = (sender, error) =>
-                            {
-                                session = null;
-                                receiverLink = null;
-                                Console.WriteLine("Session Ended");
-                                if (error != null)
-                                {
-                                    Console.Error.WriteLine("Session Ended With Error: " + error.Condition + " " + error.Description);
-                                }
-                            };
-                        }
-                        if (receiverLink == null)
-                        {
-                            Console.WriteLine("Link Attaching");
-                            receiverLink = new ReceiverLink(session, Guid.NewGuid().ToString(), "TestQueue1");
-                            receiverLink.Closed = (sender, error) =>
-                            {
-                                session = null;
-                                Console.WriteLine("Link Detached");
-                                if (error != null)
-                                {
-                                    Console.Error.WriteLine("Link Detached With Error: " + error.Condition + " " + error.Description);
-                                }
-                            };
-                        }
+                        Console.WriteLine("Connection Opening");
+                        connection = new Connection(amqpAddress);
+                        connection.Closed = OnClosed;
 
-                        if (receiverLink != null)
-                        {
-                            Console.Write("Starting Receive");
-                            var amqpMessage = receiverLink.Receive(10000);
-                            if (amqpMessage != null)
-                            {
-                                Console.Write("Received Message");
-                                Thread.Sleep(1000);
-                                Console.Write("Accepting Message");
-                                receiverLink.Accept(amqpMessage);
-                            }
-                        }
+                        Console.WriteLine("Session Beginning");
+                        session = new Session(connection);
+                        session.Closed = OnClosed;
+
+                        session.Close();
+                        Thread.Sleep(1000);
+
+                        session = new Session(connection);
+                        session.Closed = OnClosed;
+
+                        Console.WriteLine("Link Attaching");
+                        receiverLink = new ReceiverLink(session, Guid.NewGuid().ToString(), "TestQueue1");
+                        receiverLink.Closed = OnClosed;
+
+                        //if (receiverLink != null)
+                        //{
+                        //    Console.Write("Starting Receive");
+                        //    var amqpMessage = receiverLink.Receive(10000);
+                        //    if (amqpMessage != null)
+                        //    {
+                        //        Console.Write("Received Message");
+                        //        Thread.Sleep(1000);
+                        //        Console.Write("Accepting Message");
+                        //        receiverLink.Accept(amqpMessage);
+                        //    }
+                        //}
                     }
                     catch (Exception fatalException)
                     {
                         Console.Error.WriteLine("Fatal Exception: " + fatalException);
-                        try
-                        {
-                            if (receiverLink != null)
-                            {
-                                receiverLink.Close();
-                            }
-                            if (session != null)
-                            {
-                                session.Close();
-                            }
-                            if (connection != null)
-                            {
-                                connection.Close();
-                            }
-                        }
-                        catch (Exception) { } // intentionally swallow
+                        TryClose();
                         Thread.Sleep(10000);
                     }
                 }
                 finally
                 {
-                    try
-                    {
-                        if (receiverLink != null)
-                        {
-                            receiverLink.Close();
-                        }
-                        if (session != null)
-                        {
-                            session.Close();
-                        }
-                        if (connection != null)
-                        {
-                            connection.Close();
-                        }
-                    }
-                    catch (Exception) { } // intentionally swallow
+                    TryClose();
                 }
                 Console.WriteLine("Press Any Key To Try Again");
                 Console.ReadKey();
                 Console.Clear();
+            }
+        }
+
+        private static void TryClose()
+        {
+            try
+            {
+                if (receiverLink != null)
+                    receiverLink.Close();
+                if (session != null)
+                    session.Close();
+                if (connection != null)
+                    connection.Close();
+            }
+            catch (Exception) { } // intentionally swallow
+        }
+
+        private static void OnClosed(object sender, Error error)
+        {
+            if (sender is Connection)
+            {
+                connection = null;
+                session = null;
+                receiverLink = null;
+            }
+            if (sender is Session)
+            {
+                session = null;
+                receiverLink = null;
+            }
+            if (sender is ReceiverLink)
+            {
+                receiverLink = null;
+            }
+            Console.WriteLine(sender.GetType() + " Closed");
+            if (error != null)
+            {
+                Console.Error.WriteLine(sender.GetType() + " Closed With Error: " + error.Condition + " " + error.Description);
             }
         }
     }
