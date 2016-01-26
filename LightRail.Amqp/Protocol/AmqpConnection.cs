@@ -108,11 +108,11 @@ namespace LightRail.Amqp.Protocol
             }
             catch (Exception fatalException)
             {
-                logger.Fatal(fatalException, "Caught Fatal Top Level Exception. Closing Connection.");
+                logger.Fatal(fatalException, "Closing Connection due to fatal exception.");
                 var error = new Error()
                 {
                     Condition = ErrorCode.InternalError,
-                    Description = "Caught Fatal Top Level Exception. Closing Connection.",
+                    Description = "Closing Connection due to fatal exception: " + fatalException.Message,
                 };
                 CloseConnection(error);
                 CloseSocketConnection();
@@ -148,8 +148,7 @@ namespace LightRail.Amqp.Protocol
                     HandleBeginFrame(frame as Begin, remoteChannelNumber);
                     return;
                 }
-                // TODO pass frame to Session
-                throw new NotImplementedException("TODO pass frame to session");
+                HandleSessionFrame(frame, remoteChannelNumber);
             }
             else if (State == ConnectionStateEnum.HDR_EXCH ||
                      State == ConnectionStateEnum.OPEN_SENT)
@@ -220,6 +219,16 @@ namespace LightRail.Amqp.Protocol
             RemoteChannelToSessionMap.Add(remoteChannel, session);
             LocalChannelToSessionMap.Add(session.ChannelNumber, session);
             session.HandleSessionFrame(begin);
+        }
+
+        private void HandleSessionFrame(AmqpFrame frame, ushort remoteChannel)
+        {
+            AmqpSession session;
+            if (!RemoteChannelToSessionMap.TryGetValue(remoteChannel, out session))
+            {
+                throw new AmqpException(ErrorCode.NotFound, $"Session for channel number [{remoteChannel}] not found.");
+            }
+            session.HandleSessionFrame(frame);
         }
 
         private void HandleExpectedOpenFrame(AmqpFrame frame)
