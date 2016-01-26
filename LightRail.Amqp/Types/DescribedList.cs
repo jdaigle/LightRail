@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace LightRail.Amqp.Types
+﻿namespace LightRail.Amqp.Types
 {
     /// <summary>
     /// AMQP composite types are represented as a described list.
@@ -18,30 +16,14 @@ namespace LightRail.Amqp.Types
         {
         }
 
-        protected abstract int CalculateListSize();
-        protected abstract void EncodeListItem(ByteBuffer buffer, int index, bool arrayEncoding);
-        protected abstract void DecodeListItem(ByteBuffer buffer, int index);
-
         protected override void EncodeValue(ByteBuffer buffer)
         {
-            Encoder.WriteList(buffer, CalculateListSize(), EncodeListItem, true);
+            DescribedListCodec.EncodeValue(buffer, this);
         }
 
         protected override void DecodeValue(ByteBuffer buffer)
         {
-            var formatCode = Encoder.ReadFormatCode(buffer);
-            // ensure it is a list format code or null
-            if (formatCode == FormatCode.List0 ||
-                formatCode == FormatCode.List8 ||
-                formatCode == FormatCode.List32 ||
-                formatCode == FormatCode.Null)
-            {
-                Encoder.ReadList(buffer, formatCode, DecodeListItem);
-            }
-            else
-            {
-                throw new AmqpException(ErrorCode.FramingError, $"Invalid Format Code For Frame: {formatCode.ToHex()}");
-            }
+            DescribedListCodec.DecodeValue(buffer, this);
         }
     }
 }

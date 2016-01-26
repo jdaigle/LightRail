@@ -51,10 +51,11 @@
     <Compile Include="Constants.cs" />
     <Compile Include="ErrorCode.cs" />
     <Compile Include="Framing\AmqpFrame.cs" />
-    <Compile Include="Framing\AmqpFrameIndexAttribute.cs" />
+    <Compile Include="Framing\AmqpFrameCodec.cs" />
+    <Compile Include="Types\AmqpDescribedListIndexAttribute.cs" />
     <Compile Include="Framing\Open.cs" />
     <Compile Include="Framing\Error.cs" />
-    <Compile Include="Framing\FrameCodec.cs" />
+    <Compile Include="Types\DescribedListCodec.cs" />
     <Compile Include="Messaging\ApplicationProperties.cs" />
     <Compile Include="Messaging\Footer.cs" />
     <Compile Include="Messaging\MessagingDescriptors.cs" />

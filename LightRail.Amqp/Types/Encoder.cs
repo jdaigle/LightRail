@@ -696,30 +696,9 @@ namespace LightRail.Amqp.Types
             }
 
             var descriptor = new Descriptor(Encoder.ReadBoxedObject(buffer));
-
-            Descriptor knownDescriptor = null;
-            if (knownDescribedTypeDescriptors.TryGetValue(descriptor.Code, out knownDescriptor))
+            if (DescribedListCodec.IsKnownDescribedList(descriptor))
             {
-                Func<object> ctor;
-                if (knownDescribedTypeConstructors.TryGetValue(descriptor.Code, out ctor))
-                {
-                    var instance = ctor() as DescribedType;
-                    Action<ByteBuffer, AmqpFrame> frameDecoder;
-                    if (knownFrameDecoders.TryGetValue(descriptor.Code, out frameDecoder))
-                    {
-                        frameDecoder(buffer, instance as AmqpFrame);
-                    }
-                    else
-                    {
-                        // fallback to direct decode
-                        instance.Decode(buffer);
-                    }
-                    return instance;
-                }
-                else
-                {
-                    throw new AmqpException(ErrorCode.DecodeError, $"Missing Constructor For Known Described Type {knownDescriptor.ToString()}");
-                }
+                return DescribedListCodec.DecodeDescribedList(buffer, descriptor.Code);
             }
             // TODO: boxed object
             object value = Encoder.ReadBoxedObject(buffer);
@@ -1599,27 +1578,6 @@ namespace LightRail.Amqp.Types
             }
 
             return null;
-        }
-
-        private static readonly Dictionary<ulong, Descriptor> knownDescribedTypeDescriptors = new Dictionary<ulong, Descriptor>();
-        private static readonly Dictionary<ulong, Func<object>> knownDescribedTypeConstructors = new Dictionary<ulong, Func<object>>();
-        private static readonly Dictionary<ulong, Action<ByteBuffer, AmqpFrame>> knownFrameDecoders = new Dictionary<ulong, Action<ByteBuffer, AmqpFrame>>();
-
-        internal static void RegisterKnownDescriptor(Descriptor descriptor, Type describedType)
-        {
-            knownDescribedTypeDescriptors.Add(descriptor.Code, descriptor);
-            if (describedType != null)
-            {
-                var ctor = describedType.GetConstructor(new Type[0]);
-                if (ctor != null)
-                {
-                    knownDescribedTypeConstructors.Add(descriptor.Code, () => ctor.Invoke(null));
-                }
-                if (typeof(AmqpFrame).IsAssignableFrom(describedType))
-                {
-                    knownFrameDecoders.Add(descriptor.Code, AmqpFrame.CompileDecoder(describedType));
-                }
-            }
         }
     }
 }

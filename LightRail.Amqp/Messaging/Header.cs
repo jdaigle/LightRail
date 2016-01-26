@@ -29,11 +29,13 @@ namespace LightRail.Amqp.Messaging
         /// message SHOULD be rejected with the precondition-failed error, otherwise the link MUST be
         /// detached by the receiver with the same error
         /// </remarks>
+        [AmqpDescribedListIndex(0)]
         public bool Durable { get; set; } = false;
 
         /// <summary>
         /// Relative message priority.
         /// </summary>
+        [AmqpDescribedListIndex(1)]
         public byte Priority { get; set; } = 4;
 
         /// <summary>
@@ -48,12 +50,14 @@ namespace LightRail.Amqp.Messaging
         /// formerly computed message expiration time, i.e., the reduced ttl, so that messages will eventually
         /// die if they end up in a delivery loop.
         /// </remarks>
+        [AmqpDescribedListIndex(2)]
         public uint TTL { get; set; } = uint.MaxValue;
 
         /// <summary>
         /// If this value is true, then this message has not been acquired by any other link (see section 3.3). If
         /// this value is false, then this message MAY have previously been acquired by another link or links.
         /// </summary>
+        [AmqpDescribedListIndex(3)]
         public bool FirstAcquirer { get; set; } = false;
 
         /// <summary>
@@ -65,40 +69,7 @@ namespace LightRail.Amqp.Messaging
         /// is zero. It is incremented upon an outcome being settled at the sender, according to rules defined
         /// for each outcome.
         /// </remarks>
+        [AmqpDescribedListIndex(4)]
         public uint DeliveryCount { get; set; } = 0;
-
-        protected override int CalculateListSize()
-        {
-            return 5;
-        }
-
-        protected override void EncodeListItem(ByteBuffer buffer, int index, bool arrayEncoding)
-        {
-            switch (index)
-            {
-                case 0:
-                    Encoder.WriteBoolean(buffer, Durable, arrayEncoding);
-                    return;
-                case 1:
-                    Encoder.WriteUByte(buffer, Priority);
-                    return;
-                case 2:
-                    Encoder.WriteUInt(buffer, TTL, arrayEncoding);
-                    return;
-                case 3:
-                    Encoder.WriteBoolean(buffer, FirstAcquirer, arrayEncoding);
-                    return;
-                case 4:
-                    Encoder.WriteUInt(buffer, DeliveryCount, true);
-                    return;
-                default:
-                    throw new InvalidOperationException("Too Many Fields");
-            }
-        }
-
-        protected override void DecodeListItem(ByteBuffer buffer, int index)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

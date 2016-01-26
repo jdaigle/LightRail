@@ -1,5 +1,6 @@
 ﻿using System;
 using LightRail.Amqp.Framing;
+using LightRail.Amqp.Types;
 using NLog;
 
 namespace LightRail.Amqp.Protocol
@@ -75,7 +76,7 @@ namespace LightRail.Amqp.Protocol
                          State == ConnectionStateEnum.OPEN_SENT)
                 {
                     // expecting an "open" frame here
-                    var frame = FrameCodec.DecodeFrame(frameBuffer);
+                    var frame = AmqpFrameCodec.DecodeFrame(frameBuffer);
                     openFrame = frame as Open;
                     if (openFrame == null)
                     {

@@ -26,20 +26,5 @@ namespace LightRail.Amqp.Messaging
             : base(MessagingDescriptors.MessageAnnotations)
         {
         }
-
-        protected override int CalculateListSize()
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void EncodeListItem(ByteBuffer buffer, int index, bool arrayEncoding)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void DecodeListItem(ByteBuffer buffer, int index)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
