@@ -5,7 +5,7 @@ namespace LightRail.Amqp.Framing
 {
     public static class AmqpFrameCodec
     {
-        public static AmqpFrame DecodeFrame(ByteBuffer buffer)
+        public static AmqpFrame DecodeFrame(ByteBuffer buffer, out ushort channelNumber)
         {
             int frameStartOffset = buffer.ReadOffset;
 
@@ -13,7 +13,7 @@ namespace LightRail.Amqp.Framing
             uint frameSize = AmqpBitConverter.ReadUInt(buffer);
             byte dataOffset = AmqpBitConverter.ReadUByte(buffer);
             byte frameType = AmqpBitConverter.ReadUByte(buffer);
-            ushort channelNumber = AmqpBitConverter.ReadUShort(buffer);
+            channelNumber = AmqpBitConverter.ReadUShort(buffer); // out param
 
             if (dataOffset < 2)
             {

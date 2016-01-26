@@ -33,7 +33,7 @@ namespace LightRail.Amqp.Framing
         /// remote session sent the begin.
         /// </summary>
         [AmqpDescribedListIndex(0)]
-        public ushort RemoteChannel { get; set; }
+        public ushort? RemoteChannel { get; set; }
 
         /// <summary>
         /// the transfer-id of the first transfer id the sender will send
@@ -45,13 +45,13 @@ namespace LightRail.Amqp.Framing
         /// the initial incoming-window of the sender
         /// </summary>
         [AmqpDescribedListIndex(2)]
-        public ushort IncomingWindow { get; set; }
+        public uint IncomingWindow { get; set; }
 
         /// <summary>
         /// the initial outgoing-window of the sender
         /// </summary>
         [AmqpDescribedListIndex(3)]
-        public ushort OutgoingWindow { get; set; }
+        public uint OutgoingWindow { get; set; }
 
         /// <summary>
         /// The handle-max value is the highest handle value that can be used on the session. A peer MUST

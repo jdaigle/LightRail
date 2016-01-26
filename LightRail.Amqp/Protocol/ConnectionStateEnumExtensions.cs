@@ -16,7 +16,7 @@
                    state == ConnectionStateEnum.CLOSED_RCVD;
         }
 
-        public static bool CanWriteFrames(this ConnectionStateEnum state)
+        public static bool CanSendFrames(this ConnectionStateEnum state)
         {
             return state == ConnectionStateEnum.OPENED ||
                    state == ConnectionStateEnum.HDR_EXCH ||
@@ -26,7 +26,7 @@
                    state == ConnectionStateEnum.CLOSED_RCVD;
         }
 
-        public static bool CanReadFrames(this ConnectionStateEnum state)
+        public static bool CanReceiveFrames(this ConnectionStateEnum state)
         {
             return state == ConnectionStateEnum.OPENED ||
                    state == ConnectionStateEnum.HDR_EXCH ||

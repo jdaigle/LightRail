@@ -36,7 +36,7 @@ namespace LightRail.Amqp.Framing
         /// The ID of the source container
         /// </summary>
         [AmqpDescribedListIndex(0)]
-        public string ContainerID { get; set; }
+        public string ContainerID { get; set; } = "";
 
         /// <summary>
         /// The name of the target host.

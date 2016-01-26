@@ -41,6 +41,9 @@
         /// <summary>
         /// In this state the connection headers have been exchanged. An open frame has been received
         /// from the peer but an open frame has not been sent.
+        /// 
+        /// NOTE That for this implementation, we should never transition to this state since we will
+        /// always immediately send an OPEN frame after receiving an OPEN frame.
         /// </summary>
         OPEN_RCVD,
 

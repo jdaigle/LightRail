@@ -56,7 +56,8 @@ namespace LightRail.Amqp.Protocol
 
         protected AmqpFrame DecodeLastFrame()
         {
-            return AmqpFrameCodec.DecodeFrame(socket.GetSentBufferFrame(socket.SentBufferFrames.Count - 1));
+            ushort channelNumber = 0;
+            return AmqpFrameCodec.DecodeFrame(socket.GetSentBufferFrame(socket.SentBufferFrames.Count - 1), out channelNumber);
         }
     }
 }

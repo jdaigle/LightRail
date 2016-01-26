@@ -56,7 +56,11 @@
     <Compile Include="Framing\End.cs" />
     <Compile Include="Framing\Close.cs" />
     <Compile Include="Framing\Begin.cs" />
+    <Compile Include="Framing\Flow.cs" />
+    <Compile Include="Protocol\AmqpSession.cs" />
     <Compile Include="Protocol\AmqpSettings.cs" />
+    <Compile Include="Protocol\SessionStateEnumExtensions.cs" />
+    <Compile Include="Protocol\SessionStateEnum.cs" />
     <Compile Include="Protocol\ConnectionStateEnumExtensions.cs" />
     <Compile Include="Types\AmqpDescribedListIndexAttribute.cs" />
     <Compile Include="Framing\Open.cs" />
