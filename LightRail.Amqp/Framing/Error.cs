@@ -24,7 +24,7 @@ namespace LightRail.Amqp.Framing
         /// A symbolic value indicating the error condition.
         /// </summary>
         [AmqpDescribedListIndex(0)]
-        public string Condition { get; set; }
+        public Symbol Condition { get; set; }
 
         /// <summary>
         /// This text supplies any supplementary details not indicated by the condition field. This text can be
