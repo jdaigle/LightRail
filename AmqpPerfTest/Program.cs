@@ -32,10 +32,10 @@ namespace AmqpPerfTest
                                 connection = null;
                                 session = null;
                                 receiverLink = null;
-                                Console.WriteLine("Connection Opening");
+                                Console.WriteLine("Connection Closed");
                                 if (error != null)
                                 {
-                                    Console.Error.WriteLine("Connection Closed With Error: " + error.Condition + " " + error.Condition);
+                                    Console.Error.WriteLine("Connection Closed With Error: " + error.Condition + " " + error.Description);
                                 }
                             };
                         }
@@ -50,7 +50,7 @@ namespace AmqpPerfTest
                                 Console.WriteLine("Session Ended");
                                 if (error != null)
                                 {
-                                    Console.Error.WriteLine("Session Ended With Error: " + error.Condition + " " + error.Condition);
+                                    Console.Error.WriteLine("Session Ended With Error: " + error.Condition + " " + error.Description);
                                 }
                             };
                         }
@@ -64,7 +64,7 @@ namespace AmqpPerfTest
                                 Console.WriteLine("Link Detached");
                                 if (error != null)
                                 {
-                                    Console.Error.WriteLine("Link Detached With Error: " + error.Condition + " " + error.Condition);
+                                    Console.Error.WriteLine("Link Detached With Error: " + error.Condition + " " + error.Description);
                                 }
                             };
                         }
