@@ -13,6 +13,10 @@ namespace LightRail.Amqp.Protocol
         private static readonly byte[] protocol1 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x01, 0x01, 0x00, 0x00 };
         private static readonly byte[] protocol2 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x02, 0x01, 0x00, 0x00 };
 
+        private const uint   defaultMaxFrameSize = 256 * 1024;
+        private const ushort defaultMaxChannelCount = 256;
+        private const uint   defaultMaxIdleTimeout = 30 * 60 * 1000;
+
         public AmqpConnection(ISocket socket)
         {
             this.socket = socket;
@@ -21,16 +25,32 @@ namespace LightRail.Amqp.Protocol
 
         private readonly ISocket socket;
         public ConnectionStateEnum State { get; private set; }
-        private Open openFrame;
+        private string containerId = Guid.NewGuid().ToString("N");
+        private Open receivedOpenFrame;
+        private uint connectionMaxFrameSize = 512;
+        private ushort connectionChannelMax = defaultMaxChannelCount;
+        private uint connectionMaxIdleTimeout = defaultMaxIdleTimeout;
 
-        public void HandleReceivedFrame(ByteBuffer frameBuffer)
+        public void HandleReceivedBuffer(ByteBuffer buffer)
         {
             try
             {
-                HandleReceivedFrameInner(frameBuffer);
+                while (buffer.LengthAvailableToRead > 0)
+                {
+                    if (IsLikelyProtocolHeader(buffer))
+                    {
+                        HandleHeaderNegotiation(buffer);
+                        continue;
+                    }
+                    var frame = AmqpFrameCodec.DecodeFrame(buffer);
+                    if (logger.IsTraceEnabled)
+                        logger.Trace("Received Frame: {0}", frame.ToString());
+                    HandleReceivedFrame(frame);
+                }
             }
             catch (AmqpException amqpException)
             {
+                logger.Error(amqpException);
                 TrySendErrorFrame(amqpException.Error);
                 //socket.Close();
             }
@@ -47,82 +67,114 @@ namespace LightRail.Amqp.Protocol
             }
         }
 
-        private void HandleReceivedFrameInner(ByteBuffer frameBuffer)
+        private static bool IsLikelyProtocolHeader(ByteBuffer frameBuffer)
         {
-            while (frameBuffer.LengthAvailableToRead > 0)
+            if (frameBuffer.LengthAvailableToRead >= 8)
             {
-                if (State == ConnectionStateEnum.OPENED)
+                if (frameBuffer.Buffer[frameBuffer.ReadOffset + 0] == protocol0[0] &&
+                    frameBuffer.Buffer[frameBuffer.ReadOffset + 1] == protocol0[1] &&
+                    frameBuffer.Buffer[frameBuffer.ReadOffset + 2] == protocol0[2] &&
+                    frameBuffer.Buffer[frameBuffer.ReadOffset + 3] == protocol0[3])
                 {
-                    // TODO pass frame to Session
-                    throw new NotImplementedException("TODO pass frame to session");
+                    return true;
                 }
-                else if (State == ConnectionStateEnum.CLOSED_RCVD)
+            }
+            return false;
+        }
+
+        private void HandleReceivedFrame(AmqpFrame frame)
+        {
+            if (State == ConnectionStateEnum.OPENED)
+            {
+                // TODO pass frame to Session
+                throw new NotImplementedException("TODO pass frame to session");
+            }
+            else if (State == ConnectionStateEnum.CLOSED_RCVD)
+            {
+                // no more packets expects, so just ignore
+                throw new NotImplementedException("TODO pass frame to session");
+            }
+            else if (State == ConnectionStateEnum.DISCARDING || State == ConnectionStateEnum.CLOSE_SENT)
+            {
+                // TODO: check for close frame, ignore all others.
+                throw new NotImplementedException("Check for close Frame. Ignore All Others.");
+                //return;
+            }
+            else if (State == ConnectionStateEnum.END)
+            {
+                // illegal for either endpoint to write anything, so just ignore
+                return;
+            }
+            else if (State == ConnectionStateEnum.HDR_EXCH ||
+                     State == ConnectionStateEnum.OPEN_SENT)
+            {
+                // expecting an "open" frame here
+                receivedOpenFrame = frame as Open;
+                if (receivedOpenFrame == null)
                 {
-                    // no more packets expects, so just ignore
-                    throw new NotImplementedException("TODO pass frame to session");
+                    throw new AmqpException(ErrorCode.IllegalState, $"Excepted Open Frame. Instead Frame is {frame.Descriptor.ToString()}");
                 }
-                else if (State == ConnectionStateEnum.DISCARDING || State == ConnectionStateEnum.CLOSE_SENT)
+                connectionMaxFrameSize = Math.Min(defaultMaxFrameSize, receivedOpenFrame.MaxFrameSize);
+                connectionChannelMax = Math.Min(defaultMaxChannelCount, receivedOpenFrame.ChannelMax);
+                connectionMaxIdleTimeout = defaultMaxIdleTimeout;
+                if (State != ConnectionStateEnum.OPEN_SENT)
                 {
-                    // TODO: check for close frame, ignore all others.
-                    throw new NotImplementedException("Check for close Frame. Ignore All Others.");
-                    //return;
-                }
-                else if (State == ConnectionStateEnum.END)
-                {
-                    // illegal for either endpoint to write anything, so just ignore
-                    return;
-                }
-                else if (State == ConnectionStateEnum.HDR_EXCH ||
-                         State == ConnectionStateEnum.OPEN_SENT)
-                {
-                    // expecting an "open" frame here
-                    var frame = AmqpFrameCodec.DecodeFrame(frameBuffer);
-                    openFrame = frame as Open;
-                    if (openFrame == null)
+                    SendFrame(new Open()
                     {
-                        throw new AmqpException(ErrorCode.IllegalState, $"Excepted Open Frame. Instead Frame is {frame.Descriptor.ToString()}");
-                    }
-                    if (State != ConnectionStateEnum.OPEN_SENT)
-                    {
-                        SendOpenFrame();
-                    }
-                    State = ConnectionStateEnum.OPENED;
+                        ContainerID = containerId,
+                        Hostname = "",
+                        MaxFrameSize = connectionMaxFrameSize,
+                        ChannelMax = connectionChannelMax,
+                        IdleTimeOut = connectionMaxIdleTimeout,
+                    });
                 }
-                else if (State == ConnectionStateEnum.OPEN_RCVD)
+                State = ConnectionStateEnum.OPENED;
+            }
+            else if (State == ConnectionStateEnum.OPEN_RCVD)
+            {
+                if (receivedOpenFrame == null)
                 {
-                    if (openFrame == null)
-                    {
-                        throw new AmqpException(ErrorCode.InternalError, $"Current state == OPEN_RCVD but openFrame == null");
-                    }
-                    SendOpenFrame();
-                    // TODO what data did we get? Negotiate open and send back frame.
-                    EndConnection();
+                    throw new AmqpException(ErrorCode.InternalError, $"Current state == OPEN_RCVD but openFrame == null");
                 }
-                else if (State == ConnectionStateEnum.CLOSE_PIPE)
+
+                SendFrame(new Open()
                 {
-                    // TODO: currently illegal state
-                    EndConnection();
-                }
-                else
-                {
-                    // have not finished protocol header negotiation
-                    HandleHeaderNegotiation(frameBuffer);
-                }
+                    ContainerID = containerId,
+                    Hostname = "",
+                    MaxFrameSize = connectionMaxFrameSize,
+                    ChannelMax = connectionChannelMax,
+                    IdleTimeOut = connectionMaxIdleTimeout,
+                });
+                // TODO what data did we get? Negotiate open and send back frame.
+                EndConnection();
+            }
+            else if (State == ConnectionStateEnum.CLOSE_PIPE)
+            {
+                // TODO: currently illegal state
+                EndConnection();
+            }
+            else
+            {
+                // have not finished protocol header negotiation
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Frame {frame.Descriptor.ToString()} but expecting a protocol header");
             }
         }
 
-        private void SendOpenFrame()
+        private void SendFrame(AmqpFrame frame)
         {
-            // TODO:
+            // TODO: get pinned send buffer from socket to prevent an unneccessary array copy
+            var buffer = new ByteBuffer((int?)receivedOpenFrame?.MaxFrameSize ?? 512, false);
+            frame.Encode(buffer);
+            if (logger.IsTraceEnabled)
+                logger.Trace("Sending Frame: {0}", frame.ToString());
+            socket.SendAsync(buffer);
         }
 
         private void TrySendErrorFrame(Error errorFrame)
         {
             try
             {
-                var buffer = new ByteBuffer(100, true);
-                errorFrame.Encode(buffer);
-                socket.SendAsync(buffer);
+                SendFrame(errorFrame);
             }
             catch (Exception ex)
             {
@@ -135,19 +187,13 @@ namespace LightRail.Amqp.Protocol
         {
             byte protocolId = 0;
             byte[] protocolVersion = null;
-            if (frameBuffer.LengthAvailableToRead >= 8)
+            if (frameBuffer.LengthAvailableToRead < 8 ||
+                !TryParseProtocolHeader(frameBuffer, out protocolId, out protocolVersion))
             {
-                if (!TryParseProtocolHeader(frameBuffer, out protocolId, out protocolVersion))
-                {
-                    logger.Debug("Received Invalid Protocol Header");
-                    // invalid protocol header
-                    EndConnection();
-                    return;
-                }
-            }
-            else
-            {
-
+                logger.Debug("Received Invalid Protocol Header");
+                // invalid protocol header
+                EndConnection();
+                return;
             }
 
             if (protocolVersion[0] != 1 ||

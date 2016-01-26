@@ -134,6 +134,11 @@ namespace LightRail.Server.Network
                 var connection = e.UserToken as TcpConnectionState;
                 if (connection != null)
                 {
+                    if (!connection.Socket.Connected)
+                    {
+                        ReleaseReceiveSocketAsyncEventArgs(e);
+                        return;
+                    }
                     e.SetBuffer(connection.ReceiveBufferOffset, connection.ReceiverBufferSize);
                     if (connection.Socket.ReceiveAsync(e) == false)
                     {
@@ -168,7 +173,11 @@ namespace LightRail.Server.Network
                     if (e.BytesTransferred == 0)
                         logger.Error("CompleteReceive() 0 Bytes Transferred. Shutting down socket.");
 #endif
-                    Disconnect(e);
+                    if (connection != null)
+                    {
+                        TryCloseSocket(connection.Socket);
+                    }
+                    ReleaseReceiveSocketAsyncEventArgs(e);
                     return;
                 }
 
@@ -201,9 +210,9 @@ namespace LightRail.Server.Network
             if (!_sendSocketAsyncEventArgs.TryPop(out e))
             {
                 e = new SocketAsyncEventArgs();
-                e.UserToken = connection;
                 e.Completed += AsyncEventCompleted;
             }
+            e.UserToken = connection;
             if (length > maxBufferSize)
             {
                 throw new InvalidOperationException($"Cannot Send Buffer of Length {length}. Max Buffer Sized = {maxBufferSize}. Chunking has not been implemented.");
@@ -236,43 +245,23 @@ namespace LightRail.Server.Network
                     if (e.BytesTransferred == 0)
                         logger.Error("CompleteSend() 0 Bytes Transferred. Shutting down socket.");
 #endif
-                    Disconnect(e);
+                    if (connection != null)
+                    {
+                        logger.Debug("Closing Socket to {0}", connection.IPAddress);
+                        TryCloseSocket(connection.Socket);
+                    }
+                    ReleaseSendSocketAsyncEventArgs(e);
                     return;
                 }
                 logger.Trace("Sent {0} Bytes", e.BytesTransferred);
                 // todo: determine if need to loop and send more?
                 // finished sending...
-                _memoryBufferPool.FreeBuffer(e);
-                e.UserToken = null;
-                _receiveSocketAsyncEventArgs.Push(e);
+                ReleaseSendSocketAsyncEventArgs(e);
             }
             catch (Exception ex)
             {
                 logger.Fatal(ex, "Exception in CompleteSend()");
             }
-        }
-
-        /// <summary>
-        /// Disconnects a socket.
-        /// </summary>
-        /// <remarks>
-        /// It is expected that this disconnect is always posted by a failed receive call. Calling the public
-        /// version of this method will cause the next posted receive to fail and this will cleanup properly.
-        /// It is not advised to call this method directly.
-        /// </remarks>
-        /// <param name="e">Information about the socket to be disconnected.</param>
-        private void Disconnect(SocketAsyncEventArgs e)
-        {
-            var connection = e.UserToken as TcpConnectionState;
-            if (connection == null)
-            {
-                throw (new ArgumentNullException("e.UserToken"));
-            }
-            logger.Debug("Closing Socket to {0}", connection.IPAddress);
-            TryCloseSocket(connection.Socket);
-            _memoryBufferPool.FreeBuffer(e);
-            e.UserToken = null;
-            _receiveSocketAsyncEventArgs.Push(e);
         }
 
         private void TryCloseSocket(Socket socket)
@@ -303,6 +292,20 @@ namespace LightRail.Server.Network
             {
                 logger.Error(e, "Non-fatal error shuttind down socket");
             }
+        }
+
+        private void ReleaseReceiveSocketAsyncEventArgs(SocketAsyncEventArgs e)
+        {
+            _memoryBufferPool.FreeBuffer(e);
+            e.UserToken = null;
+            _receiveSocketAsyncEventArgs.Push(e);
+        }
+
+        private void ReleaseSendSocketAsyncEventArgs(SocketAsyncEventArgs e)
+        {
+            _memoryBufferPool.FreeBuffer(e);
+            e.UserToken = null;
+            _sendSocketAsyncEventArgs.Push(e);
         }
     }
 }

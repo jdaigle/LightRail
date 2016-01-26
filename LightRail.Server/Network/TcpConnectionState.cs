@@ -30,7 +30,7 @@ namespace LightRail.Server.Network
 
         public void HandleReceived(ByteBuffer buffer)
         {
-            amqpConnection.HandleReceivedFrame(buffer);
+            amqpConnection.HandleReceivedBuffer(buffer);
         }
 
         public void SendAsync(ByteBuffer byteBuffer)

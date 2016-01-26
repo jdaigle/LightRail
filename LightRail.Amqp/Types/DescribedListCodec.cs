@@ -138,8 +138,7 @@ namespace LightRail.Amqp.Types
                     throw new AmqpException(ErrorCode.InternalError, $"Invalid AMQP Frame[{describedListType.FullName}] Index: {_index}");
                 }
                 var prop = properties[_index];
-                var formatCode = Encoder.ReadFormatCode(_buffer);
-                var codec = Encoder.GetTypeCodec(formatCode);
+                var codec = Encoder.GetTypeCodec(prop.PropertyType);
                 if (!prop.PropertyType.IsAssignableFrom(codec.Type))
                 {
                     throw new AmqpException(ErrorCode.InternalError, $"Cannot Decode Type {codec.Type} into {prop.PropertyType} for Index {_index} Property = {prop.Name}");
