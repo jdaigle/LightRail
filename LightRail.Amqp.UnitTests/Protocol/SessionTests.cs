@@ -32,7 +32,7 @@ namespace LightRail.Amqp.Protocol
 
             EncodeAndSend(new Begin());
 
-            Assert.AreEqual(ConnectionStateEnum.END, connection.State);
+            Assert.AreEqual(ConnectionStateEnum.DISCARDING, connection.State); // TODO: verify that DISCARDING is the correct state?
             Assert.True(socket.Closed);
         }
     }

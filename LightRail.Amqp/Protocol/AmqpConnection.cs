@@ -307,7 +307,7 @@ namespace LightRail.Amqp.Protocol
                 logger.Debug("Received Invalid Protocol Header");
                 // invalid protocol header
                 socket.SendAsync(protocol0, 0, 8);
-                CloseConnection(null);
+                CloseConnection(new Error());
                 return;
             }
 
@@ -318,7 +318,7 @@ namespace LightRail.Amqp.Protocol
                 logger.Debug("Received Invalid Protocol Version");
                 // invalid protocol version
                 socket.SendAsync(protocol0, 0, 8);
-                CloseConnection(null);
+                CloseConnection(new Error());
                 return;
             }
 
@@ -334,20 +334,20 @@ namespace LightRail.Amqp.Protocol
             {
                 // TODO: not yet supported
                 socket.SendAsync(protocol0, 0, 8);
-                CloseConnection(null);
+                CloseConnection(new Error());
             }
             else if (protocolId == 0x02)
             {
                 // TODO: not yet supported
                 socket.SendAsync(protocol0, 0, 8);
-                CloseConnection(null);
+                CloseConnection(new Error());
             }
             else
             {
                 logger.Debug("Invalid Protocol ID AMQP.{0}.1.0.0!!", ((int)protocolId));
                 // invalid protocol id
                 socket.SendAsync(protocol0, 0, 8);
-                CloseConnection(null);
+                CloseConnection(new Error());
             }
         }
 
@@ -391,7 +391,7 @@ namespace LightRail.Amqp.Protocol
         {
             logger.Debug("Closing connection due to socket closed.");
             State = ConnectionStateEnum.END;
-            CloseConnection(null);
+            CloseConnection(new Error());
         }
 
         public void CloseDueToTimeout()
@@ -416,13 +416,19 @@ namespace LightRail.Amqp.Protocol
                 {
                     Error = error
                 }, 0);
-                State = ConnectionStateEnum.CLOSE_SENT;
-                if (error != null)
+                if (State != ConnectionStateEnum.CLOSED_RCVD)
                 {
-                    State = ConnectionStateEnum.DISCARDING;
+                    State = ConnectionStateEnum.CLOSE_SENT;
+                    if (error != null)
+                    {
+                        State = ConnectionStateEnum.DISCARDING;
+                    }
                 }
+                if (State == ConnectionStateEnum.CLOSED_RCVD)
+                    State = ConnectionStateEnum.END;
                 logger.Debug("Closing Sending Side of Socket");
                 socket.CloseWrite();
+                return;
             }
             if (error != null)
             {
