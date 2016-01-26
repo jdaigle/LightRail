@@ -51,7 +51,7 @@ namespace LightRail.Amqp.Framing
         /// manage a peer’s resources.
         /// </summary>
         [AmqpDescribedListIndex(4)]
-        public uint IdleTimeOut { get; set; }
+        public uint? IdleTimeOut { get; set; }
 
         /// <summary>
         /// A list of the locales that the peer supports for sending informational text. This includes connection,

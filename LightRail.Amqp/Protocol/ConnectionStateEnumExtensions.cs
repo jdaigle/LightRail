@@ -16,5 +16,26 @@
                    state == ConnectionStateEnum.CLOSED_RCVD;
         }
 
+        public static bool CanWriteFrames(this ConnectionStateEnum state)
+        {
+            return state == ConnectionStateEnum.OPENED ||
+                   state == ConnectionStateEnum.HDR_EXCH ||
+                   state == ConnectionStateEnum.OPEN_PIPE ||
+                   state == ConnectionStateEnum.OPEN_RCVD ||
+                   state == ConnectionStateEnum.OPEN_SENT ||
+                   state == ConnectionStateEnum.CLOSED_RCVD;
+        }
+
+        public static bool CanReadFrames(this ConnectionStateEnum state)
+        {
+            return state == ConnectionStateEnum.OPENED ||
+                   state == ConnectionStateEnum.HDR_EXCH ||
+                   state == ConnectionStateEnum.OPEN_PIPE ||
+                   state == ConnectionStateEnum.OC_PIPE ||
+                   state == ConnectionStateEnum.OPEN_RCVD ||
+                   state == ConnectionStateEnum.OPEN_SENT ||
+                   state == ConnectionStateEnum.CLOSE_PIPE ||
+                   state == ConnectionStateEnum.CLOSE_SENT;
+        }
     }
 }

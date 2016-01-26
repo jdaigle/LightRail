@@ -128,5 +128,83 @@ namespace LightRail.Amqp.Protocol
             Assert.True(socket.Closed);
             Assert.AreEqual(3, socket.SentBufferFrames.Count);
         }
+
+        [Test]
+        public void Can_Specify_IdleTimeOut()
+        {
+            Given_Exchanged_Headers();
+
+            var open = new Open()
+            {
+                ContainerID = Guid.NewGuid().ToString(),
+                Hostname = "localhost",
+                MaxFrameSize = 600,
+                ChannelMax = 10,
+                IdleTimeOut = 1000,
+            };
+            EncodeAndSend(open);
+            var response = DecodeLastFrame() as Open;
+
+            Assert.AreEqual(1000, response.IdleTimeOut, "IdleTimeOut");
+        }
+
+        [Test]
+        public void Can_Ignore_IdleTimeOut()
+        {
+            Given_Exchanged_Headers();
+
+            var open = new Open()
+            {
+                ContainerID = Guid.NewGuid().ToString(),
+                Hostname = "localhost",
+                MaxFrameSize = 600,
+                ChannelMax = 10,
+                //IdleTimeOut = 1000,
+            };
+            EncodeAndSend(open);
+            var response = DecodeLastFrame() as Open;
+
+            Assert.AreEqual(AmqpConnection.DefaultIdleTimeout, response.IdleTimeOut, "IdleTimeOut");
+        }
+
+        [Test]
+        public void Can_Close_Connection()
+        {
+            Given_Exchanged_Headers();
+
+            var open = new Open();
+            EncodeAndSend(open);
+            connection.CloseConnection(null);
+
+            var response = DecodeLastFrame() as Close;
+            Assert.NotNull(response);
+            Assert.AreEqual(ConnectionStateEnum.CLOSE_SENT, connection.State);
+        }
+
+        [Test]
+        public void On_Idle_Sends_Close()
+        {
+            Given_Exchanged_Headers();
+
+            var open = new Open();
+            EncodeAndSend(open);
+            connection.CloseDueToTimeout();
+
+            var response = DecodeLastFrame() as Close;
+            Assert.NotNull(response);
+            Assert.AreEqual(ConnectionStateEnum.DISCARDING, connection.State);
+        }
+
+        [Test]
+        public void Can_Gracefully_Close_Connection()
+        {
+            Given_Exchanged_Headers();
+
+            EncodeAndSend(new Open());
+            connection.CloseConnection(null);
+            EncodeAndSend(new Close());
+
+            Assert.AreEqual(ConnectionStateEnum.END, connection.State);
+        }
     }
 }

@@ -135,13 +135,31 @@ namespace LightRail.Amqp.Types
             {
                 if (!properties.ContainsKey(_index))
                 {
-                    throw new AmqpException(ErrorCode.InternalError, $"Invalid AMQP Frame[{describedListType.FullName}] Index: {_index}");
+                    throw new AmqpException(ErrorCode.InternalError, $"Invalid AMQP Frame[{describedListType.FullName}] as Index[{_index}]");
                 }
                 var prop = properties[_index];
-                var codec = Encoder.GetTypeCodec(prop.PropertyType);
-                if (!prop.PropertyType.IsAssignableFrom(codec.Type))
+                var propertyType = prop.PropertyType;
+
+                // special handling of nested described type
+                if (typeof(DescribedType).IsAssignableFrom(propertyType))
                 {
-                    throw new AmqpException(ErrorCode.InternalError, $"Cannot Encode Type {codec.Type} into {prop.PropertyType} for Index {_index} Property = {prop.Name}");
+                    var value = (prop.Getter(_instance) as DescribedType);
+                    value.Encode(_buffer);
+                    return;
+                }
+
+                // special handling of Nullable<>
+                if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                    propertyType = Nullable.GetUnderlyingType(propertyType);
+
+                var codec = Encoder.GetTypeCodec(propertyType);
+                if (codec == null)
+                {
+                    throw new AmqpException(ErrorCode.InternalError, $"Could Not Find Type Codec For {prop.PropertyType} at Index[{_index}].{prop.Name}");
+                }
+                if (!propertyType.IsAssignableFrom(codec.Type))
+                {
+                    throw new AmqpException(ErrorCode.InternalError, $"Cannot Encode Type {codec.Type} into {prop.PropertyType} at Index[{_index}].{prop.Name}");
                 }
                 codec.EncodeBoxedValue(_buffer, prop.Getter(_instance), _arrayEncoding); // TODO boxing!!!
             });
@@ -177,20 +195,40 @@ namespace LightRail.Amqp.Types
             {
                 if (!properties.ContainsKey(_index))
                 {
-                    throw new AmqpException(ErrorCode.InternalError, $"Invalid AMQP Frame[{describedListType.FullName}] Index: {_index}");
+                    throw new AmqpException(ErrorCode.InternalError, $"Invalid AMQP Frame[{describedListType.FullName}] at Index[{_index}]");
                 }
                 var prop = properties[_index];
+                var propertyType = prop.PropertyType;
+
                 var formatCode = Encoder.ReadFormatCode(_buffer);
                 if (formatCode == FormatCode.Null)
                 {
                     // null value, return
                     return;
                 }
-                var codec = Encoder.GetTypeCodec(formatCode);
-                if (!prop.PropertyType.IsAssignableFrom(codec.Type))
+
+                // special handling of nested described type
+                if (formatCode == FormatCode.Described)
                 {
-                    throw new AmqpException(ErrorCode.InternalError, $"Cannot Decode Type {codec.Type} into {prop.PropertyType} for Index {_index} Property = {prop.Name}");
+                    prop.Setter(_instance, Encoder.ReadDescribed(_buffer, formatCode));
+                    return;
                 }
+
+                var codec = Encoder.GetTypeCodec(formatCode);
+                if (codec == null)
+                {
+                    throw new AmqpException(ErrorCode.InternalError, $"Could Not Find Type Codec For FormateCode {formatCode.ToHex()} at Index[{_index}].{prop.Name}");
+                }
+
+                // special handling of Nullable<>
+                if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                    propertyType = Nullable.GetUnderlyingType(propertyType);
+
+                if (!propertyType.IsAssignableFrom(codec.Type))
+                {
+                    throw new AmqpException(ErrorCode.InternalError, $"Cannot Decode Type {codec.Type} into {prop.PropertyType} at Index[{_index}].{prop.Name}");
+                }
+
                 prop.Setter(_instance, codec.DecodeBoxedValue(_buffer, formatCode)); // TODO boxing!!!
             });
 

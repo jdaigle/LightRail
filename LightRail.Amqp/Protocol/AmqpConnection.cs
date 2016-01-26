@@ -13,9 +13,9 @@ namespace LightRail.Amqp.Protocol
         private static readonly byte[] protocol1 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x01, 0x01, 0x00, 0x00 };
         private static readonly byte[] protocol2 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x02, 0x01, 0x00, 0x00 };
 
-        private const uint defaultMaxFrameSize = 256 * 1024;
-        private const ushort defaultMaxChannelCount = 256;
-        private const uint defaultMaxIdleTimeout = 30 * 60 * 1000;
+        public const uint DefaultMaxFrameSize = 256 * 1024;
+        public const ushort DefaultMaxChannelCount = 256;
+        public const uint DefaultIdleTimeout = 30 * 60 * 1000; // 30 min
 
         public AmqpConnection(ISocket socket)
             : this(socket, null)
@@ -35,7 +35,19 @@ namespace LightRail.Amqp.Protocol
         private Open receivedOpenFrame;
         private uint connectionMaxFrameSize = 512; // initial
         private ushort connectionChannelMax = 0; // initial
-        private uint connectionMaxIdleTimeout = defaultMaxIdleTimeout;
+        private uint connectionIdleTimeout = DefaultIdleTimeout;
+        public DateTime LastFrameReceivedDateTime { get; private set; }
+
+        /// <summary>
+        /// Returns true if we have not received a frame within
+        /// the idle timeout window.
+        /// </summary>
+        public bool IsIdle()
+        {
+            // To avoid spurious timeouts, the value in idle-time-out SHOULD
+            // be half the peer’s actual timeout threshold.
+            return LastFrameReceivedDateTime.AddMilliseconds(DefaultIdleTimeout * 2) < DateTime.UtcNow;
+        }
 
         public void HandleReceivedBuffer(ByteBuffer buffer)
         {
@@ -53,6 +65,7 @@ namespace LightRail.Amqp.Protocol
                         continue;
                     }
                     var frame = AmqpFrameCodec.DecodeFrame(buffer);
+                    LastFrameReceivedDateTime = DateTime.UtcNow;
                     if (frame == null)
                     {
                         logger.Trace("Received Empty Frame");
@@ -146,9 +159,13 @@ namespace LightRail.Amqp.Protocol
                 {
                     throw new AmqpException(ErrorCode.IllegalState, $"Excepted Open Frame. Instead Frame is {frame.Descriptor.ToString()}");
                 }
-                connectionMaxFrameSize = Math.Min(defaultMaxFrameSize, receivedOpenFrame.MaxFrameSize);
-                connectionChannelMax = Math.Min(defaultMaxChannelCount, receivedOpenFrame.ChannelMax);
-                connectionMaxIdleTimeout = defaultMaxIdleTimeout;
+                connectionMaxFrameSize = Math.Min(DefaultMaxFrameSize, receivedOpenFrame.MaxFrameSize);
+                connectionChannelMax = Math.Min(DefaultMaxChannelCount, receivedOpenFrame.ChannelMax);
+                connectionIdleTimeout = DefaultIdleTimeout;
+                if (receivedOpenFrame.IdleTimeOut.HasValue && receivedOpenFrame.IdleTimeOut > 0)
+                {
+                    connectionIdleTimeout = Math.Min(receivedOpenFrame.IdleTimeOut.Value, DefaultIdleTimeout);
+                }
                 if (State != ConnectionStateEnum.OPEN_SENT)
                 {
                     SendFrame(new Open()
@@ -157,7 +174,7 @@ namespace LightRail.Amqp.Protocol
                         Hostname = receivedOpenFrame.Hostname,
                         MaxFrameSize = connectionMaxFrameSize,
                         ChannelMax = connectionChannelMax,
-                        IdleTimeOut = connectionMaxIdleTimeout,
+                        IdleTimeOut = connectionIdleTimeout,
                     }, 0);
                 }
                 State = ConnectionStateEnum.OPENED;
@@ -178,7 +195,7 @@ namespace LightRail.Amqp.Protocol
                     Hostname = receivedOpenFrame.Hostname,
                     MaxFrameSize = connectionMaxFrameSize,
                     ChannelMax = connectionChannelMax,
-                    IdleTimeOut = connectionMaxIdleTimeout,
+                    IdleTimeOut = connectionIdleTimeout,
                 }, 0);
                 // TODO what data did we get? Negotiate open and send back frame.
                 CloseSocketConnection();
@@ -271,12 +288,33 @@ namespace LightRail.Amqp.Protocol
             }
         }
 
-        public void CloseConnection(Error errorFrame)
+        public void CloseDueToTimeout()
         {
-            throw new NotImplementedException("Have Not Yet Implemeneted Close.");
+            CloseConnection(new Error()
+            {
+                Condition = ErrorCode.ConnectionForced,
+                Description = "Idle Timeout",
+            });
         }
 
-        private void CloseSocketConnection()
+        public void CloseConnection(Error errorFrame)
+        {
+            if (State.CanWriteFrames())
+            {
+                SendFrame(new Close()
+                {
+                    Error = errorFrame
+                }, 0);
+                State = ConnectionStateEnum.CLOSE_SENT;
+                if (errorFrame != null)
+                {
+                    State = ConnectionStateEnum.DISCARDING;
+                }
+                socket.CloseWrite();
+            }
+        }
+
+        public void CloseSocketConnection()
         {
             State = ConnectionStateEnum.END;
             socket.Close();
