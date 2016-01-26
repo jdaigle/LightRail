@@ -109,7 +109,7 @@ namespace LightRail.Server.Network
             {
                 // TODO too many connections
                 logger.Trace("Too Many Connections.");
-                TryCloseSocket(e.AcceptSocket);
+                TryCloseSocket(e.AcceptSocket, null);
                 return;
             }
 
@@ -180,7 +180,7 @@ namespace LightRail.Server.Network
 #endif
                     if (connection != null)
                     {
-                        TryCloseSocket(connection.Socket);
+                        TryCloseSocket(connection.Socket, connection);
                     }
                     ReleaseReceiveSocketAsyncEventArgs(e);
                     return;
@@ -254,7 +254,7 @@ namespace LightRail.Server.Network
                     if (connection != null)
                     {
                         logger.Debug("Closing Socket to {0}", connection.IPAddress);
-                        TryCloseSocket(connection.Socket);
+                        TryCloseSocket(connection.Socket, connection);
                     }
                     ReleaseSendSocketAsyncEventArgs(e);
                     return;
@@ -270,10 +270,14 @@ namespace LightRail.Server.Network
             }
         }
 
-        private void TryCloseSocket(Socket socket)
+        private void TryCloseSocket(Socket socket, TcpConnectionState connection)
         {
             try
             {
+                if (connection != null)
+                {
+                    connection.HandleSocketClosed();
+                }
                 socket.Shutdown(SocketShutdown.Both);
             }
             catch (Exception e)

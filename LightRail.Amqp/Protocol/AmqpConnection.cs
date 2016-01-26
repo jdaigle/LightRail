@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using LightRail.Amqp.Framing;
@@ -104,7 +105,6 @@ namespace LightRail.Amqp.Protocol
             {
                 logger.Error(amqpException);
                 CloseConnection(amqpException.Error);
-                CloseSocketConnection();
             }
             catch (Exception fatalException)
             {
@@ -115,7 +115,6 @@ namespace LightRail.Amqp.Protocol
                     Description = "Closing Connection due to fatal exception: " + fatalException.Message,
                 };
                 CloseConnection(error);
-                CloseSocketConnection();
             }
         }
 
@@ -157,7 +156,7 @@ namespace LightRail.Amqp.Protocol
                 var openFrame = frame as Open;
                 if (openFrame == null)
                 {
-                    HandleExpectedOpenFrame(frame);
+                    HandleExpectedOpenFrameMissing(frame);
                     return;
                 }
                 HandleOpenFrame(openFrame);
@@ -211,11 +210,14 @@ namespace LightRail.Amqp.Protocol
                 }
                 else
                 {
-                    throw new AmqpException(ErrorCode.NotFound, $"Session with for remote channel number [{begin.RemoteChannel.Value}] not found.");
+                    throw new AmqpException(ErrorCode.NotFound, $"Session for remote channel number [{begin.RemoteChannel.Value}] not found.");
                 }
             }
+            ushort channelNumber;
+            if (!freeChannelNumbers.TryPop(out channelNumber))
+                channelNumber = nextChannelNumber++;
             // new session
-            session = new AmqpSession(this, nextChannelNumber++, remoteChannel);
+            session = new AmqpSession(this, channelNumber, remoteChannel);
             RemoteChannelToSessionMap.Add(remoteChannel, session);
             LocalChannelToSessionMap.Add(session.ChannelNumber, session);
             session.HandleSessionFrame(begin);
@@ -231,22 +233,22 @@ namespace LightRail.Amqp.Protocol
             session.HandleSessionFrame(frame);
         }
 
-        private void HandleExpectedOpenFrame(AmqpFrame frame)
+        internal void OnSessionUnmapped(AmqpSession session)
+        {
+            logger.Debug("Session {0} Unmapped", session.ChannelNumber);
+            RemoteChannelToSessionMap.Remove(session.RemoteChannelNumber);
+            LocalChannelToSessionMap.Remove(session.ChannelNumber);
+            freeChannelNumbers.Push(session.ChannelNumber);
+        }
+
+        private void HandleExpectedOpenFrameMissing(AmqpFrame frame)
         {
             logger.Trace($"Excepted Open Frame. Instead Frame is {frame.Descriptor.ToString()}");
-            if (State == ConnectionStateEnum.OPEN_SENT)
+            CloseConnection(new Error()
             {
-                CloseConnection(new Error()
-                {
-                    Condition = ErrorCode.IllegalState,
-                    Description = $"Excepted Open Frame. Instead Frame is {frame.Descriptor.ToString()}",
-                });
-                CloseSocketConnection();
-            }
-            else
-            {
-                CloseSocketConnection();
-            }
+                Condition = ErrorCode.IllegalState,
+                Description = $"Excepted Open Frame. Instead Frame is {frame.Descriptor.ToString()}",
+            });
         }
 
         private void HandleOpenFrame(Open openFrame)
@@ -284,7 +286,8 @@ namespace LightRail.Amqp.Protocol
         {
             if (State == ConnectionStateEnum.DISCARDING || State == ConnectionStateEnum.CLOSE_SENT)
             {
-                CloseSocketConnection();
+                State = ConnectionStateEnum.END;
+                CloseConnection(null);
                 return;
             }
             State = ConnectionStateEnum.CLOSED_RCVD;
@@ -292,8 +295,7 @@ namespace LightRail.Amqp.Protocol
             {
                 logger.Debug("Closing with Error {0}-{1}", close.Error.Condition, close.Error.Description);
             }
-            SendFrame(new Close(), 0);
-            CloseSocketConnection();
+            CloseConnection(null);
         }
 
         private void HandleHeaderNegotiation(ByteBuffer frameBuffer)
@@ -305,7 +307,7 @@ namespace LightRail.Amqp.Protocol
                 logger.Debug("Received Invalid Protocol Header");
                 // invalid protocol header
                 socket.SendAsync(protocol0, 0, 8);
-                CloseSocketConnection();
+                CloseConnection(null);
                 return;
             }
 
@@ -316,7 +318,7 @@ namespace LightRail.Amqp.Protocol
                 logger.Debug("Received Invalid Protocol Version");
                 // invalid protocol version
                 socket.SendAsync(protocol0, 0, 8);
-                CloseSocketConnection();
+                CloseConnection(null);
                 return;
             }
 
@@ -332,20 +334,20 @@ namespace LightRail.Amqp.Protocol
             {
                 // TODO: not yet supported
                 socket.SendAsync(protocol0, 0, 8);
-                CloseSocketConnection();
+                CloseConnection(null);
             }
             else if (protocolId == 0x02)
             {
                 // TODO: not yet supported
                 socket.SendAsync(protocol0, 0, 8);
-                CloseSocketConnection();
+                CloseConnection(null);
             }
             else
             {
                 logger.Debug("Invalid Protocol ID AMQP.{0}.1.0.0!!", ((int)protocolId));
                 // invalid protocol id
                 socket.SendAsync(protocol0, 0, 8);
-                CloseSocketConnection();
+                CloseConnection(null);
             }
         }
 
@@ -385,6 +387,13 @@ namespace LightRail.Amqp.Protocol
             socket.SendAsync(buffer);
         }
 
+        public void HandleSocketClosed()
+        {
+            logger.Debug("Closing connection due to socket closed.");
+            State = ConnectionStateEnum.END;
+            CloseConnection(null);
+        }
+
         public void CloseDueToTimeout()
         {
             CloseConnection(new Error()
@@ -396,6 +405,11 @@ namespace LightRail.Amqp.Protocol
 
         public void CloseConnection(Error error)
         {
+            foreach (var session in RemoteChannelToSessionMap.Values.ToList())
+            {
+                session.OnConnectionClosed(error);
+            }
+
             if (State.CanSendFrames())
             {
                 SendFrame(new Close()
@@ -407,14 +421,15 @@ namespace LightRail.Amqp.Protocol
                 {
                     State = ConnectionStateEnum.DISCARDING;
                 }
+                logger.Debug("Closing Sending Side of Socket");
                 socket.CloseWrite();
             }
-        }
-
-        public void CloseSocketConnection()
-        {
-            State = ConnectionStateEnum.END;
-            socket.Close();
+            if (error != null)
+            {
+                State = ConnectionStateEnum.END;
+                logger.Debug("Closing Socket");
+                socket.Close();
+            }
         }
     }
 }

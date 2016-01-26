@@ -33,6 +33,12 @@ namespace LightRail.Server.Network
             amqpConnection.HandleReceivedBuffer(buffer);
         }
 
+        public void HandleSocketClosed()
+        {
+            if (amqpConnection != null)
+                amqpConnection.HandleSocketClosed();
+        }
+
         public void SendAsync(ByteBuffer byteBuffer)
         {
             tcpListener.SendAsync(this, byteBuffer.Buffer, byteBuffer.ReadOffset, byteBuffer.LengthAvailableToRead);

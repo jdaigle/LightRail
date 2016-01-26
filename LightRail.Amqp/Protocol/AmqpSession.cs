@@ -180,6 +180,8 @@ namespace LightRail.Amqp.Protocol
             else
             {
                 State = SessionStateEnum.UNMAPPED;
+                connection.OnSessionUnmapped(this);
+
             }
             EndSession(null);
         }
@@ -218,13 +220,25 @@ namespace LightRail.Amqp.Protocol
                     State = SessionStateEnum.END_SENT;
 
                 if (State == SessionStateEnum.END_RCVD)
+                {
                     State = SessionStateEnum.UNMAPPED;
+                    connection.OnSessionUnmapped(this);
+                }
             }
             else if (error != null)
             {
                 // no session to end, close the connection
                 connection.CloseConnection(error);
             }
+
+        }
+
+        internal void OnConnectionClosed(Error error)
+        {
+            State = SessionStateEnum.UNMAPPED;
+            logger.Debug("Session {0} ended due to connection closed", ChannelNumber);
+            connection.OnSessionUnmapped(this);
+            // TODO links?
         }
     }
 }
