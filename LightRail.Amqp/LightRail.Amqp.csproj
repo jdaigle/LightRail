@@ -52,6 +52,7 @@
     <Compile Include="ErrorCode.cs" />
     <Compile Include="Framing\AmqpFrame.cs" />
     <Compile Include="Framing\AmqpFrameCodec.cs" />
+    <Compile Include="Framing\Detach.cs" />
     <Compile Include="Framing\End.cs" />
     <Compile Include="Framing\Close.cs" />
     <Compile Include="Framing\Begin.cs" />
