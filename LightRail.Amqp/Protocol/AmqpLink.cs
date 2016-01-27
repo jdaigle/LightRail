@@ -124,9 +124,9 @@ namespace LightRail.Amqp.Protocol
                 throw new AmqpException(ErrorCode.IllegalState, $"Received Attach frame but link state is {State.ToString()}.");
 
             if (!IsInitiatingLink && IsSenderLink)
-                senderSettlementMode = (LinkSenderSettlementModeEnum)attach.SendSettleMode;
+                senderSettlementMode = (LinkSenderSettlementModeEnum)attach.SenderSettlementMode;
             if (!IsInitiatingLink && IsReceiverLink)
-                receiverSettlementMode = (LinkReceiverSettlementModeEnum)attach.ReceiveSettleMode;
+                receiverSettlementMode = (LinkReceiverSettlementModeEnum)attach.ReceiverSettlementMode;
 
             if (State == LinkStateEnum.DETACHED)
             {
@@ -134,8 +134,8 @@ namespace LightRail.Amqp.Protocol
 
                 attach.Handle = this.LocalHandle;
                 attach.IsReceiver = this.IsReceiverLink;
-                attach.SendSettleMode = (byte)senderSettlementMode;
-                attach.ReceiveSettleMode = (byte)receiverSettlementMode;
+                attach.SenderSettlementMode = (byte)senderSettlementMode;
+                attach.ReceiverSettlementMode = (byte)receiverSettlementMode;
                 attach.InitialDelieveryCount = this.initialDeliveryCount;
 
                 // send back a cooresponding attach frame

@@ -77,7 +77,7 @@ namespace LightRail.Amqp.Framing
         /// 2 = mixed - The sender MAY send a mixture of settled and unsettled deliveries to the receiver.
         /// </summary>
         [AmqpDescribedListIndex(3)]
-        public byte? SendSettleMode { get; set; } = 2;
+        public byte? SenderSettlementMode { get; set; } = 2;
 
         /// <summary>
         /// The delivery settlement policy for the receiver. When set at the sender this indicates the desired
@@ -90,7 +90,7 @@ namespace LightRail.Amqp.Framing
         ///              receiving a disposition indicating settlement of the delivery from the sender.
         /// </summary>
         [AmqpDescribedListIndex(4)]
-        public byte? ReceiveSettleMode { get; set; } = 0;
+        public byte? ReceiverSettlementMode { get; set; } = 0;
 
         /// <summary>
         /// If no source is specified on an outgoing link, then there is no source currently attached to the link.
