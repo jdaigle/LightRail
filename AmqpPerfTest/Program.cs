@@ -35,8 +35,15 @@ namespace AmqpPerfTest
                         session = new Session(connection);
                         session.Closed = OnClosed;
 
+                        var linkName = Guid.NewGuid().ToString();
                         Console.WriteLine("Link Attaching");
-                        receiverLink = new ReceiverLink(session, Guid.NewGuid().ToString(), "TestQueue1");
+                        receiverLink = new ReceiverLink(session, linkName, "TestQueue1");
+                        receiverLink.Closed = OnClosed;
+
+                        Thread.Sleep(250);
+                        receiverLink.Close();
+                        Thread.Sleep(250);
+                        receiverLink = new ReceiverLink(session, linkName, "TestQueue1");
                         receiverLink.Closed = OnClosed;
 
                         Thread.Sleep(2000);

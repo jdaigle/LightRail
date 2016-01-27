@@ -188,6 +188,11 @@ namespace LightRail.Amqp.Protocol
             if (State != SessionStateEnum.MAPPED && State != SessionStateEnum.END_SENT && State != SessionStateEnum.DISCARDING)
                 throw new AmqpException(ErrorCode.IllegalState, $"Received End frame but session state is {State.ToString()}.");
 
+            if (end.Error != null)
+            {
+                logger.Debug("Ending Session {0} Due to Error From Remote Session: '{1}'", ChannelNumber, end.Error);
+            }
+
             // TODO detach links
 
             if (State == SessionStateEnum.MAPPED)
@@ -254,7 +259,7 @@ namespace LightRail.Amqp.Protocol
 
             // must be a new inbound attach
             var nextLocalHandle = localLinks.IndexOfFirstNullItem() ?? localLinks.Length; // reuse existing handle, or just grab the next one
-            var isLocalLinkReceiver = !attach.Role; // Role == true == receiver
+            var isLocalLinkReceiver = !attach.IsReceiver;
             var newLink = new AmqpLink(this, attach.Name, nextLocalHandle, isLocalLinkReceiver, false, attach.Handle);
             var index = localLinks.Add(newLink);
             if (index != nextLocalHandle)
@@ -309,7 +314,23 @@ namespace LightRail.Amqp.Protocol
             if (State == SessionStateEnum.DISCARDING)
                 return;
 
-            throw new NotImplementedException();
+            GetRemoteLink(detach.Handle).HandleLinkFrame(detach);
+        }
+
+        public void UnmapLocalLink(AmqpLink link, bool destoryLink)
+        {
+            logger.Debug("Detaching Local Link Handle {0}", link.LocalHandle);
+            if (destoryLink)
+                logger.Debug("Destroying Local Link Handle {0}", link.LocalHandle);
+            localLinks[link.LocalHandle] = null;
+        }
+
+        public void UnmapRemoteLink(AmqpLink link, bool destoryLink)
+        {
+            logger.Debug("Detaching Remove Link Handle {0}", link.RemoteHandle);
+            if (destoryLink)
+                logger.Debug("Destroying Remove Link Handle {0}", link.RemoteHandle);
+            remoteLinks[link.RemoteHandle] = null;
         }
 
         public void EndSession(Error error)

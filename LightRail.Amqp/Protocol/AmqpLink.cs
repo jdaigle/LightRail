@@ -20,7 +20,7 @@ namespace LightRail.Amqp.Protocol
             this.IsSenderLink = !isReceiverLink;
             this.IsInitiatingLink = isInitiatingLink;
             this.RemoteHandle = localHandle;
-            this.State = LinkStateEnum.START;
+            this.State = LinkStateEnum.DETACHED;
 
             senderSettlementMode = LinkSenderSettlementModeEnum.Mixed;
             receiverSettlementMode = LinkReceiverSettlementModeEnum.First;
@@ -29,7 +29,7 @@ namespace LightRail.Amqp.Protocol
         }
 
         public string Name { get; }
-        public uint LocalHandle { get; }
+        public uint LocalHandle { get; private set; }
         /// <summary>
         /// This link receives messages.
         /// </summary>
@@ -50,8 +50,37 @@ namespace LightRail.Amqp.Protocol
         private LinkSenderSettlementModeEnum senderSettlementMode;
         private LinkReceiverSettlementModeEnum receiverSettlementMode;
 
+        // sender fields
         private readonly uint initialDeliveryCount;
+        /// <summary>
+        /// Incremented whenever a message is sent.
+        /// 
+        /// delivery-limit = link-credit + delivery-count
+        /// 
+        /// Only the sender MAY independently modify this field.
+        /// </summary>
         private uint deliveryCount;
+        /// <summary>
+        /// The maximum legal amount that the delivery-count can be increased by.
+        /// 
+        /// MUST be descreased when delivery-count is incremented to maintain delivery-limit
+        /// 
+        /// delivery-limit = link-credit + delivery-count
+        /// 
+        /// Only the receiver can independently choose a value for this field.
+        /// </summary>
+        private uint linkCredit;
+        /// <summary>
+        /// Indicates how the sender SHOULD behave when insufficient messages are
+        /// available to consume the current link-creditt. If set, the sender will (after sending all available
+        /// messages) advance the delivery-count as much as possible, consuming all link-credit, and
+        /// send the flow state to the receiver.
+        /// 
+        /// The sender’s value is always the last known value indicated by the receiver.
+        /// 
+        /// Only the receiver can independently modify this field.
+        /// </summary>
+        private bool drainFlag;
 
         public void HandleLinkFrame(AmqpFrame frame)
         {
@@ -91,7 +120,7 @@ namespace LightRail.Amqp.Protocol
 
         private void HandleAttachFrame(Attach attach)
         {
-            if (State != LinkStateEnum.START && State != LinkStateEnum.ATTACH_SENT)
+            if (State != LinkStateEnum.DETACHED && State != LinkStateEnum.ATTACH_SENT)
                 throw new AmqpException(ErrorCode.IllegalState, $"Received Attach frame but link state is {State.ToString()}.");
 
             if (!IsInitiatingLink && IsSenderLink)
@@ -99,12 +128,12 @@ namespace LightRail.Amqp.Protocol
             if (!IsInitiatingLink && IsReceiverLink)
                 receiverSettlementMode = (LinkReceiverSettlementModeEnum)attach.ReceiveSettleMode;
 
-            if (State == LinkStateEnum.START)
+            if (State == LinkStateEnum.DETACHED)
             {
                 State = LinkStateEnum.ATTACH_RECEIVED;
 
                 attach.Handle = this.LocalHandle;
-                attach.Role = this.IsReceiverLink;
+                attach.IsReceiver = this.IsReceiverLink;
                 attach.SendSettleMode = (byte)senderSettlementMode;
                 attach.ReceiveSettleMode = (byte)receiverSettlementMode;
                 attach.InitialDelieveryCount = this.initialDeliveryCount;
@@ -129,7 +158,45 @@ namespace LightRail.Amqp.Protocol
 
         private void HandleFlowFrame(Flow flow)
         {
-            throw new NotImplementedException();
+            if (State != LinkStateEnum.ATTACHED && State != LinkStateEnum.DETACH_SENT && State != LinkStateEnum.DESTROYED)
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Detach frame but link state is {State.ToString()}.");
+            if (State == LinkStateEnum.DESTROYED)
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Detach frame but link state is {State.ToString()}."); // TODO end session
+            if (State == LinkStateEnum.DETACH_SENT)
+                return; // ignore
+
+            if (IsReceiverLink)
+            {
+                // flow control from sender
+                if (flow.DeliveryCount.HasValue)
+                    deliveryCount = flow.DeliveryCount.Value;
+                // TODO: ignoring Available field for now
+                //if (flow.Available.HasValue)
+                //    available = flow.Available.Value;
+                // TODO: respond to new flow control
+            }
+
+            if (IsSenderLink)
+            {
+                // flow control from receiver
+                if (flow.LinkCredit.HasValue)
+                    linkCredit = flow.LinkCredit.Value;
+                drainFlag = flow.Drain ?? false;
+                // TODO respond to new flow control
+            }
+
+            if (flow.Echo)
+            {
+                Session.SendFlow(new Flow()
+                {
+                    Handle = LocalHandle,
+                    DeliveryCount = this.deliveryCount,
+                    LinkCredit = this.linkCredit,
+                    Available = 0,
+                    Drain = false,
+                    Echo = drainFlag,
+                });
+            }
         }
 
         private void HandleTransferFrame(Transfer transfer)
@@ -144,7 +211,43 @@ namespace LightRail.Amqp.Protocol
 
         private void HandleDetachFrame(Detach detach)
         {
-            throw new NotImplementedException();
+            if (State != LinkStateEnum.ATTACHED && State != LinkStateEnum.DETACH_SENT && State != LinkStateEnum.DESTROYED)
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Detach frame but link state is {State.ToString()}.");
+
+            if (detach.Error != null)
+            {
+                logger.Debug("Detaching Link {0} Due to Error From Remote Link Endpoint: '{1}'", LocalHandle, detach.Error);
+            }
+
+            if (State == LinkStateEnum.ATTACHED)
+                State = LinkStateEnum.DETACH_RECEIVED;
+
+            DetachLink(detach.Closed);
+        }
+
+        public void DetachLink(bool destoryLink)
+        {
+            if (State == LinkStateEnum.ATTACHED || State == LinkStateEnum.DETACH_RECEIVED)
+            {
+                Session.SendFrame(new Detach()
+                {
+                    Handle = LocalHandle,
+                    Closed = destoryLink,
+                });
+
+                if (State == LinkStateEnum.ATTACHED)
+                {
+                    State = LinkStateEnum.DETACH_SENT;
+                    Session.UnmapLocalLink(this, destoryLink);
+                }
+                if (State == LinkStateEnum.DETACH_RECEIVED)
+                {
+                    State = LinkStateEnum.DETACHED;
+                    Session.UnmapRemoteLink(this, destoryLink);
+                }
+
+            }
         }
     }
 }
+

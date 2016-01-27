@@ -62,6 +62,11 @@ namespace LightRail.Amqp.Framing
         public bool Role { get; set; }
 
         /// <summary>
+        /// The endpoint sending this frame is the receiving end of the link.
+        /// </summary>
+        public bool IsReceiver { get { return Role; } set { Role = value; } }
+
+        /// <summary>
         /// The delivery settlement policy for the sender. When set at the receiver this indicates the desired
         /// value for the settlement mode at the sender.When set at the sender this indicates the actual
         /// settlement mode in use. The sender SHOULD respect the receiver’s desired settlement mode if

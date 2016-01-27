@@ -1,4 +1,5 @@
-﻿using LightRail.Amqp.Types;
+﻿using System.Text;
+using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Framing
 {
@@ -35,5 +36,17 @@ namespace LightRail.Amqp.Framing
         /// </summary>
         [AmqpDescribedListIndex(2)]
         public Fields Info { get; set; }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.Append(Condition);
+            if (!string.IsNullOrWhiteSpace(Description))
+            {
+                sb.Append(": ");
+                sb.Append(Description);
+            }
+            return sb.ToString();
+        }
     }
 }

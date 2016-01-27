@@ -75,17 +75,17 @@ namespace LightRail.Amqp.Framing
         /// NOT be set.
         /// </summary>
         [AmqpDescribedListIndex(5)]
-        public uint DeliveryCount { get; set; }
+        public uint? DeliveryCount { get; set; }
 
         /// <summary>
         /// The current maximum number of messages that can be handled at the receiver endpoint of the
-        /// link.Only the receiver endpoint can independently set this value.The sender endpoint sets this
+        /// link. Only the receiver endpoint can independently set this value. The sender endpoint sets this
         /// to the last known value seen from the receiver.
         /// 
         /// When the handle field is not set, this field MUST NOT be set.
         /// </summary>
         [AmqpDescribedListIndex(6)]
-        public uint LinkCredit { get; set; }
+        public uint? LinkCredit { get; set; }
 
         /// <summary>
         /// The number of messages awaiting credit at the link sender endpoint. Only the sender can independently
@@ -94,17 +94,17 @@ namespace LightRail.Amqp.Framing
         /// When the handle field is not set, this field MUST NOT be set.
         /// </summary>
         [AmqpDescribedListIndex(7)]
-        public uint Available { get; set; }
+        public uint? Available { get; set; }
 
         /// <summary>
         /// When flow state is sent from the sender to the receiver, this field contains the actual drain mode of
-        /// the sender.When flow state is sent from the receiver to the sender, this field contains the desired
+        /// the sender. When flow state is sent from the receiver to the sender, this field contains the desired
         /// drain mode of the receiver.
         /// 
         /// When the handle field is not set, this field MUST NOT be set.
         /// </summary>
         [AmqpDescribedListIndex(8)]
-        public bool Drain { get; set; }
+        public bool? Drain { get; set; }
 
         /// <summary>
         /// If set to true then the receiver SHOULD send its state at the earliest convenient opportunity.
