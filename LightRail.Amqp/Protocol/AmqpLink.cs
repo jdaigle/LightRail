@@ -199,6 +199,24 @@ namespace LightRail.Amqp.Protocol
             }
         }
 
+        public void SetLinkCredit(uint value)
+        {
+            if (IsSenderLink)
+                throw new InvalidOperationException("Cannot set link-credit on a sender link");
+
+            linkCredit = Math.Max(value, 0);
+
+            Session.SendFlow(new Flow()
+            {
+                Handle = LocalHandle,
+                DeliveryCount = this.deliveryCount,
+                LinkCredit = this.linkCredit,
+                Available = 0,
+                Drain = false,
+                Echo = drainFlag,
+            });
+        }
+
         private void HandleTransferFrame(Transfer transfer)
         {
             throw new NotImplementedException();
