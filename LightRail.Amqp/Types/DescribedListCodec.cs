@@ -148,6 +148,15 @@ namespace LightRail.Amqp.Types
                     return;
                 }
 
+                var propValue = prop.Getter(_instance);
+
+                // special handling of null prop values
+                if (propValue == null)
+                {
+                    Encoder.WriteNull(_buffer);
+                    return;
+                }
+
                 // special handling of Nullable<>
                 if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
                     propertyType = Nullable.GetUnderlyingType(propertyType);
@@ -161,19 +170,21 @@ namespace LightRail.Amqp.Types
                 {
                     throw new AmqpException(ErrorCode.InternalError, $"Cannot Encode Type {codec.Type} into {prop.PropertyType} at Index[{_index}].{prop.Name}");
                 }
-                codec.EncodeBoxedValue(_buffer, prop.Getter(_instance), _arrayEncoding); // TODO boxing!!!
+
+                codec.EncodeBoxedValue(_buffer, propValue, _arrayEncoding); // TODO boxing!!!
             });
 
             var encoder = new Action<ByteBuffer, DescribedList>((buffer, instance) =>
             {
-                var notNullCount =
+                // When the trailing elements of the list representation are null, they MAY be omitted.
+                // Find the last not null index (or -1 if all are null), list length = (index + 1)
+                var lastNotNullIndex =
                     properties
-                        .Where(x => x.Value.Getter(instance) == null)
+                        .Where(x => x.Value.Getter(instance) != null)
                         .Select(x => (int?)x.Key)
                         .OrderBy(x => x)
-                        .FirstOrDefault()
-                        ?? properties.Count;
-                Encoder.WriteList(buffer, notNullCount, (_buffer, _index, _arrayEncoding) => getIndexedValue(instance, _buffer, _index, _arrayEncoding), true);
+                        .LastOrDefault() ?? -1;
+                Encoder.WriteList(buffer, (lastNotNullIndex + 1), (_buffer, _index, _arrayEncoding) => getIndexedValue(instance, _buffer, _index, _arrayEncoding), true);
             });
 
             knownFrameEncoders.Add(descriptor.Code, encoder);
