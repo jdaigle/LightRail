@@ -14,7 +14,7 @@ namespace LightRail.Amqp.Types
         public static readonly Descriptor Attach = new Descriptor(0x0000000000000012, "amqp:attach:list");
         public static readonly Descriptor Flow = new Descriptor(0x0000000000000013, "amqp:flow:list");
         public static readonly Descriptor Transfer = new Descriptor(0x0000000000000014, "amqp:transfer:list");
-        public static readonly Descriptor Dispose = new Descriptor(0x0000000000000015, "amqp:disposition:list");
+        public static readonly Descriptor Disposition = new Descriptor(0x0000000000000015, "amqp:disposition:list");
         public static readonly Descriptor Detach = new Descriptor(0x0000000000000016, "amqp:detach:list");
         public static readonly Descriptor End = new Descriptor(0x0000000000000017, "amqp:end:list");
         public static readonly Descriptor Close = new Descriptor(0x0000000000000018, "amqp:close:list");

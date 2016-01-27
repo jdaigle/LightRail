@@ -50,6 +50,8 @@
     <Compile Include="ByteExtensions.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="ErrorCode.cs" />
+    <Compile Include="Framing\Disposition.cs" />
+    <Compile Include="Framing\Transfer.cs" />
     <Compile Include="Framing\Received.cs" />
     <Compile Include="Framing\Rejected.cs" />
     <Compile Include="Framing\Released.cs" />

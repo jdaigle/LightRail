@@ -76,32 +76,21 @@ namespace LightRail.Amqp.Protocol
             try
             {
                 if (frame is Begin)
-                {
                     HandleBeginFrame(frame as Begin);
-                    return;
-                }
-                if (!State.CanReceiveFrames())
-                {
-                    throw new AmqpException(ErrorCode.IllegalState, $"Received frame {frame.Descriptor.ToString()} but session state is {State.ToString()}.");
-                }
-                if (frame is End)
-                {
+                else if (frame is Attach)
+                    InterceptAttachFrame(frame as Attach);
+                else if (frame is Flow)
+                    InterceptFlowFrame(frame as Flow);
+                else if (frame is Transfer)
+                    InterceptTransferFrame(frame as Transfer);
+                else if (frame is Disposition)
+                    InterceptDispositionFrame(frame as Disposition);
+                else if (frame is Detach)
+                    InterceptDetachFrame(frame as Detach);
+                else if (frame is End)
                     HandleEndFrame(frame as End);
-                    return;
-                }
-                if (State != SessionStateEnum.MAPPED)
-                {
-                    // must be mapped at this point
+                else
                     throw new AmqpException(ErrorCode.IllegalState, $"Received frame {frame.Descriptor.ToString()} but session state is {State.ToString()}.");
-                }
-                if (frame is Flow)
-                {
-                    HandleFlowFrame(frame as Flow);
-                    return;
-                }
-                // TODO: handle link frames
-                throw new NotImplementedException("handle link frames");
-                //return;
             }
             catch (AmqpException amqpException)
             {
@@ -141,6 +130,9 @@ namespace LightRail.Amqp.Protocol
 
         private void HandleBeginFrame(Begin begin)
         {
+            if (State != SessionStateEnum.UNMAPPED && State != SessionStateEnum.BEGIN_SENT)
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Begin frame but session state is {State.ToString()}.");
+
             nextOutgoingId = InitialOutgoingId; // our next id
             incomingWindow = DefaultWindowSize; // our incoming window
 
@@ -164,7 +156,7 @@ namespace LightRail.Amqp.Protocol
             {
                 State = SessionStateEnum.BEGIN_RCVD;
 
-                // reset value and send back the frame
+                // reset values and send back the frame
                 begin.RemoteChannel = RemoteChannelNumber;
                 begin.NextOutgoingId = nextOutgoingId;
                 begin.IncomingWindow = incomingWindow;
@@ -172,26 +164,24 @@ namespace LightRail.Amqp.Protocol
                 connection.SendFrame(begin, ChannelNumber);
 
                 State = SessionStateEnum.MAPPED;
+                return;
             }
         }
 
         private void HandleEndFrame(End end)
         {
-            // TODO close links
-            if (State == SessionStateEnum.MAPPED)
-            {
-                State = SessionStateEnum.END_RCVD;
-            }
-            else
-            {
-                State = SessionStateEnum.UNMAPPED;
-                connection.OnSessionUnmapped(this);
+            if (State != SessionStateEnum.MAPPED && State != SessionStateEnum.END_SENT && State != SessionStateEnum.DISCARDING)
+                throw new AmqpException(ErrorCode.IllegalState, $"Received End frame but session state is {State.ToString()}.");
 
-            }
+            // TODO detach links
+
+            if (State == SessionStateEnum.MAPPED)
+                State = SessionStateEnum.END_RCVD;
+
             EndSession(null);
         }
 
-        private void HandleFlowFrame(Flow flow)
+        private void InterceptFlowFrame(Flow flow)
         {
             nextIncomingId = flow.NextOutgoingId; // their next id
             remoteOutgoingWindow = flow.OutgoingWindow; // their window
@@ -212,6 +202,26 @@ namespace LightRail.Amqp.Protocol
             }
         }
 
+        private void InterceptAttachFrame(Attach attach)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void InterceptTransferFrame(Transfer transfer)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void InterceptDispositionFrame(Disposition disposition)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void InterceptDetachFrame(Detach detach)
+        {
+            throw new NotImplementedException();
+        }
+
         public void EndSession(Error error)
         {
             if (State == SessionStateEnum.MAPPED || State == SessionStateEnum.END_RCVD)
@@ -223,27 +233,31 @@ namespace LightRail.Amqp.Protocol
 
                 if (State == SessionStateEnum.MAPPED)
                     State = SessionStateEnum.END_SENT;
-
                 if (State == SessionStateEnum.END_RCVD)
-                {
-                    State = SessionStateEnum.UNMAPPED;
-                    connection.OnSessionUnmapped(this);
-                }
-            }
-            else if (error != null)
-            {
-                // no session to end, close the connection
-                connection.CloseConnection(error);
+                    UnmapSession();
+
+                return;
             }
 
+            if (error != null)
+            {
+                // no session to end, so close the connection
+                connection.CloseConnection(error);
+                return;
+            }
+        }
+
+        private void UnmapSession()
+        {
+            // TODO: detach links
+            State = SessionStateEnum.UNMAPPED;
+            connection.OnSessionUnmapped(this);
         }
 
         internal void OnConnectionClosed(Error error)
         {
-            State = SessionStateEnum.UNMAPPED;
             logger.Debug("Session {0} ended due to connection closed", ChannelNumber);
-            connection.OnSessionUnmapped(this);
-            // TODO links?
+            UnmapSession();
         }
     }
 }
