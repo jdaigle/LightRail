@@ -15,10 +15,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Error : AmqpFrame
     {
-        public Error()
-            : base(DescribedListCodec.Error)
-        {
-        }
+        public Error() : base(DescribedListCodec.Error) { }
 
         /// <summary>
         /// A symbolic value indicating the error condition.

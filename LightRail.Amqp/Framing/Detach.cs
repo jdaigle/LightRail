@@ -13,14 +13,10 @@ namespace LightRail.Amqp.Framing
     /// </type>
     /// 
     /// Detach the link endpoint from the session.This unmaps the handle and makes it available for use by other links.
-
     /// </summary>
     public sealed class Detach : AmqpFrame
     {
-        public Detach()
-            : base(DescribedListCodec.Detach)
-        {
-        }
+        public Detach() : base(DescribedListCodec.Detach) { }
 
         /// <summary>
         /// the local handle of the link to be detached

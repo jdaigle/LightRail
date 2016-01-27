@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using LightRail.Amqp.Types;
+﻿using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Framing
 {

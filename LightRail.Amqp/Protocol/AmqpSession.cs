@@ -89,6 +89,11 @@ namespace LightRail.Amqp.Protocol
                     HandleEndFrame(frame as End);
                     return;
                 }
+                if (State != SessionStateEnum.MAPPED)
+                {
+                    // must be mapped at this point
+                    throw new AmqpException(ErrorCode.IllegalState, $"Received frame {frame.Descriptor.ToString()} but session state is {State.ToString()}.");
+                }
                 if (frame is Flow)
                 {
                     HandleFlowFrame(frame as Flow);
@@ -105,11 +110,11 @@ namespace LightRail.Amqp.Protocol
             }
             catch (Exception fatalException)
             {
-                logger.Fatal(fatalException, "Caught Fatal Top Level Exception in AmqpSession. Ending Session.");
+                logger.Fatal(fatalException, "Ending Session due to fatal exception.");
                 var error = new Error()
                 {
                     Condition = ErrorCode.InternalError,
-                    Description = "Caught Fatal Top Level Exception in AmqpSession. Ending Session.",
+                    Description = "Ending Session due to fatal exception: " + fatalException.Message,
                 };
                 EndSession(error);
             }

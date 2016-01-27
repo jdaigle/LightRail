@@ -1,5 +1,4 @@
-﻿using System;
-using LightRail.Amqp.Types;
+﻿using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Framing
 {
@@ -27,10 +26,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Open : AmqpFrame
     {
-        public Open()
-            : base(DescribedListCodec.Open)
-        {
-        }
+        public Open() : base(DescribedListCodec.Open) { }
 
         /// <summary>
         /// The ID of the source container
@@ -82,7 +78,7 @@ namespace LightRail.Amqp.Framing
         /// the outgoing-locales. A null value or an empty list implies that only en-US is supported.
         /// </summary>
         [AmqpDescribedListIndex(5)]
-        public object OutgoingLocales { get; set; }
+        public Symbol[] OutgoingLocales { get; set; }
 
         /// <summary>
         /// A list of locales that the sending peer permits for incoming informational text. This list is ordered
@@ -94,7 +90,7 @@ namespace LightRail.Amqp.Framing
         /// that only en-US is supported.
         /// </summary>
         [AmqpDescribedListIndex(6)]
-        public object IncomingLocales { get; set; }
+        public Symbol[] IncomingLocales { get; set; }
 
         /// <summary>
         /// If the receiver of the offered-capabilities requires an extension capability which is not present in
@@ -103,7 +99,7 @@ namespace LightRail.Amqp.Framing
         /// A registry of commonly defined connection capabilities and their meanings is maintained [AMQPCONNCAP].
         /// </summary>
         [AmqpDescribedListIndex(7)]
-        public object OfferedCapabilities { get; set; }
+        public Symbol[] OfferedCapabilities { get; set; }
 
         /// <summary>
         /// The desired-capability list defines which extension capabilities the sender MAY use if the receiver
@@ -114,7 +110,7 @@ namespace LightRail.Amqp.Framing
         /// capabilities will not be used on the connection.
         /// </summary>
         [AmqpDescribedListIndex(8)]
-        public object DesiredCapabilities { get; set; }
+        public Symbol[] DesiredCapabilities { get; set; }
 
         /// <summary>
         /// The properties map contains a set of fields intended to indicate information about the connection
@@ -123,6 +119,6 @@ namespace LightRail.Amqp.Framing
         /// A registry of commonly defined connection properties and their meanings is maintained [AMQPCONNPROP].
         /// </summary>
         [AmqpDescribedListIndex(9)]
-        public object Properties { get; set; }
+        public Symbol[] Properties { get; set; }
     }
 }

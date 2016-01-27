@@ -30,6 +30,9 @@ namespace LightRail.Amqp.Types
         }
 
 #if DEBUG
+
+        private static int indentLevel = 0;
+
         public override string ToString()
         {
             var properties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -38,10 +41,23 @@ namespace LightRail.Amqp.Types
                 .OrderBy(x => x.GetCustomAttribute<AmqpDescribedListIndexAttribute>().Index)
                 .ToList();
 
-            return properties
-                .Select(x => $"\n\t[{x.Name}:{x.GetValue(this)}]")
-                .Where(x => x != null)
-                .Aggregate(Descriptor.ToString(), (c, next) => c += next);
+            var buffer = new System.Text.StringBuilder();
+            // buffer.Append("\n");
+            // for (int i = 0; i < indentLevel; i++)
+            //     buffer.Append("\t");
+            buffer.Append(Descriptor.ToString());
+            indentLevel++;
+            foreach (var p in properties)
+            {
+                if (p.GetValue(this) == null)
+                    continue;
+                buffer.Append("\n");
+                for (int i = 0; i < indentLevel; i++)
+                    buffer.Append("\t");
+                buffer.AppendFormat("{0}: {1}", p.Name, p.GetValue(this));
+            }
+            indentLevel--;
+            return buffer.ToString(); ;
         }
 #endif
     }

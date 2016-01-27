@@ -1,5 +1,4 @@
-﻿using System;
-using LightRail.Amqp.Types;
+﻿using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Framing
 {
@@ -22,10 +21,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Begin : AmqpFrame
     {
-        public Begin()
-            : base(DescribedListCodec.Begin)
-        {
-        }
+        public Begin() : base(DescribedListCodec.Begin) { }
 
         /// <summary>
         /// If a session is locally initiated, the remote-channel MUST NOT be set. When an endpoint responds
@@ -68,14 +64,14 @@ namespace LightRail.Amqp.Framing
         /// A registry of commonly defined session capabilities and their meanings is maintained [AMQPSESSCAP].
         /// </summary>
         [AmqpDescribedListIndex(5)]
-        public object OfferedCapabilities { get; set; }
+        public Symbol[] OfferedCapabilities { get; set; }
 
         /// <summary>
         /// The sender MUST NOT attempt to use any capability other than those it has declared in desiredcapabilities
         /// field.
         /// </summary>
         [AmqpDescribedListIndex(6)]
-        public object DesiredCapabilities { get; set; }
+        public Symbol[] DesiredCapabilities { get; set; }
 
         /// <summary>
         /// The properties map contains a set of fields intended to indicate information about the session and
@@ -85,6 +81,6 @@ namespace LightRail.Amqp.Framing
         /// [AMQPSESSPROP].
         /// </summary>
         [AmqpDescribedListIndex(7)]
-        public object Properties { get; set; }
+        public Fields Properties { get; set; }
     }
 }

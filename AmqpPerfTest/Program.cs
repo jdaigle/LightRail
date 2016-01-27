@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Amqp;
 using Amqp.Framing;
 
@@ -31,9 +29,9 @@ namespace AmqpPerfTest
                         session = new Session(connection);
                         session.Closed = OnClosed;
 
+                        Thread.Sleep(250);
                         session.Close();
-                        Thread.Sleep(1000);
-
+                        Thread.Sleep(250);
                         session = new Session(connection);
                         session.Closed = OnClosed;
 
@@ -41,18 +39,18 @@ namespace AmqpPerfTest
                         receiverLink = new ReceiverLink(session, Guid.NewGuid().ToString(), "TestQueue1");
                         receiverLink.Closed = OnClosed;
 
-                        //if (receiverLink != null)
-                        //{
-                        //    Console.Write("Starting Receive");
-                        //    var amqpMessage = receiverLink.Receive(10000);
-                        //    if (amqpMessage != null)
-                        //    {
-                        //        Console.Write("Received Message");
-                        //        Thread.Sleep(1000);
-                        //        Console.Write("Accepting Message");
-                        //        receiverLink.Accept(amqpMessage);
-                        //    }
-                        //}
+                        if (receiverLink != null)
+                        {
+                            Console.Write("Starting Receive");
+                            var amqpMessage = receiverLink.Receive(60 * 1000);
+                            if (amqpMessage != null)
+                            {
+                                Console.Write("Received Message");
+                                Thread.Sleep(1000);
+                                Console.Write("Accepting Message");
+                                receiverLink.Accept(amqpMessage);
+                            }
+                        }
                     }
                     catch (Exception fatalException)
                     {
