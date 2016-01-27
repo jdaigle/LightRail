@@ -1,4 +1,6 @@
-﻿namespace LightRail.Amqp
+﻿using System.Text;
+
+namespace LightRail.Amqp
 {
     internal static class ByteExtensions
     {
@@ -20,20 +22,14 @@
 
         public static string ToHex(this byte[] bytes)
         {
-            char[] c = new char[bytes.Length * 2];
-
-            byte b;
-
-            for (int bx = 0, cx = 0; bx < bytes.Length; ++bx, ++cx)
+            var sb = new StringBuilder();
+            for (int i = 0; i < bytes.Length; i++)
             {
-                b = ((byte)(bytes[bx] >> 4));
-                c[cx] = (char)(b > 9 ? b + 0x37 + 0x20 : b + 0x30);
-
-                b = ((byte)(bytes[bx] & 0x0F));
-                c[++cx] = (char)(b > 9 ? b + 0x37 + 0x20 : b + 0x30);
+                if (i > 0 && i % 8 == 0)
+                    sb.AppendLine();
+                sb.Append(bytes[i].ToHex() + " ");
             }
-
-            return new string(c);
+            return sb.ToString();
         }
     }
 }
