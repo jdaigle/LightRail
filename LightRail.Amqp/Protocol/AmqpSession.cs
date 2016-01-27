@@ -196,7 +196,14 @@ namespace LightRail.Amqp.Protocol
                 // TODO: flush queued outgoing transfers
             }
 
-            if (flow.Handle.HasValue)
+            if (flow.Handle == null && flow.Echo)
+            {
+                SendFlow(new Flow()
+                {
+                    Echo = false,
+                });
+            }
+            else if (flow.Handle != null)
             {
                 throw new NotImplementedException("TODO: Handle Link Flow Frame");
             }

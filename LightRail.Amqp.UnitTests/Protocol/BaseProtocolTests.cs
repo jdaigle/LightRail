@@ -47,16 +47,21 @@ namespace LightRail.Amqp.Protocol
             socket.Reset();
         }
 
-        protected void EncodeAndSend(AmqpFrame frame)
+        protected void EncodeAndSend(AmqpFrame frame, ushort channelNumber = 0)
         {
             var buffer = new ByteBuffer(512, true);
-            AmqpFrameCodec.EncodeFrame(buffer, frame, 0);
+            AmqpFrameCodec.EncodeFrame(buffer, frame, channelNumber);
             connection.HandleReceivedBuffer(buffer);
         }
 
         protected AmqpFrame DecodeLastFrame()
         {
             ushort channelNumber = 0;
+            return AmqpFrameCodec.DecodeFrame(socket.GetSentBufferFrame(socket.SentBufferFrames.Count - 1), out channelNumber);
+        }
+
+        protected AmqpFrame DecodeLastFrame(out ushort channelNumber)
+        {
             return AmqpFrameCodec.DecodeFrame(socket.GetSentBufferFrame(socket.SentBufferFrames.Count - 1), out channelNumber);
         }
     }
