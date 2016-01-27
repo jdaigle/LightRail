@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="AmqpBitConverter.cs" />
     <Compile Include="AmqpException.cs" />
+    <Compile Include="BoundedList.cs" />
     <Compile Include="ByteBuffer.cs" />
     <Compile Include="ByteExtensions.cs" />
     <Compile Include="Constants.cs" />
@@ -69,8 +70,12 @@
     <Compile Include="Framing\Attach.cs" />
     <Compile Include="Framing\Flow.cs" />
     <Compile Include="IContainer.cs" />
+    <Compile Include="Protocol\AmqpLink.cs" />
     <Compile Include="Protocol\AmqpSession.cs" />
     <Compile Include="Protocol\AmqpSettings.cs" />
+    <Compile Include="Protocol\LinkReceiverSettlementModeEnum.cs" />
+    <Compile Include="Protocol\LinkSenderSettlementModeEnum.cs" />
+    <Compile Include="Protocol\LinkStateEnum.cs" />
     <Compile Include="Protocol\SessionStateEnumExtensions.cs" />
     <Compile Include="Protocol\SessionStateEnum.cs" />
     <Compile Include="Protocol\ConnectionStateEnumExtensions.cs" />

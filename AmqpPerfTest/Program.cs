@@ -39,9 +39,11 @@ namespace AmqpPerfTest
                         receiverLink = new ReceiverLink(session, Guid.NewGuid().ToString(), "TestQueue1");
                         receiverLink.Closed = OnClosed;
 
+                        Thread.Sleep(2000);
+
                         if (receiverLink != null)
                         {
-                            Console.Write("Starting Receive");
+                            //Console.Write("Starting Receive");
                             var amqpMessage = receiverLink.Receive(60 * 1000);
                             if (amqpMessage != null)
                             {
@@ -51,6 +53,8 @@ namespace AmqpPerfTest
                                 receiverLink.Accept(amqpMessage);
                             }
                         }
+
+                        Thread.Sleep(10 * 1000);
                     }
                     catch (Exception fatalException)
                     {

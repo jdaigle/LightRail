@@ -14,7 +14,7 @@ namespace LightRail.Amqp.Protocol
 
         public AmqpSession(AmqpConnection connection, ushort channelNumber, ushort remoteChannelNumber)
         {
-            this.connection = connection;
+            this.Connection = connection;
             this.ChannelNumber = channelNumber;
             this.RemoteChannelNumber = remoteChannelNumber;
             State = SessionStateEnum.UNMAPPED;
@@ -25,12 +25,15 @@ namespace LightRail.Amqp.Protocol
         public ushort ChannelNumber { get; }
         public ushort RemoteChannelNumber { get; private set; }
         public SessionStateEnum State { get; private set; }
-        private readonly AmqpConnection connection;
+        public AmqpConnection Connection { get; }
 
         public const uint DefaultMaxHandle = uint.MaxValue;
         public const uint DefaultWindowSize = 1024;
         public const uint InitialOutgoingId = 1;
 
+        /// <summary>
+        /// The maximum handle that can be given to a new link.
+        /// </summary>
         private uint sessionMaxHandle;
 
         /// <summary>
@@ -73,6 +76,9 @@ namespace LightRail.Amqp.Protocol
         /// of outstanding transfers. Settling outstanding transfers can cause the window to grow.
         /// </summary>
         private uint remoteOutgoingWindow;
+
+        private BoundedList<AmqpLink> localLinks;
+        private BoundedList<AmqpLink> remoteLinks;
 
         internal void HandleSessionFrame(AmqpFrame frame)
         {
@@ -122,13 +128,13 @@ namespace LightRail.Amqp.Protocol
             SendFrame(flow);
         }
 
-        public void SendFrame(Flow frame)
+        public void SendFrame(AmqpFrame frame)
         {
             if (!State.CanSendFrames())
             {
                 throw new AmqpException(ErrorCode.IllegalState, $"Cannot send frame when session state is {State.ToString()}.");
             }
-            connection.SendFrame(frame, ChannelNumber);
+            Connection.SendFrame(frame, ChannelNumber);
         }
 
         private void HandleBeginFrame(Begin begin)
@@ -146,6 +152,9 @@ namespace LightRail.Amqp.Protocol
             remoteIncomingWindow = InitialOutgoingId + begin.IncomingWindow - nextOutgoingId;
 
             sessionMaxHandle = Math.Min(DefaultMaxHandle, begin.HandleMax ?? DefaultMaxHandle);
+
+            localLinks = new BoundedList<AmqpLink>(2, sessionMaxHandle);
+            remoteLinks = new BoundedList<AmqpLink>(2, sessionMaxHandle);
 
             if (State == SessionStateEnum.BEGIN_SENT)
             {
@@ -167,7 +176,7 @@ namespace LightRail.Amqp.Protocol
                 begin.IncomingWindow = incomingWindow;
                 begin.OutgoingWindow = outgoingWindow;
                 begin.HandleMax = sessionMaxHandle;
-                connection.SendFrame(begin, ChannelNumber);
+                Connection.SendFrame(begin, ChannelNumber);
 
                 State = SessionStateEnum.MAPPED;
                 return;
@@ -189,6 +198,11 @@ namespace LightRail.Amqp.Protocol
 
         private void InterceptFlowFrame(Flow flow)
         {
+            if (!State.CanReceiveFrames())
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Flow frame but session state is {State.ToString()}.");
+            if (State == SessionStateEnum.DISCARDING)
+                return;
+
             nextIncomingId = flow.NextOutgoingId; // their next id
             remoteOutgoingWindow = flow.OutgoingWindow; // their window
 
@@ -202,38 +216,99 @@ namespace LightRail.Amqp.Protocol
                 // TODO: flush queued outgoing transfers
             }
 
-            if (flow.Handle == null && flow.Echo)
+            if (flow.Handle != null)
+            {
+                GetRemoteLink(flow.Handle.Value).HandleLinkFrame(flow);
+            }
+            else if (flow.Echo)
             {
                 SendFlow(new Flow()
                 {
                     Echo = false,
                 });
             }
-            else if (flow.Handle != null)
-            {
-                throw new NotImplementedException("TODO: Handle Link Flow Frame");
-            }
         }
 
         private void InterceptAttachFrame(Attach attach)
         {
-            // 
+            if (!State.CanReceiveFrames())
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Flow frame but session state is {State.ToString()}.");
+            if (State == SessionStateEnum.DISCARDING)
+                return;
 
-            throw new NotImplementedException();
+            if (attach.Handle > sessionMaxHandle)
+                throw new AmqpException(ErrorCode.NotAllowed, $"Cannot allocate more handles. The maximum number of handles is {sessionMaxHandle}.");
+
+            // is this for an existing locally attached frame?
+            for (uint i = 0; i < localLinks.Length; i++)
+            {
+                var existingLink = localLinks[i];
+                if (existingLink != null && existingLink.State == LinkStateEnum.ATTACH_SENT && string.Compare(existingLink.Name, attach.Name, true) == 0)
+                {
+                    AttachRemoteLink(attach, existingLink);
+                    // Link is expecting an attach frame
+                    existingLink.HandleLinkFrame(attach);
+                    return; // done
+                }
+            }
+
+            // must be a new inbound attach
+            var nextLocalHandle = localLinks.IndexOfFirstNullItem() ?? localLinks.Length; // reuse existing handle, or just grab the next one
+            var isLocalLinkReceiver = !attach.Role; // Role == true == receiver
+            var newLink = new AmqpLink(this, attach.Name, nextLocalHandle, isLocalLinkReceiver, false, attach.Handle);
+            var index = localLinks.Add(newLink);
+            if (index != nextLocalHandle)
+                throw new AmqpException(ErrorCode.InternalError, "Possible Race Condition Adding New Local Link");
+            AttachRemoteLink(attach, newLink);
+            newLink.HandleLinkFrame(attach);
+        }
+
+        private AmqpLink GetRemoteLink(uint remoteHandle)
+        {
+            AmqpLink link = null;
+            if (remoteHandle < remoteLinks.Length)
+                link = remoteLinks[remoteHandle];
+            if (link == null)
+                throw new AmqpException(ErrorCode.NotFound, $"The link handle {remoteHandle} could not be found in session {ChannelNumber}");
+            return link;
+        }
+
+        private void AttachRemoteLink(Attach attach, AmqpLink link)
+        {
+            if (remoteLinks[attach.Handle] != null)
+            {
+                throw new AmqpException(ErrorCode.HandleInUse, $"The handle '{attach.Handle}' is already allocated for '{remoteLinks[attach.Handle].Name}'");
+            }
+            remoteLinks[attach.Handle] = link;
         }
 
         private void InterceptTransferFrame(Transfer transfer)
         {
+            if (!State.CanReceiveFrames())
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Flow frame but session state is {State.ToString()}.");
+            if (State == SessionStateEnum.DISCARDING)
+                return;
+
             throw new NotImplementedException();
         }
 
         private void InterceptDispositionFrame(Disposition disposition)
         {
+            if (!State.CanReceiveFrames())
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Flow frame but session state is {State.ToString()}.");
+            if (State == SessionStateEnum.DISCARDING)
+                return;
+
             throw new NotImplementedException();
         }
 
         private void InterceptDetachFrame(Detach detach)
         {
+            if (!State.CanReceiveFrames())
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Flow frame but session state is {State.ToString()}.");
+            if (State == SessionStateEnum.DISCARDING)
+                return;
+
             throw new NotImplementedException();
         }
 
@@ -241,7 +316,7 @@ namespace LightRail.Amqp.Protocol
         {
             if (State == SessionStateEnum.MAPPED || State == SessionStateEnum.END_RCVD)
             {
-                connection.SendFrame(new End()
+                Connection.SendFrame(new End()
                 {
                     Error = error,
                 }, ChannelNumber);
@@ -257,7 +332,7 @@ namespace LightRail.Amqp.Protocol
             if (error != null)
             {
                 // no session to end, so close the connection
-                connection.CloseConnection(error);
+                Connection.CloseConnection(error);
                 return;
             }
         }
@@ -266,7 +341,7 @@ namespace LightRail.Amqp.Protocol
         {
             // TODO: detach links
             State = SessionStateEnum.UNMAPPED;
-            connection.OnSessionUnmapped(this);
+            Connection.OnSessionUnmapped(this);
         }
 
         internal void OnConnectionClosed(Error error)
