@@ -8,14 +8,16 @@ namespace LightRail.Amqp.Protocol
     {
         protected static readonly byte[] defaultAcceptedProtocol = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x00, 0x01, 0x00, 0x00 }; // AMQP01000
 
+        private TestContainer container;
         protected InterceptingSocket socket;
         protected AmqpConnection connection;
 
         [SetUp]
         public void SetUp()
         {
+            container = new TestContainer();
             socket = new InterceptingSocket();
-            connection = new AmqpConnection(socket);
+            connection = new AmqpConnection(socket, container);
         }
 
         protected void Given_Exchanged_Headers()

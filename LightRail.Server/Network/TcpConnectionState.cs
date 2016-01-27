@@ -25,7 +25,7 @@ namespace LightRail.Server.Network
             this.tcpListener = tcpListener;
             this.Socket = acceptSocket;
             this.IPAddress = acceptSocket.RemoteEndPoint as IPEndPoint;
-            this.amqpConnection = new AmqpConnection(this);
+            this.amqpConnection = new AmqpConnection(this, HostContainer.Instance);
         }
 
         public void HandleReceived(ByteBuffer buffer)

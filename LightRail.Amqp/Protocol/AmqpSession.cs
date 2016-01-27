@@ -27,8 +27,11 @@ namespace LightRail.Amqp.Protocol
         public SessionStateEnum State { get; private set; }
         private readonly AmqpConnection connection;
 
+        public const uint DefaultMaxHandle = uint.MaxValue;
         public const uint DefaultWindowSize = 1024;
         public const uint InitialOutgoingId = 1;
+
+        private uint sessionMaxHandle;
 
         /// <summary>
         /// The expected transfer-id of the next incoming transfer frame.
@@ -142,6 +145,8 @@ namespace LightRail.Amqp.Protocol
             remoteOutgoingWindow = begin.OutgoingWindow;
             remoteIncomingWindow = InitialOutgoingId + begin.IncomingWindow - nextOutgoingId;
 
+            sessionMaxHandle = Math.Min(DefaultMaxHandle, begin.HandleMax ?? DefaultMaxHandle);
+
             if (State == SessionStateEnum.BEGIN_SENT)
             {
                 if (begin.RemoteChannel == null)
@@ -161,6 +166,7 @@ namespace LightRail.Amqp.Protocol
                 begin.NextOutgoingId = nextOutgoingId;
                 begin.IncomingWindow = incomingWindow;
                 begin.OutgoingWindow = outgoingWindow;
+                begin.HandleMax = sessionMaxHandle;
                 connection.SendFrame(begin, ChannelNumber);
 
                 State = SessionStateEnum.MAPPED;
@@ -211,6 +217,8 @@ namespace LightRail.Amqp.Protocol
 
         private void InterceptAttachFrame(Attach attach)
         {
+            // 
+
             throw new NotImplementedException();
         }
 

@@ -68,11 +68,13 @@
     <Compile Include="Framing\Begin.cs" />
     <Compile Include="Framing\Attach.cs" />
     <Compile Include="Framing\Flow.cs" />
+    <Compile Include="IContainer.cs" />
     <Compile Include="Protocol\AmqpSession.cs" />
     <Compile Include="Protocol\AmqpSettings.cs" />
     <Compile Include="Protocol\SessionStateEnumExtensions.cs" />
     <Compile Include="Protocol\SessionStateEnum.cs" />
     <Compile Include="Protocol\ConnectionStateEnumExtensions.cs" />
+    <Compile Include="Protocol\TestContainer.cs" />
     <Compile Include="Types\AmqpDescribedListIndexAttribute.cs" />
     <Compile Include="Framing\Open.cs" />
     <Compile Include="Framing\Error.cs" />

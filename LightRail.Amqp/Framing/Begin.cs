@@ -56,7 +56,7 @@ namespace LightRail.Amqp.Framing
         /// framing-error error-code.
         /// </summary>
         [AmqpDescribedListIndex(4)]
-        public uint HandleMax { get; set; } = 4294967295;
+        public uint? HandleMax { get; set; } = uint.MaxValue;
 
         /// <summary>
         /// the extension capabilities the sender supports

@@ -49,7 +49,7 @@ namespace LightRail.Amqp.Framing
         /// Both peers MUST accept frames of up to 512 (MIN-MAX-FRAME-SIZE) octets.
         /// </summary>
         [AmqpDescribedListIndex(2)]
-        public uint MaxFrameSize { get; set; } = 4294967295;
+        public uint MaxFrameSize { get; set; } = uint.MaxValue;
 
         /// <summary>
         /// The channel-max value is the highest channel number that can be used on the connection. This

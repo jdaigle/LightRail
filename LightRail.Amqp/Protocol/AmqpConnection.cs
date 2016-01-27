@@ -20,16 +20,11 @@ namespace LightRail.Amqp.Protocol
         public const ushort DefaultMaxChannelCount = 256;
         public const uint DefaultIdleTimeout = 30 * 60 * 1000; // 30 min
 
-        public AmqpConnection(ISocket socket)
-            : this(socket, null)
-        {
-        }
-
-        public AmqpConnection(ISocket socket, AmqpSettings settings)
+        public AmqpConnection(ISocket socket, IContainer container)
         {
             this.socket = socket;
             State = ConnectionStateEnum.START;
-            containerId = settings?.ContainerId ?? Guid.NewGuid().ToString("N");
+            Container = container;
         }
 
         private readonly ISocket socket;
@@ -39,14 +34,15 @@ namespace LightRail.Amqp.Protocol
         /// </summary>
         public ConnectionStateEnum State { get; private set; }
 
+        public IContainer Container { get; }
+
         // start connection settings
-        private string containerId = Guid.NewGuid().ToString("N");
         private uint connectionMaxFrameSize = 512; // initial
         private ushort connectionChannelMax = 0; // initial
         private uint connectionIdleTimeout = DefaultIdleTimeout;
         // end connection settings
 
-        private string receivedContainerId;
+        public string RemoteContainerId { get; private set; }
         private string receivedHostname;
         private uint? receivedMaxFrameSize;
         private ushort? receiveChannelMax;
@@ -135,6 +131,7 @@ namespace LightRail.Amqp.Protocol
 
         private void HandleReceivedFrame(AmqpFrame frame, ushort remoteChannelNumber)
         {
+            // TODO: clean up the Connection state machine
             if (State == ConnectionStateEnum.OPENED)
             {
                 if (frame is Close)
@@ -216,6 +213,7 @@ namespace LightRail.Amqp.Protocol
             ushort channelNumber;
             if (!freeChannelNumbers.TryPop(out channelNumber))
                 channelNumber = nextChannelNumber++;
+
             // new session
             session = new AmqpSession(this, channelNumber, remoteChannel);
             RemoteChannelToSessionMap.Add(remoteChannel, session);
@@ -253,7 +251,7 @@ namespace LightRail.Amqp.Protocol
 
         private void HandleOpenFrame(Open openFrame)
         {
-            receivedContainerId = openFrame.ContainerID;
+            RemoteContainerId = openFrame.ContainerID;
             receivedHostname = openFrame.Hostname;
             receivedMaxFrameSize = openFrame.MaxFrameSize;
             receiveChannelMax = openFrame.ChannelMax;
@@ -271,7 +269,7 @@ namespace LightRail.Amqp.Protocol
             {
                 SendFrame(new Open()
                 {
-                    ContainerID = containerId,
+                    ContainerID = Container.ContainerId,
                     Hostname = openFrame.Hostname,
                     MaxFrameSize = connectionMaxFrameSize,
                     ChannelMax = connectionChannelMax,
