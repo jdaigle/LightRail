@@ -1,5 +1,4 @@
-﻿using System;
-using LightRail.Amqp.Types;
+﻿using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Messaging
 {
@@ -13,14 +12,15 @@ namespace LightRail.Amqp.Messaging
     /// symbolic key “rejected” is reserved for the use of communicating error information regarding rejected messages.
     /// Any values associated with the “rejected” key MUST be of type error.
     /// 
+    /// <type name="delivery-annotations" class="restricted" source="annotations" provides="section">
+    ///     <descriptor name = "amqp:delivery-annotations:map" code="0x00000000:0x00000071"/>
+    /// </type>
+    /// 
     /// If the delivery-annotations section is omitted, it is equivalent to a delivery-annotations section containing an empty
     /// map of annotations.
     /// </remarks>
-    public sealed class DeliveryAnnotations : DescribedList
+    public sealed class DeliveryAnnotations : DescribedList // TODO: this should be a map, not a list
     {
-        public DeliveryAnnotations()
-            : base(MessagingDescriptors.DeliveryAnnotations)
-        {
-        }
+        public DeliveryAnnotations() : base(MessagingDescriptors.DeliveryAnnotations) { }
     }
 }

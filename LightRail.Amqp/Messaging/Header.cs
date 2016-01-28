@@ -1,5 +1,4 @@
-﻿using System;
-using LightRail.Amqp.Types;
+﻿using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Messaging
 {
@@ -7,6 +6,15 @@ namespace LightRail.Amqp.Messaging
     /// Transport headers for a message.
     /// </summary>
     /// <remarks>
+    /// <type name="header" class="composite" source="list" provides="section">
+    ///     <descriptor name = "amqp:header:list" code="0x00000000:0x00000070"/>
+    ///     <field name = "durable" type="boolean" default="false"/>
+    ///     <field name = "priority" type="ubyte" default="4"/>
+    ///     <field name = "ttl" type="milliseconds"/>
+    ///     <field name = "first-acquirer" type="boolean" default="false"/>
+    ///     <field name = "delivery-count" type="uint" default="0"/>
+    /// </type>
+    /// 
     /// The header section carries standard delivery details about the transfer of a message through the AMQP network.
     /// If the header section is omitted the receiver MUST assume the appropriate default values(or the meaning implied
     /// by no value being set) for the fields within the header unless other target or node specific defaults have otherwise
@@ -14,10 +22,7 @@ namespace LightRail.Amqp.Messaging
     /// </remarks>
     public class Header : DescribedList
     {
-        public Header()
-            :base(MessagingDescriptors.Header)
-        {
-        }
+        public Header() : base(MessagingDescriptors.Header) { }
 
         /// <summary>
         /// Durability Requirements

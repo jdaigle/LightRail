@@ -1,5 +1,4 @@
-﻿using System;
-using LightRail.Amqp.Types;
+﻿using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Messaging
 {
@@ -11,13 +10,14 @@ namespace LightRail.Amqp.Messaging
     /// once the whole bare message has been constructed or seen(for example message hashes, HMACs, signatures
     /// and encryption details).
     /// 
+    /// <type name="footer" class="restricted" source="annotations" provides="section">
+    ///     <descriptor name = "amqp:footer:map" code="0x00000000:0x00000078"/>
+    /// </type>
+    /// 
     /// A registry of defined footers and their meanings is maintained[AMQPFOOTER].
     /// </remarks>
-    public class Footer : DescribedList
+    public class Footer : DescribedList // TODO: this should be a map, not a list
     {
-        public Footer()
-            : base(MessagingDescriptors.Footer)
-        {
-        }
+        public Footer() : base(MessagingDescriptors.Footer) { }
     }
 }

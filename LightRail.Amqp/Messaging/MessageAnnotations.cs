@@ -1,5 +1,4 @@
-﻿using System;
-using LightRail.Amqp.Types;
+﻿using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Messaging
 {
@@ -19,12 +18,14 @@ namespace LightRail.Amqp.Messaging
     /// 
     /// If the message-annotations section is omitted, it is equivalent to a message-annotations section containing an
     /// empty map of annotations.
+    /// 
+    /// <type name="message-annotations" class="restricted" source="annotations" provides="section">
+    ///     <descriptor name = "amqp:message-annotations:map" code="0x00000000:0x00000072"/>
+    /// </type>
+    /// 
     /// </remarks>
-    public class MessageAnnotations : DescribedList
+    public class MessageAnnotations : DescribedList // TODO: this should be a map, not a list
     {
-        public MessageAnnotations()
-            : base(MessagingDescriptors.MessageAnnotations)
-        {
-        }
+        public MessageAnnotations() : base(MessagingDescriptors.MessageAnnotations) { }
     }
 }

@@ -48,6 +48,7 @@
     <Compile Include="AmqpException.cs" />
     <Compile Include="Framing\DeliveryState.cs" />
     <Compile Include="IBufferPool.cs" />
+    <Compile Include="Messaging\AnnotatedMessage.cs" />
     <Compile Include="Network\AsyncPump.cs" />
     <Compile Include="BoundedList.cs" />
     <Compile Include="ByteBuffer.cs" />
@@ -95,7 +96,7 @@
     <Compile Include="Messaging\MessageAnnotations.cs" />
     <Compile Include="Messaging\DeliveryAnnotations.cs" />
     <Compile Include="Messaging\Header.cs" />
-    <Compile Include="Messaging\Message.cs" />
+    <Compile Include="Messaging\BrokeredMessage.cs" />
     <Compile Include="Messaging\Properties.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Protocol\AmqpConnection.cs" />

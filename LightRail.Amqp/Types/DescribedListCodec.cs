@@ -289,5 +289,21 @@ namespace LightRail.Amqp.Types
                 throw new AmqpException(ErrorCode.DecodeError, $"Missing Constructor For Known Described Type {descriptor.ToString()}");
             }
         }
+
+        internal static ulong ReadDescriptorCode(ByteBuffer buffer)
+        {
+            var descriptorFormatCode = Encoder.ReadFormatCode(buffer);
+            if (descriptorFormatCode == FormatCode.ULong ||
+                descriptorFormatCode == FormatCode.SmallULong)
+            {
+                return Encoder.ReadULong(buffer, descriptorFormatCode);
+            }
+            if (descriptorFormatCode == FormatCode.Symbol8 ||
+                descriptorFormatCode == FormatCode.Symbol32)
+            {
+                throw new NotImplementedException("Have Not Yet Implemented Symbol Descriptor Decoding");
+            }
+            throw new AmqpException(ErrorCode.FramingError, $"Invalid Descriptor Format Code{descriptorFormatCode.ToHex()}");
+        }
     }
 }
