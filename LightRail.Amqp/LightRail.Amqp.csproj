@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="AmqpBitConverter.cs" />
     <Compile Include="AmqpException.cs" />
+    <Compile Include="Framing\DeliveryState.cs" />
     <Compile Include="IBufferPool.cs" />
     <Compile Include="Network\AsyncPump.cs" />
     <Compile Include="BoundedList.cs" />

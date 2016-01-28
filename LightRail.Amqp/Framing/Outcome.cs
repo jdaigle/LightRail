@@ -2,7 +2,7 @@
 
 namespace LightRail.Amqp.Framing
 {
-    public abstract class Outcome : DescribedList
+    public abstract class Outcome : DeliveryState
     {
         protected Outcome(Descriptor descriptor) : base(descriptor) { }
     }

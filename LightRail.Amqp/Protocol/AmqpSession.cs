@@ -294,7 +294,15 @@ namespace LightRail.Amqp.Protocol
             if (State == SessionStateEnum.DISCARDING)
                 return;
 
-            throw new NotImplementedException();
+            nextIncomingId++;
+            if (transfer.DeliveryId.HasValue)
+                nextIncomingId = transfer.DeliveryId.Value + 1;
+            remoteOutgoingWindow--;
+            incomingWindow--; // TODO: do we want to handle flow control?
+
+            var link = GetRemoteLink(transfer.Handle);
+
+            link.HandleLinkFrame(transfer, buffer);
         }
 
         private void InterceptDispositionFrame(Disposition disposition)

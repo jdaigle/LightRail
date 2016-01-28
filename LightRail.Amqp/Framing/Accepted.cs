@@ -2,7 +2,7 @@
 
 namespace LightRail.Amqp.Framing
 {
-    public abstract class Accepted : DescribedList
+    public abstract class Accepted : Outcome
     {
         protected Accepted() : base(DescribedListCodec.Accepted) { }
     }

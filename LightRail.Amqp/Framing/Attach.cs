@@ -81,7 +81,7 @@ namespace LightRail.Amqp.Framing
 
         /// <summary>
         /// The delivery settlement policy for the receiver. When set at the sender this indicates the desired
-        /// value for the settlement mode at the receiver .When set at the receiver this indicates the actual
+        /// value for the settlement mode at the receiver. When set at the receiver this indicates the actual
         /// settlement mode in use. The receiver SHOULD respect the sender’s desired settlement mode if
         /// the sender initiates the attach exchange and the receiver supports the desired mode.
         /// 

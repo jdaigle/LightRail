@@ -54,7 +54,10 @@ namespace LightRail.Amqp.Types
                 buffer.Append("\n");
                 for (int i = 0; i < indentLevel; i++)
                     buffer.Append("\t");
-                buffer.AppendFormat("{0}: {1}", p.Name, p.GetValue(this));
+                var value = p.GetValue(this);
+                if (value is byte[])
+                    value = $"byte[{(value as byte[]).Length}]" + System.Convert.ToBase64String(value as byte[]);
+                buffer.AppendFormat("{0}: {1}", p.Name, value);
             }
             indentLevel--;
             return buffer.ToString(); ;

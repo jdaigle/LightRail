@@ -42,7 +42,7 @@ namespace LightRail.Amqp.Framing
         /// differs from the delivery-id on the first transfer of a delivery.
         /// </summary>
         [AmqpDescribedListIndex(1)]
-        public uint DeliveryId { get; set; }
+        public uint? DeliveryId { get; set; }
 
         /// <summary>
         /// Uniquely identifies the delivery attempt for a given message on this link. This field MUST be
@@ -113,7 +113,7 @@ namespace LightRail.Amqp.Framing
         /// The state of the delivery at the sender.
         /// 
         /// When set this informs the receiver of the state of the delivery at the sender. This is particularly
-        /// useful when transfers of unsettled deliveries are resumed after resuming a link.Setting the state
+        /// useful when transfers of unsettled deliveries are resumed after resuming a link. Setting the state
         /// on the transfer can be thought of as being equivalent to sending a disposition immediately before
         /// the transfer performative, i.e., it is the state of the delivery (not the transfer) that existed at the
         /// point the frame was sent.
@@ -123,7 +123,7 @@ namespace LightRail.Amqp.Framing
         /// disposition sent by the sender can alter that terminal state.
         /// </summary>
         [AmqpDescribedListIndex(7)]
-        public Outcome State { get; set; }
+        public DeliveryState State { get; set; }
 
         /// <summary>
         /// indicates a resumed delivery

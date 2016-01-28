@@ -2,7 +2,7 @@
 
 namespace LightRail.Amqp.Framing
 {
-    public abstract class Modified : DescribedList
+    public abstract class Modified : Outcome
     {
         protected Modified() : base(DescribedListCodec.Modified) { }
 

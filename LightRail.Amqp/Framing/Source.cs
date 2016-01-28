@@ -47,7 +47,7 @@ namespace LightRail.Amqp.Framing
         /// 0 = None - No terminus state is retained durably.
         /// 1 = Configuration - Only the existence and configuration of the terminus is retained durably.
         /// 2 = Unsettled-State - In addition to the existence and configuration of the terminus, the unsettled state
-        /// for durable messages is retained durably
+        ///                       for durable messages is retained durably
         /// </summary>
         [AmqpDescribedListIndex(1)]
         public uint? Durable { get; set; } = 0;

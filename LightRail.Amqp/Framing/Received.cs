@@ -2,7 +2,7 @@
 
 namespace LightRail.Amqp.Framing
 {
-    public abstract class Received : DescribedList
+    public abstract class Received : DeliveryState
     {
         protected Received() : base(DescribedListCodec.Received) { }
 
