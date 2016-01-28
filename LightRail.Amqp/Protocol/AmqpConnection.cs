@@ -124,7 +124,7 @@ namespace LightRail.Amqp.Protocol
                 }
                 if (logger.IsTraceEnabled)
                     logger.Trace("Received Frame: {0}", frame.ToString());
-                HandleConnectionFrame(frame, remoteChannelNumber);
+                HandleConnectionFrame(frame, remoteChannelNumber, buffer);
                 return true;
             }
             catch (AmqpException amqpException)
@@ -159,7 +159,7 @@ namespace LightRail.Amqp.Protocol
             }
         }
 
-        private void HandleConnectionFrame(AmqpFrame frame, ushort remoteChannelNumber)
+        private void HandleConnectionFrame(AmqpFrame frame, ushort remoteChannelNumber, ByteBuffer buffer)
         {
             if (frame is Open)
                 HandleOpenFrame(frame as Open);
@@ -170,7 +170,7 @@ namespace LightRail.Amqp.Protocol
             else if (frame is Close)
                 HandleCloseFrame(frame as Close);
             else
-                HandleSessionFrame(frame, remoteChannelNumber);
+                HandleSessionFrame(frame, remoteChannelNumber, buffer);
         }
 
         private void HandleHeaderNegotiation(ByteBuffer frameBuffer)
@@ -329,7 +329,7 @@ namespace LightRail.Amqp.Protocol
             HandleSessionFrame(end, remoteChannelNumber);
         }
 
-        private void HandleSessionFrame(AmqpFrame frame, ushort remoteChannel)
+        private void HandleSessionFrame(AmqpFrame frame, ushort remoteChannel, ByteBuffer buffer = null)
         {
             if (State != ConnectionStateEnum.OPENED)
                 throw new AmqpException(ErrorCode.IllegalState, $"Received Begin Frame but current state is {State.ToString()}.");
@@ -339,7 +339,7 @@ namespace LightRail.Amqp.Protocol
             {
                 throw new AmqpException(ErrorCode.NotFound, $"Session for channel number [{remoteChannel}] not found.");
             }
-            session.HandleSessionFrame(frame);
+            session.HandleSessionFrame(frame, buffer);
         }
 
         internal void OnSessionUnmapped(AmqpSession session)

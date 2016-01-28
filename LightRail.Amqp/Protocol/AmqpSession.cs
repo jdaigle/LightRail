@@ -80,7 +80,7 @@ namespace LightRail.Amqp.Protocol
         private BoundedList<AmqpLink> localLinks;
         private BoundedList<AmqpLink> remoteLinks;
 
-        internal void HandleSessionFrame(AmqpFrame frame)
+        internal void HandleSessionFrame(AmqpFrame frame, ByteBuffer buffer = null)
         {
             try
             {
@@ -91,7 +91,7 @@ namespace LightRail.Amqp.Protocol
                 else if (frame is Flow)
                     InterceptFlowFrame(frame as Flow);
                 else if (frame is Transfer)
-                    InterceptTransferFrame(frame as Transfer);
+                    InterceptTransferFrame(frame as Transfer, buffer);
                 else if (frame is Disposition)
                     InterceptDispositionFrame(frame as Disposition);
                 else if (frame is Detach)
@@ -287,7 +287,7 @@ namespace LightRail.Amqp.Protocol
             remoteLinks[attach.Handle] = link;
         }
 
-        private void InterceptTransferFrame(Transfer transfer)
+        private void InterceptTransferFrame(Transfer transfer, ByteBuffer buffer)
         {
             if (!State.CanReceiveFrames())
                 throw new AmqpException(ErrorCode.IllegalState, $"Received Flow frame but session state is {State.ToString()}.");

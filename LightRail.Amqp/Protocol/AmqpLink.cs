@@ -82,7 +82,7 @@ namespace LightRail.Amqp.Protocol
         /// </summary>
         private bool drainFlag;
 
-        public void HandleLinkFrame(AmqpFrame frame)
+        public void HandleLinkFrame(AmqpFrame frame, ByteBuffer buffer = null)
         {
             try
             {
@@ -91,7 +91,7 @@ namespace LightRail.Amqp.Protocol
                 else if (frame is Flow)
                     HandleFlowFrame(frame as Flow);
                 else if (frame is Transfer)
-                    HandleTransferFrame(frame as Transfer);
+                    HandleTransferFrame(frame as Transfer, buffer);
                 else if (frame is Disposition)
                     HandleDispositionFrame(frame as Disposition);
                 else if (frame is Detach)
@@ -217,7 +217,7 @@ namespace LightRail.Amqp.Protocol
             });
         }
 
-        private void HandleTransferFrame(Transfer transfer)
+        private void HandleTransferFrame(Transfer transfer, ByteBuffer buffer)
         {
             throw new NotImplementedException();
         }
