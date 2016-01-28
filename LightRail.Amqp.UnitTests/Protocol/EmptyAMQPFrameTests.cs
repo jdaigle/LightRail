@@ -26,7 +26,7 @@ namespace LightRail.Amqp.Protocol
 
             var buffer = new ByteBuffer(8, true);
             AmqpFrameCodec.EncodeFrame(buffer, null, 0);
-            connection.HandleReceivedBuffer(buffer);
+            connection.HandleFrame(buffer);
 
             Assert.True(socket.IsNotClosed);
             CollectionAssert.IsEmpty(socket.SentBufferFrames);

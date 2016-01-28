@@ -22,7 +22,7 @@ namespace LightRail.Amqp.Protocol
 
         protected void Given_Exchanged_Headers()
         {
-            connection.HandleReceivedBuffer(new ByteBuffer(defaultAcceptedProtocol));
+            connection.HandleHeader(new ByteBuffer(defaultAcceptedProtocol));
 
             Assert.AreEqual(1, socket.SentBufferFrames.Count);
             CollectionAssert.AreEqual(defaultAcceptedProtocol, socket.SentBufferFrames[0].Item1);
@@ -53,7 +53,7 @@ namespace LightRail.Amqp.Protocol
         {
             var buffer = new ByteBuffer(512, true);
             AmqpFrameCodec.EncodeFrame(buffer, frame, channelNumber);
-            connection.HandleReceivedBuffer(buffer);
+            connection.HandleFrame(buffer);
         }
 
         protected AmqpFrame DecodeLastFrame()

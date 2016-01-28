@@ -6,8 +6,10 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using LightRail.Amqp;
+using LightRail.Amqp.Network;
 using NLog;
 
 namespace LightRail.Server.Network
@@ -16,13 +18,13 @@ namespace LightRail.Server.Network
     {
         private static readonly ILogger logger = LogManager.GetLogger("LightRail.Server.Network.TcpListener");
 
-        private const int maxBufferSize = 64 * 1024; // 64 KB
+        private const int maxBufferBlockSize = 64 * 1024; // 64 KB
 
         public int ListenPort { get; } = Constants.AmqpPort;
         public int MaxConnections { get; } = 100;
+        private int currentConnections;
 
-        private readonly PinnedMemoryBufferPool _memoryBufferPool;
-        private readonly ConcurrentStack<SocketAsyncEventArgs> _receiveSocketAsyncEventArgs = new ConcurrentStack<SocketAsyncEventArgs>();
+        private readonly IBufferPool _memoryBufferPool;
         private readonly ConcurrentStack<SocketAsyncEventArgs> _sendSocketAsyncEventArgs = new ConcurrentStack<SocketAsyncEventArgs>();
         private Socket _listenSocket;
 
@@ -30,18 +32,11 @@ namespace LightRail.Server.Network
 
         public TcpListener()
         {
-            var bufferPoolSize = maxBufferSize * 2 * MaxConnections; // bufferSize * 2 * maxConn (one send/reiv buffer each per conn)
-            _memoryBufferPool = new PinnedMemoryBufferPool(bufferPoolSize, maxBufferSize);
+            var bufferPoolSize = maxBufferBlockSize * 2 * MaxConnections; // bufferSize * 2 * maxConn (one send/reiv buffer each per conn)
+            _memoryBufferPool = new PinnedMemoryBufferPool(bufferPoolSize, maxBufferBlockSize);
 
             _acceptSocketAsyncEventArgs = new SocketAsyncEventArgs();
             _acceptSocketAsyncEventArgs.Completed += AsyncEventCompleted;
-
-            for (int i = 0; i < MaxConnections; i++)
-            {
-                var e = new SocketAsyncEventArgs();
-                e.Completed += AsyncEventCompleted;
-                _receiveSocketAsyncEventArgs.Push(e);
-            }
         }
 
         public void Start()
@@ -61,9 +56,6 @@ namespace LightRail.Server.Network
             {
                 case SocketAsyncOperation.Accept:
                     CompleteAccept(e, true);
-                    break;
-                case SocketAsyncOperation.Receive:
-                    CompleteReceive(e, true);
                     break;
                 case SocketAsyncOperation.Send:
                     CompleteSend(e);
@@ -104,103 +96,13 @@ namespace LightRail.Server.Network
             logger.Trace("Connection Accepting From {0}:{1}", ipAddress.Address.ToString(), ipAddress.Port.ToString());
 #endif
 
-            SocketAsyncEventArgs args;
-            if (!_receiveSocketAsyncEventArgs.TryPop(out args))
-            {
-                // TODO too many connections
-                logger.Trace("Too Many Connections.");
-                TryCloseSocket(e.AcceptSocket, null);
-                return;
-            }
-
-            var connection = new TcpConnectionState(this, e.AcceptSocket);
-            args.UserToken = connection;
-            _memoryBufferPool.SetBuffer(args);
-            connection.ReceiveBufferOffset = args.Offset;
-            connection.ReceiverBufferSize = args.Count;
-
-            StartReceive(args);
+            // create the connection, will immediately starting polling the receive side of the socket
+            // via an async pump
+            new TcpConnection(this, e.AcceptSocket, _memoryBufferPool);
 
             // Loop to accept another connection.
             if (startAccept)
                 StartAccept(e);
-        }
-
-        /// <summary>
-        /// Post an asynchronous receive on the socket.
-        /// </summary>
-        /// <param name="e">Used to store information about the Receive call.</param>
-        private void StartReceive(SocketAsyncEventArgs e)
-        {
-            receiveAgain:
-            try
-            {
-                var connection = e.UserToken as TcpConnectionState;
-                if (connection != null)
-                {
-                    if (!connection.Socket.Connected)
-                    {
-                        ReleaseReceiveSocketAsyncEventArgs(e);
-                        return;
-                    }
-                    e.SetBuffer(connection.ReceiveBufferOffset, connection.ReceiverBufferSize);
-                    if (connection.Socket.ReceiveAsync(e) == false)
-                    {
-                        CompleteReceive(e, false);
-                        goto receiveAgain;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Fatal(ex, "Exception in StartReceive()");
-            }
-        }
-
-        /// <summary>
-        /// Receive completion callback. Should verify the connection, and then notify any event listeners
-        /// that data has been received. For now it is always expected that the data will be handled by the
-        /// listeners and thus the buffer is cleared after every call.
-        /// </summary>
-        /// <param name="e">Information about the Receive call.</param>
-        private void CompleteReceive(SocketAsyncEventArgs e, bool startReceive)
-        {
-            try
-            {
-                var connection = e.UserToken as TcpConnectionState;
-                if (e.BytesTransferred == 0 || e.SocketError != SocketError.Success || connection == null)
-                {
-#if DEBUG
-                    if (connection == null)
-                        logger.Fatal("CompleteReceive() e.UserToken is not an instance of TcpConnectionState");
-                    if (e.SocketError != SocketError.Success)
-                        logger.Error("CompleteReceive() SocketError '{0}'", e.SocketError.ToString());
-                    if (e.BytesTransferred == 0)
-                        logger.Error("CompleteReceive() 0 Bytes Transferred. Shutting down socket.");
-#endif
-                    if (connection != null)
-                    {
-                        TryCloseSocket(connection.Socket, connection);
-                    }
-                    ReleaseReceiveSocketAsyncEventArgs(e);
-                    return;
-                }
-
-                var bytesReceived = e.BytesTransferred;
-                logger.Trace("Received {0} bytes from {1}", bytesReceived, connection.IPAddress);
-
-                byte[] buffer = new byte[bytesReceived];
-                Array.Copy(e.Buffer, e.Offset, buffer, 0, bytesReceived);
-                connection.HandleReceived(new ByteBuffer(buffer, 0, bytesReceived, bytesReceived));
-
-                // loop to receive more data
-                if (startReceive)
-                    StartReceive(e);
-            }
-            catch (Exception ex)
-            {
-                logger.Fatal(ex, "Exception in CompleteReceive()");
-            }
         }
 
         /// <summary>
@@ -210,7 +112,7 @@ namespace LightRail.Server.Network
         /// <param name="buffer">The data buffer to send.</param>
         /// <param name="offset">The offset in the data buffer to send.</param>
         /// <param name="length">The length of the data to send.</param>
-        public void SendAsync(TcpConnectionState connection, byte[] buffer, int offset, int length)
+        public void SendAsync(TcpConnection connection, byte[] buffer, int offset, int length)
         {
             SocketAsyncEventArgs e;
             if (!_sendSocketAsyncEventArgs.TryPop(out e))
@@ -219,11 +121,13 @@ namespace LightRail.Server.Network
                 e.Completed += AsyncEventCompleted;
             }
             e.UserToken = connection;
-            if (length > maxBufferSize)
+            if (length > maxBufferBlockSize)
             {
-                throw new InvalidOperationException($"Cannot Send Buffer of Length {length}. Max Buffer Sized = {maxBufferSize}. Chunking has not been implemented.");
+                throw new InvalidOperationException($"Cannot Send Buffer of Length {length}. Max Buffer Sized = {maxBufferBlockSize}. Chunking has not been implemented.");
             }
-            _memoryBufferPool.SetBuffer(e);
+            ByteBuffer _buffer;
+            _memoryBufferPool.TryGetByteBuffer(out _buffer);
+            e.SetBuffer(_buffer.Buffer, _buffer.StartOffset, _buffer.LengthAvailableToWrite);
             Array.Copy(buffer, offset, e.Buffer, e.Offset, length); // copy to output buffer
             e.SetBuffer(e.Offset, length);
             if (connection.Socket.SendAsync(e) == false)
@@ -240,7 +144,7 @@ namespace LightRail.Server.Network
         {
             try
             {
-                var connection = e.UserToken as TcpConnectionState;
+                var connection = e.UserToken as TcpConnection;
                 if (e.BytesTransferred == 0 || e.SocketError != SocketError.Success || connection == null)
                 {
 #if DEBUG
@@ -254,7 +158,7 @@ namespace LightRail.Server.Network
                     if (connection != null)
                     {
                         logger.Debug("Closing Socket to {0}", connection.IPAddress);
-                        TryCloseSocket(connection.Socket, connection);
+                        CloseSocket(connection.Socket, connection);
                     }
                     ReleaseSendSocketAsyncEventArgs(e);
                     return;
@@ -270,28 +174,36 @@ namespace LightRail.Server.Network
             }
         }
 
-        private void TryCloseSocket(Socket socket, TcpConnectionState connection)
+        private void CloseSocket(Socket socket, TcpConnection connection)
         {
             try
             {
-                if (connection != null)
+                try
                 {
-                    connection.HandleSocketClosed();
+                    if (connection != null)
+                    {
+                        connection.HandleSocketClosed();
+                    }
+                    socket.Shutdown(SocketShutdown.Both);
                 }
-                socket.Shutdown(SocketShutdown.Both);
+                catch (Exception e)
+                {
+                    logger.Error(e, "Non-fatal error shutting down socket");
+                }
+                socket.Close();
             }
-            catch (Exception e)
+            finally
             {
-                logger.Error(e, "Non-fatal error shutting down socket");
+                logger.Debug("Decrement Connection Count");
+                Interlocked.Decrement(ref currentConnections);
             }
-            socket.Close();
         }
 
         /// <summary>
         /// Marks a specific connection for graceful shutdown. The next receive or send to be posted
         /// will fail and close the connection.
         /// </summary>
-        public void Disconnect(TcpConnectionState connection, SocketShutdown socketShutdown)
+        public void Disconnect(TcpConnection connection, SocketShutdown socketShutdown)
         {
             try
             {
@@ -304,16 +216,10 @@ namespace LightRail.Server.Network
             }
         }
 
-        private void ReleaseReceiveSocketAsyncEventArgs(SocketAsyncEventArgs e)
-        {
-            _memoryBufferPool.FreeBuffer(e);
-            e.UserToken = null;
-            _receiveSocketAsyncEventArgs.Push(e);
-        }
-
         private void ReleaseSendSocketAsyncEventArgs(SocketAsyncEventArgs e)
         {
-            _memoryBufferPool.FreeBuffer(e);
+            var byteBuffer = new ByteBuffer(e.Buffer, e.Offset, 0, 0, false);
+            _memoryBufferPool.FreeBuffer(byteBuffer);
             e.UserToken = null;
             _sendSocketAsyncEventArgs.Push(e);
         }

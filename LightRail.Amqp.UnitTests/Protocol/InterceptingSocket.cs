@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using LightRail.Amqp.Network;
 
 namespace LightRail.Amqp.Protocol
 {
@@ -59,6 +61,11 @@ namespace LightRail.Amqp.Protocol
             Closed = true;
             if (OnClose != null)
                 OnClose();
+        }
+
+        public Task<int> ReceiveAsync(byte[] buffer, int offset, int count)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -55,8 +55,7 @@
     <Compile Include="HostContainer.cs" />
     <Compile Include="LinkedListQueue.cs" />
     <Compile Include="MessageStatus.cs" />
-    <Compile Include="Network\PinnedMemoryBufferPool.cs" />
-    <Compile Include="Network\TcpConnectionState.cs" />
+    <Compile Include="Network\TcpConnection.cs" />
     <Compile Include="Network\TcpListener.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

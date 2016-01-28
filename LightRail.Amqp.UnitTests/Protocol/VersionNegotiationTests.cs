@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using LightRail.Amqp.Framing;
+﻿using LightRail.Amqp.Framing;
 using NUnit.Framework;
 
 namespace LightRail.Amqp.Protocol
@@ -29,7 +24,7 @@ namespace LightRail.Amqp.Protocol
             //If the requested protocol version is supported, the server MUST send its own protocol header with the
             // requested version to the socket, and then proceed according to the protocol definition.
 
-            connection.HandleReceivedBuffer(new ByteBuffer(protocol0));
+            connection.HandleHeader(new ByteBuffer(protocol0));
 
             Assert.AreEqual(1, socket.SentBufferFrames.Count);
             CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
@@ -45,7 +40,7 @@ namespace LightRail.Amqp.Protocol
 
             var buffer = new ByteBuffer(protocol0, 0, protocol0.Length, protocol0.Length, true);
             AmqpFrameCodec.EncodeFrame(buffer, new Open(), 0);
-            connection.HandleReceivedBuffer(buffer);
+            connection.HandleHeader(buffer);
 
             Assert.GreaterOrEqual(socket.SentBufferFrames.Count, 1);
             CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
@@ -58,7 +53,7 @@ namespace LightRail.Amqp.Protocol
             // If the requested protocol version is not supported, the server MUST send a protocol header with a supported
             // protocol version and then close the socket.
 
-            connection.HandleReceivedBuffer(new ByteBuffer(protocol1));
+            connection.HandleHeader(new ByteBuffer(protocol1));
 
             Assert.AreEqual(1, socket.SentBufferFrames.Count);
             CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
@@ -72,7 +67,7 @@ namespace LightRail.Amqp.Protocol
             // If the requested protocol version is not supported, the server MUST send a protocol header with a supported
             // protocol version and then close the socket.
 
-            connection.HandleReceivedBuffer(new ByteBuffer(protocol2));
+            connection.HandleHeader(new ByteBuffer(protocol2));
 
             Assert.AreEqual(1, socket.SentBufferFrames.Count);
             CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
@@ -86,7 +81,7 @@ namespace LightRail.Amqp.Protocol
             // If the server cannot parse the protocol header, the server MUST send a valid protocol header with a supported
             // protocol version and then close the socket.
 
-            connection.HandleReceivedBuffer(new ByteBuffer(malformedProtocol0));
+            connection.HandleHeader(new ByteBuffer(malformedProtocol0));
 
             Assert.AreEqual(1, socket.SentBufferFrames.Count);
             CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
@@ -100,7 +95,7 @@ namespace LightRail.Amqp.Protocol
             // If the requested protocol version is not supported, the server MUST send a protocol header with a supported
             // protocol version and then close the socket.
 
-            connection.HandleReceivedBuffer(new ByteBuffer(incorrectVerProtocol0));
+            connection.HandleHeader(new ByteBuffer(incorrectVerProtocol0));
 
             Assert.AreEqual(1, socket.SentBufferFrames.Count);
             CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);

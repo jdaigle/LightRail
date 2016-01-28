@@ -98,6 +98,14 @@ namespace LightRail.Amqp
             get { return buffer; }
         }
 
+        /// <summary>
+        /// Returns the starting offset for reads/writes in the underlying byte[]
+        /// </summary>
+        public int StartOffset
+        {
+            get { return startOffset; }
+        }
+
         public int TotalCapacity
         {
             get { return endOffset - startOffset; }
@@ -114,10 +122,17 @@ namespace LightRail.Amqp
         }
 
         /// <summary>
+        /// If True, calling AppendWrite() or ShrinkWrite() will throw an exception
+        /// </summary>
+        public bool ReadOnly { get; set; }
+
+        /// <summary>
         /// Advances the write position. As a result, LengthAvailableToRead is increased by size.
         /// </summary>
         public void AppendWrite(int size)
         {
+            if (ReadOnly)
+                throw new InvalidOperationException("Buffer is read-only, cannot write.");
             if (size < 0)
                 throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
             if (size > LengthAvailableToWrite)
@@ -130,6 +145,8 @@ namespace LightRail.Amqp
         /// </summary>
         public void ShrinkWrite(int size)
         {
+            if (ReadOnly)
+                throw new InvalidOperationException("Buffer is read-only, cannot write.");
             if (size < 0)
                 throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
             if (size > LengthAvailableToRead)

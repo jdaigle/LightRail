@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using LightRail.Amqp.Framing;
 using NUnit.Framework;
 
@@ -76,7 +72,8 @@ namespace LightRail.Amqp.Protocol
 
             var buffer = new ByteBuffer(defaultAcceptedProtocol, 0, defaultAcceptedProtocol.Length, defaultAcceptedProtocol.Length, true);
             AmqpFrameCodec.EncodeFrame(buffer, new Open(), 0);
-            connection.HandleReceivedBuffer(buffer);
+            connection.HandleHeader(buffer);
+            connection.HandleFrame(buffer);
 
             Assert.AreEqual(ConnectionStateEnum.OPENED, connection.State);
             Assert.True(socket.IsNotClosed);
@@ -122,7 +119,9 @@ namespace LightRail.Amqp.Protocol
             var buffer = new ByteBuffer(defaultAcceptedProtocol, 0, defaultAcceptedProtocol.Length, defaultAcceptedProtocol.Length, true);
             AmqpFrameCodec.EncodeFrame(buffer, new Open(), 0);
             AmqpFrameCodec.EncodeFrame(buffer, new Close(), 0);
-            connection.HandleReceivedBuffer(buffer);
+            connection.HandleHeader(buffer);
+            connection.HandleFrame(buffer);
+            connection.HandleFrame(buffer);
 
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);

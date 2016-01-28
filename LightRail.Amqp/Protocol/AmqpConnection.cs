@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using LightRail.Amqp.Framing;
-using LightRail.Amqp.Types;
+using LightRail.Amqp.Network;
 using NLog;
 
 namespace LightRail.Amqp.Protocol
@@ -23,8 +23,8 @@ namespace LightRail.Amqp.Protocol
         public AmqpConnection(ISocket socket, IContainer container)
         {
             this.socket = socket;
-            State = ConnectionStateEnum.START;
             Container = container;
+            State = ConnectionStateEnum.START;
         }
 
         private readonly ISocket socket;
@@ -69,38 +69,21 @@ namespace LightRail.Amqp.Protocol
         private ConcurrentStack<ushort> freeChannelNumbers = new ConcurrentStack<ushort>();
         private ushort nextChannelNumber = 1;
 
-        public void HandleReceivedBuffer(ByteBuffer buffer)
+        /// <summary>
+        /// Handles a buffered header (should be 8 byte buffer). Returns false the underyling connection should stop receiving.
+        /// </summary>
+        public bool HandleHeader(ByteBuffer buffer)
         {
             try
             {
-                while (buffer.LengthAvailableToRead > 0)
-                {
-                    if (State.ShouldIgnoreReceivedData())
-                    {
-                        return;
-                    }
-                    if (State.IsExpectingProtocolHeader())
-                    {
-                        HandleHeaderNegotiation(buffer);
-                        continue;
-                    }
-                    ushort remoteChannelNumber = 0;
-                    var frame = AmqpFrameCodec.DecodeFrame(buffer, out remoteChannelNumber);
-                    LastFrameReceivedDateTime = DateTime.UtcNow;
-                    if (frame == null)
-                    {
-                        logger.Trace("Received Empty Frame");
-                        continue;
-                    }
-                    if (logger.IsTraceEnabled)
-                        logger.Trace("Received Frame: {0}", frame.ToString());
-                    HandleReceivedFrame(frame, remoteChannelNumber);
-                }
+                HandleHeaderNegotiation(buffer);
+                return true;
             }
             catch (AmqpException amqpException)
             {
                 logger.Error(amqpException);
                 CloseConnection(amqpException.Error);
+                return false;
             }
             catch (Exception fatalException)
             {
@@ -111,22 +94,68 @@ namespace LightRail.Amqp.Protocol
                     Description = "Closing Connection due to fatal exception: " + fatalException.Message,
                 };
                 CloseConnection(error);
+                return false;
             }
         }
 
-        private static bool IsLikelyProtocolHeader(ByteBuffer frameBuffer)
+        /// <summary>
+        /// Handles a buffered frame (variable length). Returns false the underyling connection should stop receiving.
+        /// </summary>
+        public bool HandleFrame(ByteBuffer buffer)
         {
-            if (frameBuffer.LengthAvailableToRead >= 8)
+            try
             {
-                if (frameBuffer.Buffer[frameBuffer.ReadOffset + 0] == protocol0[0] &&
-                    frameBuffer.Buffer[frameBuffer.ReadOffset + 1] == protocol0[1] &&
-                    frameBuffer.Buffer[frameBuffer.ReadOffset + 2] == protocol0[2] &&
-                    frameBuffer.Buffer[frameBuffer.ReadOffset + 3] == protocol0[3])
+                if (State.ShouldIgnoreReceivedData())
+                    return true;
+                if (State.IsExpectingProtocolHeader())
                 {
+                    socket.SendAsync(protocol0, 0, 8);
+                    CloseConnection(new Error());
+                    return false;
+                }
+                ushort remoteChannelNumber = 0;
+                var frame = AmqpFrameCodec.DecodeFrame(buffer, out remoteChannelNumber);
+                LastFrameReceivedDateTime = DateTime.UtcNow;
+                if (frame == null)
+                {
+                    logger.Trace("Received Empty Frame");
                     return true;
                 }
+                if (logger.IsTraceEnabled)
+                    logger.Trace("Received Frame: {0}", frame.ToString());
+                HandleReceivedFrame(frame, remoteChannelNumber);
+                return true;
             }
-            return false;
+            catch (AmqpException amqpException)
+            {
+                logger.Error(amqpException);
+                CloseConnection(amqpException.Error);
+                return false;
+            }
+            catch (Exception fatalException)
+            {
+                logger.Fatal(fatalException, "Closing Connection due to fatal exception.");
+                var error = new Error()
+                {
+                    Condition = ErrorCode.InternalError,
+                    Description = "Closing Connection due to fatal exception: " + fatalException.Message,
+                };
+                CloseConnection(error);
+                return false;
+            }
+        }
+
+        public void OnIoException(Exception ex)
+        {
+            if (State != ConnectionStateEnum.END)
+            {
+                logger.Error(ex, "IO Exception Handled");
+                CloseConnection(new Error()
+                {
+                    Condition = ErrorCode.InternalError,
+                    Description = ex.Message,
+                });
+            }
         }
 
         private void HandleReceivedFrame(AmqpFrame frame, ushort remoteChannelNumber)
@@ -421,11 +450,15 @@ namespace LightRail.Amqp.Protocol
                     {
                         State = ConnectionStateEnum.DISCARDING;
                     }
+                    logger.Debug("Closing Sending Side of Socket");
+                    socket.CloseWrite();
                 }
                 if (State == ConnectionStateEnum.CLOSED_RCVD)
+                {
                     State = ConnectionStateEnum.END;
-                logger.Debug("Closing Sending Side of Socket");
-                socket.CloseWrite();
+                    logger.Debug("Closing Socket");
+                    socket.Close();
+                }
                 return;
             }
             if (error != null)

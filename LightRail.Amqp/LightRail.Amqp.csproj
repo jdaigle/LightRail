@@ -46,6 +46,8 @@
   <ItemGroup>
     <Compile Include="AmqpBitConverter.cs" />
     <Compile Include="AmqpException.cs" />
+    <Compile Include="IBufferPool.cs" />
+    <Compile Include="Network\AsyncPump.cs" />
     <Compile Include="BoundedList.cs" />
     <Compile Include="ByteBuffer.cs" />
     <Compile Include="ByteExtensions.cs" />
@@ -70,6 +72,8 @@
     <Compile Include="Framing\Attach.cs" />
     <Compile Include="Framing\Flow.cs" />
     <Compile Include="IContainer.cs" />
+    <Compile Include="Network\PinnedMemoryBufferPool.cs" />
+    <Compile Include="Network\TcpSocket.cs" />
     <Compile Include="Protocol\AmqpLink.cs" />
     <Compile Include="Protocol\AmqpSession.cs" />
     <Compile Include="Protocol\AmqpSettings.cs" />
@@ -95,7 +99,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Protocol\AmqpConnection.cs" />
     <Compile Include="Protocol\ConnectionStateEnum.cs" />
-    <Compile Include="Protocol\ISocket.cs" />
+    <Compile Include="Network\ISocket.cs" />
     <Compile Include="Types\AmqpList.cs" />
     <Compile Include="Types\DescribedValue.cs" />
     <Compile Include="Types\Fields.cs" />

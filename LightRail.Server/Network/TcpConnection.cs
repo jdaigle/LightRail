@@ -1,36 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
 using LightRail.Amqp;
+using LightRail.Amqp.Network;
 using LightRail.Amqp.Protocol;
 
 namespace LightRail.Server.Network
 {
-    public class TcpConnectionState : ISocket
+    public class TcpConnection : ISocket
     {
         public Socket Socket { get; }
         public int ReceiveBufferOffset { get; internal set; }
         public int ReceiverBufferSize { get; internal set; }
         public IPEndPoint IPAddress { get; }
         private readonly TcpListener tcpListener;
+        private readonly SocketAsyncEventArgs receiveEventArgs;
+        private readonly AsyncPump receivedFramePump;
 
         public AmqpConnection amqpConnection { get; }
 
-        public TcpConnectionState(TcpListener tcpListener, Socket acceptSocket)
+        public TcpConnection(TcpListener tcpListener, Socket acceptSocket, IBufferPool bufferPool)
         {
             this.tcpListener = tcpListener;
             this.Socket = acceptSocket;
             this.IPAddress = acceptSocket.RemoteEndPoint as IPEndPoint;
             this.amqpConnection = new AmqpConnection(this, HostContainer.Instance);
-        }
 
-        public void HandleReceived(ByteBuffer buffer)
-        {
-            amqpConnection.HandleReceivedBuffer(buffer);
+            this.receiveEventArgs = new SocketAsyncEventArgs();
+            this.receiveEventArgs.Completed += (s, a) => TcpSocket.CompleteAsyncIOOperation(((TaskCompletionSource<int>)a.UserToken), a, b => b.BytesTransferred);
+
+            receivedFramePump = new AsyncPump(amqpConnection, this, bufferPool);
+            receivedFramePump.Start();
         }
 
         public void HandleSocketClosed()
@@ -62,6 +62,11 @@ namespace LightRail.Server.Network
         public void CloseWrite()
         {
             tcpListener.Disconnect(this, SocketShutdown.Send);
+        }
+
+        public Task<int> ReceiveAsync(byte[] buffer, int offset, int count)
+        {
+            return TcpSocket.ReceiveAsync(this.Socket, receiveEventArgs, buffer, offset, count);
         }
     }
 }
