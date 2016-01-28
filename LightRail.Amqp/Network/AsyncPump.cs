@@ -97,6 +97,12 @@ namespace LightRail.Amqp.Network
                 frameBuffer.AppendWrite(FixedWidth.UInt);
 
                 int frameSize = (int)AmqpBitConverter.ReadUInt(frameBuffer);
+
+                if (frameSize > connection.MaxFrameSize)
+                {
+                    throw new AmqpException(ErrorCode.InvalidField, $"Invalid frame size:{frameSize}, maximum frame size:{connection.MaxFrameSize}");
+                }
+
                 await ReceiveBufferAsync(frameBuffer.Buffer, frameBuffer.WriteOffset, (frameSize - FixedWidth.UInt)); // read sizeof(frame) - 4 bytes from socket
 
                 frameBuffer.ResetReadWrite(); // back to 0 to start reading
