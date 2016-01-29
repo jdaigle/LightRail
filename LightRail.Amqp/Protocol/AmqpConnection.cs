@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using LightRail.Amqp.Framing;
 using LightRail.Amqp.Network;
 using NLog;
@@ -13,8 +14,8 @@ namespace LightRail.Amqp.Protocol
         private static readonly ILogger logger = LogManager.GetLogger("LightRail.Amqp.Protocol.AmqpConnection");
 
         private static readonly byte[] protocol0 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x00, 0x01, 0x00, 0x00 };
-        private static readonly byte[] protocol1 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x01, 0x01, 0x00, 0x00 };
         private static readonly byte[] protocol2 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x02, 0x01, 0x00, 0x00 };
+        private static readonly byte[] protocol3 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x03, 0x01, 0x00, 0x00 };
 
         public const uint DefaultMaxFrameSize = 64 * 1024;
         public const ushort DefaultMaxChannelCount = 256;
@@ -65,10 +66,8 @@ namespace LightRail.Amqp.Protocol
             return LastFrameReceivedDateTime.AddMilliseconds(DefaultIdleTimeout * 2) < DateTime.UtcNow;
         }
 
-        private Dictionary<ushort, AmqpSession> RemoteChannelToSessionMap = new Dictionary<ushort, AmqpSession>();
-        private Dictionary<ushort, AmqpSession> LocalChannelToSessionMap = new Dictionary<ushort, AmqpSession>();
-        private ConcurrentStack<ushort> freeChannelNumbers = new ConcurrentStack<ushort>();
-        private ushort nextChannelNumber = 1;
+        private BoundedList<AmqpSession> localSessionMap;
+        private BoundedList<AmqpSession> remoteSessionMap;
 
         /// <summary>
         /// Handles a buffered header (should be 8 byte buffer). Returns false the underyling connection should stop receiving.
@@ -106,14 +105,10 @@ namespace LightRail.Amqp.Protocol
         {
             try
             {
+                if (State.IsExpectingProtocolHeader())
+                    HandleHeaderNegotiation(buffer);
                 if (State.ShouldIgnoreReceivedData())
                     return true;
-                if (State.IsExpectingProtocolHeader())
-                {
-                    socket.SendAsync(protocol0, 0, 8);
-                    CloseConnection(new Error());
-                    return false;
-                }
                 ushort remoteChannelNumber = 0;
                 var frame = AmqpFrameCodec.DecodeFrame(buffer, out remoteChannelNumber);
                 LastFrameReceivedDateTime = DateTime.UtcNow;
@@ -181,7 +176,8 @@ namespace LightRail.Amqp.Protocol
             {
                 logger.Debug("Received Invalid Protocol Header");
                 // invalid protocol header
-                socket.SendAsync(protocol0, 0, 8);
+                if (!State.HasSentHeader())
+                    socket.SendAsync(protocol0, 0, 8);
                 CloseConnection(new Error());
                 return;
             }
@@ -192,7 +188,8 @@ namespace LightRail.Amqp.Protocol
             {
                 logger.Debug("Received Invalid Protocol Version");
                 // invalid protocol version
-                socket.SendAsync(protocol0, 0, 8);
+                if (!State.HasSentHeader())
+                    socket.SendAsync(protocol0, 0, 8);
                 CloseConnection(new Error());
                 return;
             }
@@ -202,26 +199,30 @@ namespace LightRail.Amqp.Protocol
             // expecting a protocol header
             if (protocolId == 0x00)
             {
-                socket.SendAsync(protocol0, 0, 8);
+                if (!State.HasSentHeader())
+                    socket.SendAsync(protocol0, 0, 8);
                 State = ConnectionStateEnum.HDR_EXCH;
-            }
-            else if (protocolId == 0x01)
-            {
-                // TODO: not yet supported
-                socket.SendAsync(protocol0, 0, 8);
-                CloseConnection(new Error());
             }
             else if (protocolId == 0x02)
             {
-                // TODO: not yet supported
-                socket.SendAsync(protocol0, 0, 8);
+                // TLS... no supported
+                if (!State.HasSentHeader())
+                    socket.SendAsync(protocol0, 0, 8);
                 CloseConnection(new Error());
+            }
+            else if (protocolId == 0x03)
+            {
+                // SASL... not yet supported
+                if (!State.HasSentHeader())
+                    socket.SendAsync(protocol3, 0, 8);
+                State = ConnectionStateEnum.HDR_EXCH;
             }
             else
             {
                 logger.Debug("Invalid Protocol ID AMQP.{0}.1.0.0!!", ((int)protocolId));
                 // invalid protocol id
-                socket.SendAsync(protocol0, 0, 8);
+                if (!State.HasSentHeader())
+                    socket.SendAsync(protocol0, 0, 8);
                 CloseConnection(new Error());
             }
         }
@@ -271,6 +272,9 @@ namespace LightRail.Amqp.Protocol
                 connectionIdleTimeout = Math.Min(openFrame.IdleTimeOut.Value, DefaultIdleTimeout);
             }
 
+            localSessionMap = new BoundedList<AmqpSession>(2, connectionChannelMax);
+            remoteSessionMap = new BoundedList<AmqpSession>(2, connectionChannelMax);
+
             if (State != ConnectionStateEnum.OPEN_SENT)
             {
                 SendFrame(new Open()
@@ -292,16 +296,18 @@ namespace LightRail.Amqp.Protocol
                 throw new AmqpException(ErrorCode.IllegalState, $"Received Begin Frame but current state is {State.ToString()}.");
 
             AmqpSession session;
-            if (RemoteChannelToSessionMap.TryGetValue(remoteChannel, out session))
+            session = GetSessionFromRemoteChannel(remoteChannel, false);
+            if (session != null)
             {
                 session.HandleSessionFrame(begin);
                 return;
             }
             if (begin.RemoteChannel.HasValue)
             {
-                if (LocalChannelToSessionMap.TryGetValue(begin.RemoteChannel.Value, out session))
+                session = GetSessionFromLocalChannel(begin.RemoteChannel.Value, false);
+                if (session != null)
                 {
-                    RemoteChannelToSessionMap.Add(remoteChannel, session); // new mapping
+                    remoteSessionMap[remoteChannel] = session; // new mapping
                     session.HandleSessionFrame(begin);
                     return;
                 }
@@ -310,14 +316,12 @@ namespace LightRail.Amqp.Protocol
                     throw new AmqpException(ErrorCode.NotFound, $"Session for remote channel number [{begin.RemoteChannel.Value}] not found.");
                 }
             }
-            ushort channelNumber;
-            if (!freeChannelNumbers.TryPop(out channelNumber))
-                channelNumber = nextChannelNumber++;
 
+            var nextLocalChannel = (ushort?)localSessionMap.IndexOfFirstNullItem() ?? (ushort)localSessionMap.Length; // reuse existing channel, or just grab the next one
             // new session
-            session = new AmqpSession(this, channelNumber, remoteChannel);
-            RemoteChannelToSessionMap.Add(remoteChannel, session);
-            LocalChannelToSessionMap.Add(session.ChannelNumber, session);
+            session = new AmqpSession(this, nextLocalChannel, remoteChannel);
+            localSessionMap[session.ChannelNumber] = session;
+            remoteSessionMap[session.RemoteChannelNumber] = session;
             session.HandleSessionFrame(begin);
         }
 
@@ -329,25 +333,40 @@ namespace LightRail.Amqp.Protocol
             HandleSessionFrame(end, remoteChannelNumber);
         }
 
+        private AmqpSession GetSessionFromRemoteChannel(ushort remoteChannel, bool throwException)
+        {
+            AmqpSession session = null;
+            if (remoteChannel < remoteSessionMap.Length)
+                session = remoteSessionMap[remoteChannel];
+            if (session == null && throwException)
+                throw new AmqpException(ErrorCode.NotFound, $"The remote session channel {remoteChannel} could not be found.");
+            return session;
+        }
+
+        private AmqpSession GetSessionFromLocalChannel(ushort channel, bool throwException)
+        {
+            AmqpSession session = null;
+            if (channel < localSessionMap.Length)
+                session = localSessionMap[channel];
+            if (session == null && throwException)
+                throw new AmqpException(ErrorCode.NotFound, $"The local session channel {channel} could not be found.");
+            return session;
+        }
+
         private void HandleSessionFrame(AmqpFrame frame, ushort remoteChannel, ByteBuffer buffer = null)
         {
             if (State != ConnectionStateEnum.OPENED)
                 throw new AmqpException(ErrorCode.IllegalState, $"Received Begin Frame but current state is {State.ToString()}.");
 
-            AmqpSession session;
-            if (!RemoteChannelToSessionMap.TryGetValue(remoteChannel, out session))
-            {
-                throw new AmqpException(ErrorCode.NotFound, $"Session for channel number [{remoteChannel}] not found.");
-            }
+            var session = GetSessionFromRemoteChannel(remoteChannel, true);
             session.HandleSessionFrame(frame, buffer);
         }
 
         internal void OnSessionUnmapped(AmqpSession session)
         {
             logger.Debug("Session {0} Unmapped", session.ChannelNumber);
-            RemoteChannelToSessionMap.Remove(session.RemoteChannelNumber);
-            LocalChannelToSessionMap.Remove(session.ChannelNumber);
-            freeChannelNumbers.Push(session.ChannelNumber);
+            localSessionMap[session.ChannelNumber] = null;
+            remoteSessionMap[session.RemoteChannelNumber] = null;
         }
 
         private void HandleCloseFrame(Close close)
@@ -368,6 +387,12 @@ namespace LightRail.Amqp.Protocol
                 logger.Debug("Closing with Error {0}-{1}", close.Error.Condition, close.Error.Description);
             }
             CloseConnection(null);
+        }
+
+        internal async Task Open(bool openSession)
+        {
+            State = ConnectionStateEnum.HDR_SENT;
+            await socket.SendAsync(protocol0, 0, 8);
         }
 
         public void SendFrame(AmqpFrame frame, ushort channelNumber)
@@ -398,9 +423,13 @@ namespace LightRail.Amqp.Protocol
 
         public void CloseConnection(Error error)
         {
-            foreach (var session in RemoteChannelToSessionMap.Values.ToList())
+            if (localSessionMap != null)
             {
-                session.OnConnectionClosed(error);
+                for (ushort i = 0; i < localSessionMap.Length; i++)
+                {
+                    if (localSessionMap[i] != null)
+                        localSessionMap[i].OnConnectionClosed(error);
+                }
             }
 
             if (State.CanSendFrames())
@@ -430,7 +459,7 @@ namespace LightRail.Amqp.Protocol
             if (error != null)
             {
                 State = ConnectionStateEnum.END;
-                logger.Debug("Closing Socket");
+                logger.Debug("Closing Socket Due To Error");
                 socket.Close();
             }
         }

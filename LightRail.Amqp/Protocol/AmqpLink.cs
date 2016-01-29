@@ -219,7 +219,13 @@ namespace LightRail.Amqp.Protocol
 
         private void HandleTransferFrame(Transfer transfer, ByteBuffer buffer)
         {
-            throw new NotImplementedException();
+            if (State != LinkStateEnum.ATTACHED)
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Transfer frame but link state is {State.ToString()}.");
+            if (linkCredit <= 0)
+                throw new AmqpException(ErrorCode.TransferLimitExceeded, "The link credit has dropped to 0. Wait for messages to finishing processing.");
+
+            linkCredit--;
+            deliveryCount++;
         }
 
         private void HandleDispositionFrame(Disposition disposition)

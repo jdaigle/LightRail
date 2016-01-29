@@ -2,6 +2,14 @@
 {
     public static class ConnectionStateEnumExtensions
     {
+        public static bool HasSentHeader(this ConnectionStateEnum state)
+        {
+            return state == ConnectionStateEnum.HDR_SENT ||
+                   state == ConnectionStateEnum.HDR_EXCH ||
+                   state == ConnectionStateEnum.OPEN_PIPE ||
+                   state == ConnectionStateEnum.OC_PIPE;
+        }
+
         public static bool IsExpectingProtocolHeader(this ConnectionStateEnum state)
         {
             return state == ConnectionStateEnum.START ||
