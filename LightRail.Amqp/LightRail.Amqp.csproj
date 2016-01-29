@@ -46,6 +46,9 @@
   <ItemGroup>
     <Compile Include="AmqpBitConverter.cs" />
     <Compile Include="AmqpException.cs" />
+    <Compile Include="Client\AmqpClient.cs" />
+    <Compile Include="Client\ClientContainer.cs" />
+    <Compile Include="Client\AsyncClientSocket.cs" />
     <Compile Include="Framing\DeliveryState.cs" />
     <Compile Include="IBufferPool.cs" />
     <Compile Include="Messaging\AnnotatedMessage.cs" />
