@@ -2,17 +2,25 @@
 
 namespace LightRail.Amqp.Network
 {
+    /// <summary>
+    /// Abstracts the network layer I/O for the AMQP procotol classes
+    /// </summary>
     public interface ISocket
     {
         /// <summary>
-        /// Sends the specified byte buffer on the socket.
+        /// A buffer pool used by the network layer for sending and receiving.
         /// </summary>
-        void SendAsync(ByteBuffer byteBuffer);
+        IBufferPool BufferPool { get; }
 
         /// <summary>
         /// Sends the specified byte buffer on the socket.
         /// </summary>
-        void SendAsync(byte[] buffer, int offset, int length);
+        Task SendAsync(ByteBuffer byteBuffer);
+
+        /// <summary>
+        /// Sends the specified byte buffer on the socket.
+        /// </summary>
+        Task SendAsync(byte[] buffer, int offset, int count);
 
         /// <summary>
         /// Immediately closes the underlying socket and cleans up.

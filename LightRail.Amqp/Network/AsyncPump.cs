@@ -21,6 +21,7 @@
 //  ------------------------------------------------------------------------------------
 
 using System;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using LightRail.Amqp.Protocol;
 using LightRail.Amqp.Types;
@@ -32,16 +33,14 @@ namespace LightRail.Amqp.Network
     {
         private static readonly ILogger logger = LogManager.GetLogger("LightRail.Amqp.Network.AsyncPump");
 
-        public AsyncPump(AmqpConnection connection, ISocket socket, IBufferPool bufferPool)
+        public AsyncPump(AmqpConnection connection, ISocket socket)
         {
             this.connection = connection;
             this.socket = socket;
-            this.bufferPool = bufferPool;
         }
 
         private readonly AmqpConnection connection;
         private readonly ISocket socket;
-        private readonly IBufferPool bufferPool;
         private Task asyncPumpTask;
         private bool continuePumping = true;
 
@@ -75,7 +74,8 @@ namespace LightRail.Amqp.Network
             logger.Debug("PumpAsync() Starting");
 
             ByteBuffer frameBuffer;
-            bufferPool.TryGetByteBuffer(out frameBuffer);
+            if (!socket.BufferPool.TryGetByteBuffer(out frameBuffer))
+                throw new Exception("No free buffers available to receive on the underlying socket.");
 
             if (onHeader != null)
             {

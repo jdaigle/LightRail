@@ -25,13 +25,16 @@ namespace LightRail.Server.Network
             this.Socket = acceptSocket;
             this.IPAddress = acceptSocket.RemoteEndPoint as IPEndPoint;
             this.amqpConnection = new AmqpConnection(this, HostContainer.Instance);
+            this.BufferPool = bufferPool;
 
             this.receiveEventArgs = new SocketAsyncEventArgs();
             this.receiveEventArgs.Completed += (s, a) => TcpSocket.CompleteAsyncIOOperation(((TaskCompletionSource<int>)a.UserToken), a, b => b.BytesTransferred);
 
-            receivedFramePump = new AsyncPump(amqpConnection, this, bufferPool);
+            receivedFramePump = new AsyncPump(amqpConnection, this);
             receivedFramePump.Start();
         }
+
+        public IBufferPool BufferPool { get; }
 
         public void HandleSocketClosed()
         {
@@ -39,14 +42,16 @@ namespace LightRail.Server.Network
                 amqpConnection.HandleSocketClosed();
         }
 
-        public void SendAsync(ByteBuffer byteBuffer)
+        public Task SendAsync(ByteBuffer byteBuffer)
         {
             tcpListener.SendAsync(this, byteBuffer.Buffer, byteBuffer.ReadOffset, byteBuffer.LengthAvailableToRead);
+            return Task.FromResult(0);
         }
 
-        public void SendAsync(byte[] buffer, int offset, int length)
+        public Task SendAsync(byte[] buffer, int offset, int length)
         {
             tcpListener.SendAsync(this, buffer, offset, length);
+            return Task.FromResult(0);
         }
 
         public void Close()

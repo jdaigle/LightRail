@@ -27,16 +27,20 @@ namespace LightRail.Amqp.Protocol
         public bool Closed { get; set; }
         public bool IsNotClosed { get { return !Closed; } }
 
-        public void SendAsync(ByteBuffer byteBuffer)
+        IBufferPool ISocket.BufferPool { get; }
+
+        public Task SendAsync(ByteBuffer byteBuffer)
         {
             SendAsync(byteBuffer.Buffer, byteBuffer.ReadOffset, byteBuffer.LengthAvailableToRead);
+            return Task.FromResult(0);
         }
 
-        public void SendAsync(byte[] buffer, int offset, int length)
+        public Task SendAsync(byte[] buffer, int offset, int length)
         {
             SentBufferFrames.Add(new Tuple<byte[], int, int>(buffer, offset, length));
             if (OnSendAsync != null)
                 OnSendAsync(buffer, offset, length);
+            return Task.FromResult(0);
         }
 
         public void Close()
