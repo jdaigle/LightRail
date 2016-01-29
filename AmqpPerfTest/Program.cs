@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Threading;
 using Amqp;
 using Amqp.Framing;
@@ -14,6 +15,13 @@ namespace AmqpPerfTest
 
         static void Main(string[] args)
         {
+            Trace.TraceLevel = TraceLevel.Frame;
+            Trace.TraceListener = (f, a) =>
+            {
+                var t = DateTime.Now.ToString("[hh:ss.fff]") + " " + string.Format(f, a);
+                Console.WriteLine(t);
+            };
+
             while (true)
             {
 
@@ -36,30 +44,40 @@ namespace AmqpPerfTest
                         session.Closed = OnClosed;
 
                         var linkName = Guid.NewGuid().ToString();
-                        Console.WriteLine("Link Attaching");
-                        receiverLink = new ReceiverLink(session, linkName, "TestQueue1");
-                        receiverLink.Closed = OnClosed;
+                        var senderLink = new SenderLink(session, linkName, "TestQueue1");
+                        senderLink.Closed = OnClosed;
 
-                        Thread.Sleep(250);
-                        receiverLink.Close();
-                        Thread.Sleep(250);
-                        receiverLink = new ReceiverLink(session, linkName, "TestQueue1");
-                        receiverLink.Closed = OnClosed;
+                        Message message = new Message();
+                        message.Properties = new Properties();
+                        message.Properties.MessageId = Guid.NewGuid().ToString();
+                        message.BodySection = new Data() { Binary = Encoding.UTF8.GetBytes("msg " + Guid.NewGuid().ToString()) };
+                        senderLink.Send(message);
+                        senderLink.Close();
 
-                        Thread.Sleep(2000);
+                        //Console.WriteLine("Link Attaching");
+                        //receiverLink = new ReceiverLink(session, linkName, "TestQueue1");
+                        //receiverLink.Closed = OnClosed;
 
-                        if (receiverLink != null)
-                        {
-                            //Console.Write("Starting Receive");
-                            var amqpMessage = receiverLink.Receive(60 * 1000);
-                            if (amqpMessage != null)
-                            {
-                                Console.Write("Received Message");
-                                Thread.Sleep(1000);
-                                Console.Write("Accepting Message");
-                                receiverLink.Accept(amqpMessage);
-                            }
-                        }
+                        //Thread.Sleep(250);
+                        //receiverLink.Close();
+                        //Thread.Sleep(250);
+                        //receiverLink = new ReceiverLink(session, linkName, "TestQueue1");
+                        //receiverLink.Closed = OnClosed;
+
+                        //Thread.Sleep(2000);
+
+                        //if (receiverLink != null)
+                        //{
+                        //    //Console.Write("Starting Receive");
+                        //    var amqpMessage = receiverLink.Receive(60 * 1000);
+                        //    if (amqpMessage != null)
+                        //    {
+                        //        Console.Write("Received Message");
+                        //        Thread.Sleep(1000);
+                        //        Console.Write("Accepting Message");
+                        //        receiverLink.Accept(amqpMessage);
+                        //    }
+                        //}
 
                         Thread.Sleep(10 * 1000);
                     }
