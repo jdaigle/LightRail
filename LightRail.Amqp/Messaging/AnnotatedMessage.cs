@@ -15,7 +15,7 @@ namespace LightRail.Amqp.Messaging
         /// The header section carries standard delivery details about the
         /// transfer of a message through the AMQP network.
         /// </summary>
-        public Header Header { get; set; }
+        public Header Header { get; set; } = new Header();
 
         /// <summary>
         /// The delivery-annotations section is used for delivery-specific

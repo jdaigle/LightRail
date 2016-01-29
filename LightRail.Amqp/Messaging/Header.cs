@@ -29,7 +29,7 @@ namespace LightRail.Amqp.Messaging
         /// </summary>
         /// <remarks>
         /// Durable messages MUST NOT be lost even if an intermediary is unexpectedly terminated and
-        /// restarted.A target which is not capable of fulfilling this guarantee MUST NOT accept messages
+        /// restarted. A target which is not capable of fulfilling this guarantee MUST NOT accept messages
         /// where the durable header is set to true: if the source allows the rejected outcome then the
         /// message SHOULD be rejected with the precondition-failed error, otherwise the link MUST be
         /// detached by the receiver with the same error
