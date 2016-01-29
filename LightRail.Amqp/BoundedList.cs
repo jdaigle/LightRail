@@ -135,7 +135,7 @@ namespace LightRail.Amqp
                     throw new ArgumentOutOfRangeException(nameof(requiredCapacity), "Capacity of list must be less or equal to than MaximumCapacity");
                 }
                 // grow by the growth rate, up to the max capacity
-                Capacity = Math.Min(Length + (uint)Math.Ceiling(Length * GrowthRate), MaximumCapacity);
+                Capacity = Math.Min(requiredCapacity + (uint)Math.Ceiling(requiredCapacity * GrowthRate), MaximumCapacity);
             }
         }
 
