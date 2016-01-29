@@ -11,6 +11,8 @@ namespace LightRail.Amqp.Protocol
     {
         private static readonly TraceSource trace = TraceSource.FromClass();
 
+        private readonly object stateSyncRoot = new object();
+
         public AmqpLink(AmqpSession session, string name, uint localHandle, bool isReceiverLink, bool isInitiatingLink, uint remoteHandle)
         {
             this.Name = name;
@@ -84,37 +86,40 @@ namespace LightRail.Amqp.Protocol
 
         public void HandleLinkFrame(AmqpFrame frame, ByteBuffer buffer = null)
         {
-            try
+            lock (stateSyncRoot)
             {
-                if (frame is Attach)
-                    HandleAttachFrame(frame as Attach);
-                else if (frame is Flow)
-                    HandleFlowFrame(frame as Flow);
-                else if (frame is Transfer)
-                    HandleTransferFrame(frame as Transfer, buffer);
-                else if (frame is Disposition)
-                    HandleDispositionFrame(frame as Disposition);
-                else if (frame is Detach)
-                    HandleDetachFrame(frame as Detach);
-                else
-                    throw new AmqpException(ErrorCode.IllegalState, $"Received frame {frame.Descriptor.ToString()} but link state is {State.ToString()}.");
-            }
-            catch (AmqpException amqpException)
-            {
-                logger.Error(amqpException);
-                throw;
-                //DetachLink(amqpException.Error);
-            }
-            catch (Exception fatalException)
-            {
-                logger.Fatal(fatalException, "Ending Session due to fatal exception.");
-                var error = new Error()
+                try
                 {
-                    Condition = ErrorCode.InternalError,
-                    Description = "Ending Session due to fatal exception: " + fatalException.Message,
-                };
-                throw;
-                //DetachLink(error);
+                    if (frame is Attach)
+                        HandleAttachFrame(frame as Attach);
+                    else if (frame is Flow)
+                        HandleFlowFrame(frame as Flow);
+                    else if (frame is Transfer)
+                        HandleTransferFrame(frame as Transfer, buffer);
+                    else if (frame is Disposition)
+                        HandleDispositionFrame(frame as Disposition);
+                    else if (frame is Detach)
+                        HandleDetachFrame(frame as Detach);
+                    else
+                        throw new AmqpException(ErrorCode.IllegalState, $"Received frame {frame.Descriptor.ToString()} but link state is {State.ToString()}.");
+                }
+                catch (AmqpException amqpException)
+                {
+                    trace.Error(amqpException);
+                    throw;
+                    //DetachLink(amqpException.Error);
+                }
+                catch (Exception fatalException)
+                {
+                    trace.Fatal(fatalException, "Ending Session due to fatal exception.");
+                    var error = new Error()
+                    {
+                        Condition = ErrorCode.InternalError,
+                        Description = "Ending Session due to fatal exception: " + fatalException.Message,
+                    };
+                    throw;
+                    //DetachLink(error);
+                }
             }
         }
 

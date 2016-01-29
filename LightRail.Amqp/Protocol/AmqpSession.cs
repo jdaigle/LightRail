@@ -11,6 +11,8 @@ namespace LightRail.Amqp.Protocol
     {
         private static readonly TraceSource trace = TraceSource.FromClass();
 
+        private readonly object stateSyncRoot = new object();
+
         public AmqpSession(AmqpConnection connection, ushort channelNumber, ushort remoteChannelNumber)
         {
             this.Connection = connection;
@@ -81,39 +83,42 @@ namespace LightRail.Amqp.Protocol
 
         internal void HandleSessionFrame(AmqpFrame frame, ByteBuffer buffer = null)
         {
-            try
+            lock (stateSyncRoot)
             {
-                if (frame is Begin)
-                    HandleBeginFrame(frame as Begin);
-                else if (frame is Attach)
-                    InterceptAttachFrame(frame as Attach);
-                else if (frame is Flow)
-                    InterceptFlowFrame(frame as Flow);
-                else if (frame is Transfer)
-                    InterceptTransferFrame(frame as Transfer, buffer);
-                else if (frame is Disposition)
-                    InterceptDispositionFrame(frame as Disposition);
-                else if (frame is Detach)
-                    InterceptDetachFrame(frame as Detach);
-                else if (frame is End)
-                    HandleEndFrame(frame as End);
-                else
-                    throw new AmqpException(ErrorCode.IllegalState, $"Received frame {frame.Descriptor.ToString()} but session state is {State.ToString()}.");
-            }
-            catch (AmqpException amqpException)
-            {
-                logger.Error(amqpException);
-                EndSession(amqpException.Error);
-            }
-            catch (Exception fatalException)
-            {
-                logger.Fatal(fatalException, "Ending Session due to fatal exception.");
-                var error = new Error()
+                try
                 {
-                    Condition = ErrorCode.InternalError,
-                    Description = "Ending Session due to fatal exception: " + fatalException.Message,
-                };
-                EndSession(error);
+                    if (frame is Begin)
+                        HandleBeginFrame(frame as Begin);
+                    else if (frame is Attach)
+                        InterceptAttachFrame(frame as Attach);
+                    else if (frame is Flow)
+                        InterceptFlowFrame(frame as Flow);
+                    else if (frame is Transfer)
+                        InterceptTransferFrame(frame as Transfer, buffer);
+                    else if (frame is Disposition)
+                        InterceptDispositionFrame(frame as Disposition);
+                    else if (frame is Detach)
+                        InterceptDetachFrame(frame as Detach);
+                    else if (frame is End)
+                        HandleEndFrame(frame as End);
+                    else
+                        throw new AmqpException(ErrorCode.IllegalState, $"Received frame {frame.Descriptor.ToString()} but session state is {State.ToString()}.");
+                }
+                catch (AmqpException amqpException)
+                {
+                    trace.Error(amqpException);
+                    EndSession(amqpException.Error);
+                }
+                catch (Exception fatalException)
+                {
+                    trace.Fatal(fatalException, "Ending Session due to fatal exception.");
+                    var error = new Error()
+                    {
+                        Condition = ErrorCode.InternalError,
+                        Description = "Ending Session due to fatal exception: " + fatalException.Message,
+                    };
+                    EndSession(error);
+                }
             }
         }
 

@@ -21,6 +21,8 @@ namespace LightRail.Amqp.Protocol
         public const uint DefaultIdleTimeout = 30 * 60 * 1000; // 30 min
         public const uint MinMaxFrameSize = 512;
 
+        private readonly object stateSyncRoot = new object();
+
         public AmqpConnection(ISocket socket, IContainer container)
         {
             this.socket = socket;
@@ -75,27 +77,30 @@ namespace LightRail.Amqp.Protocol
         /// </summary>
         public bool HandleHeader(ByteBuffer buffer)
         {
-            try
+            lock (stateSyncRoot)
             {
-                HandleHeaderNegotiation(buffer);
-                return true;
-            }
-            catch (AmqpException amqpException)
-            {
-                logger.Error(amqpException);
-                CloseConnection(amqpException.Error);
-                return false;
-            }
-            catch (Exception fatalException)
-            {
-                logger.Fatal(fatalException, "Closing Connection due to fatal exception.");
-                var error = new Error()
+                try
                 {
-                    Condition = ErrorCode.InternalError,
-                    Description = "Closing Connection due to fatal exception: " + fatalException.Message,
-                };
-                CloseConnection(error);
-                return false;
+                    HandleHeaderNegotiation(buffer);
+                    return true;
+                }
+                catch (AmqpException amqpException)
+                {
+                    trace.Error(amqpException);
+                    CloseConnection(amqpException.Error);
+                    return false;
+                }
+                catch (Exception fatalException)
+                {
+                    trace.Fatal(fatalException, "Closing Connection due to fatal exception.");
+                    var error = new Error()
+                    {
+                        Condition = ErrorCode.InternalError,
+                        Description = "Closing Connection due to fatal exception: " + fatalException.Message,
+                    };
+                    CloseConnection(error);
+                    return false;
+                }
             }
         }
 
@@ -104,41 +109,44 @@ namespace LightRail.Amqp.Protocol
         /// </summary>
         public bool HandleFrame(ByteBuffer buffer)
         {
-            try
+            lock (stateSyncRoot)
             {
-                if (State.IsExpectingProtocolHeader())
-                    HandleHeaderNegotiation(buffer);
-                if (State.ShouldIgnoreReceivedData())
-                    return true;
-                ushort remoteChannelNumber = 0;
-                var frame = AmqpFrameCodec.DecodeFrame(buffer, out remoteChannelNumber);
-                LastFrameReceivedDateTime = DateTime.UtcNow;
-                if (frame == null)
+                try
                 {
-                    logger.Trace("Received Empty Frame");
+                    if (State.IsExpectingProtocolHeader())
+                        HandleHeaderNegotiation(buffer);
+                    if (State.ShouldIgnoreReceivedData())
+                        return true;
+                    ushort remoteChannelNumber = 0;
+                    var frame = AmqpFrameCodec.DecodeFrame(buffer, out remoteChannelNumber);
+                    LastFrameReceivedDateTime = DateTime.UtcNow;
+                    if (frame == null)
+                    {
+                        trace.Debug("Received Empty Frame");
+                        return true;
+                    }
+                    if (Trace.IsDebugEnabled)
+                        trace.Debug("Received Frame: {0}", frame.ToString());
+                    HandleConnectionFrame(frame, remoteChannelNumber, buffer);
                     return true;
                 }
-                if (logger.IsTraceEnabled)
-                    logger.Trace("Received Frame: {0}", frame.ToString());
-                HandleConnectionFrame(frame, remoteChannelNumber, buffer);
-                return true;
-            }
-            catch (AmqpException amqpException)
-            {
-                logger.Error(amqpException);
-                CloseConnection(amqpException.Error);
-                return false;
-            }
-            catch (Exception fatalException)
-            {
-                logger.Fatal(fatalException, "Closing Connection due to fatal exception.");
-                var error = new Error()
+                catch (AmqpException amqpException)
                 {
-                    Condition = ErrorCode.InternalError,
-                    Description = "Closing Connection due to fatal exception: " + fatalException.Message,
-                };
-                CloseConnection(error);
-                return false;
+                    trace.Error(amqpException);
+                    CloseConnection(amqpException.Error);
+                    return false;
+                }
+                catch (Exception fatalException)
+                {
+                    trace.Fatal(fatalException, "Closing Connection due to fatal exception.");
+                    var error = new Error()
+                    {
+                        Condition = ErrorCode.InternalError,
+                        Description = "Closing Connection due to fatal exception: " + fatalException.Message,
+                    };
+                    CloseConnection(error);
+                    return false;
+                }
             }
         }
 
