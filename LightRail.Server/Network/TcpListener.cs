@@ -25,7 +25,6 @@ namespace LightRail.Server.Network
         private int currentConnections;
 
         private readonly IBufferPool _memoryBufferPool;
-        private readonly ConcurrentStack<SocketAsyncEventArgs> _sendSocketAsyncEventArgs = new ConcurrentStack<SocketAsyncEventArgs>();
         private Socket _listenSocket;
 
         private readonly SocketAsyncEventArgs _acceptSocketAsyncEventArgs;
@@ -56,9 +55,6 @@ namespace LightRail.Server.Network
             {
                 case SocketAsyncOperation.Accept:
                     CompleteAccept(e, true);
-                    break;
-                case SocketAsyncOperation.Send:
-                    CompleteSend(e);
                     break;
                 default:
                     throw new InvalidOperationException("Unhandled Operation: " + e.LastOperation);
@@ -105,75 +101,6 @@ namespace LightRail.Server.Network
                 StartAccept(e);
         }
 
-        /// <summary>
-        /// Sends data back on the open socket for the specified connection.
-        /// </summary>
-        /// <param name="connection"></param>
-        /// <param name="buffer">The data buffer to send.</param>
-        /// <param name="offset">The offset in the data buffer to send.</param>
-        /// <param name="length">The length of the data to send.</param>
-        public void SendAsync(TcpConnection connection, byte[] buffer, int offset, int length)
-        {
-            SocketAsyncEventArgs e;
-            if (!_sendSocketAsyncEventArgs.TryPop(out e))
-            {
-                e = new SocketAsyncEventArgs();
-                e.Completed += AsyncEventCompleted;
-            }
-            e.UserToken = connection;
-            if (length > maxBufferBlockSize)
-            {
-                throw new InvalidOperationException($"Cannot Send Buffer of Length {length}. Max Buffer Sized = {maxBufferBlockSize}. Chunking has not been implemented.");
-            }
-            ByteBuffer _buffer;
-            _memoryBufferPool.TryGetByteBuffer(out _buffer);
-            e.SetBuffer(_buffer.Buffer, _buffer.StartOffset, _buffer.LengthAvailableToWrite);
-            Array.Copy(buffer, offset, e.Buffer, e.Offset, length); // copy to output buffer
-            e.SetBuffer(e.Offset, length);
-            if (connection.Socket.SendAsync(e) == false)
-            {
-                CompleteSend(e);
-            }
-        }
-
-        /// <summary>
-        /// Completion callback for SendAsync.
-        /// </summary>
-        /// <param name="e">Information about the SendAsync call.</param>
-        private void CompleteSend(SocketAsyncEventArgs e)
-        {
-            try
-            {
-                var connection = e.UserToken as TcpConnection;
-                if (e.BytesTransferred == 0 || e.SocketError != SocketError.Success || connection == null)
-                {
-#if DEBUG
-                    if (connection == null)
-                        logger.Fatal("CompleteSend() e.UserToken is not an instance of TcpConnectionState");
-                    if (e.SocketError != SocketError.Success)
-                        logger.Error("CompleteSend() SocketError '{0}'", e.SocketError.ToString());
-                    if (e.BytesTransferred == 0)
-                        logger.Error("CompleteSend() 0 Bytes Transferred. Shutting down socket.");
-#endif
-                    if (connection != null)
-                    {
-                        logger.Debug("Closing Socket to {0}", connection.IPAddress);
-                        CloseSocket(connection.Socket, connection);
-                    }
-                    ReleaseSendSocketAsyncEventArgs(e);
-                    return;
-                }
-                logger.Trace("Sent {0} Bytes", e.BytesTransferred);
-                // todo: determine if need to loop and send more?
-                // finished sending...
-                ReleaseSendSocketAsyncEventArgs(e);
-            }
-            catch (Exception ex)
-            {
-                logger.Fatal(ex, "Exception in CompleteSend()");
-            }
-        }
-
         private void CloseSocket(Socket socket, TcpConnection connection)
         {
             try
@@ -214,14 +141,6 @@ namespace LightRail.Server.Network
             {
                 logger.Error(e, "Non-fatal error shuttind down socket");
             }
-        }
-
-        private void ReleaseSendSocketAsyncEventArgs(SocketAsyncEventArgs e)
-        {
-            var byteBuffer = new ByteBuffer(e.Buffer, e.Offset, 0, 0, false);
-            _memoryBufferPool.FreeBuffer(byteBuffer);
-            e.UserToken = null;
-            _sendSocketAsyncEventArgs.Push(e);
         }
     }
 }

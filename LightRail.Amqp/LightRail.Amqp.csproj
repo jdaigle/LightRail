@@ -79,6 +79,7 @@
     <Compile Include="IContainer.cs" />
     <Compile Include="Network\PinnedMemoryBufferPool.cs" />
     <Compile Include="Network\TcpSocket.cs" />
+    <Compile Include="Network\WriteBuffer.cs" />
     <Compile Include="Protocol\AmqpLink.cs" />
     <Compile Include="Protocol\AmqpSession.cs" />
     <Compile Include="Protocol\AmqpSettings.cs" />

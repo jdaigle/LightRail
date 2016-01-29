@@ -15,6 +15,7 @@ namespace LightRail.Server.Network
         public IPEndPoint IPAddress { get; }
         private readonly TcpListener tcpListener;
         private readonly SocketAsyncEventArgs receiveEventArgs;
+        private readonly SocketAsyncEventArgs sendEventArgs;
         private readonly AsyncPump receivedFramePump;
 
         public AmqpConnection amqpConnection { get; }
@@ -30,6 +31,9 @@ namespace LightRail.Server.Network
             this.receiveEventArgs = new SocketAsyncEventArgs();
             this.receiveEventArgs.Completed += (s, a) => TcpSocket.CompleteAsyncIOOperation(((TaskCompletionSource<int>)a.UserToken), a, b => b.BytesTransferred);
 
+            this.sendEventArgs = new SocketAsyncEventArgs();
+            this.sendEventArgs.Completed += (s, a) => TcpSocket.CompleteAsyncIOOperation(((TcpSocket.SendAsyncBufferToken<int>)a.UserToken), a, b => b.bytesTransferred);
+
             receivedFramePump = new AsyncPump(amqpConnection, this);
             receivedFramePump.Start();
         }
@@ -44,14 +48,12 @@ namespace LightRail.Server.Network
 
         public Task SendAsync(ByteBuffer byteBuffer)
         {
-            tcpListener.SendAsync(this, byteBuffer.Buffer, byteBuffer.ReadOffset, byteBuffer.LengthAvailableToRead);
-            return Task.FromResult(0);
+            return SendAsync(byteBuffer.Buffer, byteBuffer.ReadOffset, byteBuffer.LengthAvailableToRead);
         }
 
-        public Task SendAsync(byte[] buffer, int offset, int length)
+        public Task SendAsync(byte[] buffer, int offset, int count)
         {
-            tcpListener.SendAsync(this, buffer, offset, length);
-            return Task.FromResult(0);
+            return TcpSocket.SendAsync(Socket, sendEventArgs, buffer, offset, count);
         }
 
         public void Close()

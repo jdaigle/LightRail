@@ -47,6 +47,8 @@ namespace LightRail.Amqp.Network
         public void Start()
         {
             continuePumping = true;
+            if (asyncPumpTask != null && asyncPumpTask.Status == TaskStatus.Running)
+                return;
             asyncPumpTask = StartAsync();
         }
 
