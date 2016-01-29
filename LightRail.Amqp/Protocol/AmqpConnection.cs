@@ -412,8 +412,8 @@ namespace LightRail.Amqp.Protocol
             // TODO: get pinned send buffer from socket to prevent an unneccessary array copy
             var buffer = new ByteBuffer((int)MaxFrameSize, false);
             AmqpFrameCodec.EncodeFrame(buffer, frame, channelNumber);
-            if (logger.IsTraceEnabled)
-                logger.Trace("Sending Frame: {0}", frame.ToString());
+            if (Trace.IsDebugEnabled)
+                trace.Debug("Sending Frame: {0}", frame.ToString());
             writeBuffer.Write(buffer);
         }
 
