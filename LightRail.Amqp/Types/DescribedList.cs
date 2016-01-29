@@ -57,6 +57,8 @@ namespace LightRail.Amqp.Types
                 var value = p.GetValue(this);
                 if (value is byte[])
                     value = $"byte[{(value as byte[]).Length}]" + System.Convert.ToBase64String(value as byte[]);
+                if (value is Symbol[])
+                    value = string.Join(",", (object[])value);
                 buffer.AppendFormat("{0}: {1}", p.Name, value);
             }
             indentLevel--;
