@@ -76,8 +76,8 @@ namespace LightRail.Amqp.Protocol
         /// </summary>
         private uint remoteOutgoingWindow;
 
-        private BoundedList<AmqpLink> localLinks;
-        private BoundedList<AmqpLink> remoteLinks;
+        private BoundedList<AmqpLink> localLinks = new BoundedList<AmqpLink>(2, DefaultMaxHandle);
+        private BoundedList<AmqpLink> remoteLinks = new BoundedList<AmqpLink>(2, DefaultMaxHandle);
 
         internal void HandleSessionFrame(AmqpFrame frame, ByteBuffer buffer = null)
         {
@@ -151,9 +151,6 @@ namespace LightRail.Amqp.Protocol
             remoteIncomingWindow = InitialOutgoingId + begin.IncomingWindow - nextOutgoingId;
 
             sessionMaxHandle = Math.Min(DefaultMaxHandle, begin.HandleMax ?? DefaultMaxHandle);
-
-            localLinks = new BoundedList<AmqpLink>(2, sessionMaxHandle);
-            remoteLinks = new BoundedList<AmqpLink>(2, sessionMaxHandle);
 
             if (State == SessionStateEnum.BEGIN_SENT)
             {

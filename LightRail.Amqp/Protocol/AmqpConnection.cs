@@ -67,8 +67,8 @@ namespace LightRail.Amqp.Protocol
             return LastFrameReceivedDateTime.AddMilliseconds(DefaultIdleTimeout * 2) < DateTime.UtcNow;
         }
 
-        private BoundedList<AmqpSession> localSessionMap;
-        private BoundedList<AmqpSession> remoteSessionMap;
+        private BoundedList<AmqpSession> localSessionMap = new BoundedList<AmqpSession>(2, DefaultMaxChannelCount);
+        private BoundedList<AmqpSession> remoteSessionMap = new BoundedList<AmqpSession>(2, DefaultMaxChannelCount);
 
         /// <summary>
         /// Handles a buffered header (should be 8 byte buffer). Returns false the underyling connection should stop receiving.
@@ -278,9 +278,6 @@ namespace LightRail.Amqp.Protocol
             {
                 connectionIdleTimeout = Math.Min(openFrame.IdleTimeOut.Value, DefaultIdleTimeout);
             }
-
-            localSessionMap = new BoundedList<AmqpSession>(2, connectionChannelMax);
-            remoteSessionMap = new BoundedList<AmqpSession>(2, connectionChannelMax);
 
             if (State != ConnectionStateEnum.OPEN_SENT)
             {
