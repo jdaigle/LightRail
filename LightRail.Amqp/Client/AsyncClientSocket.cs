@@ -191,6 +191,8 @@ namespace LightRail.Amqp.Client
                 socket.Shutdown(SocketShutdown.Both);
                 trace.Debug("Closing Socket.");
                 socket.Close();
+                if (sslStream != null)
+                    sslStream.Close();
             }
             catch (Exception) { } // intentionally swallow exceptions here.
             finally
