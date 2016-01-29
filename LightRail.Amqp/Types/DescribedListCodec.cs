@@ -144,6 +144,11 @@ namespace LightRail.Amqp.Types
                 if (typeof(DescribedType).IsAssignableFrom(propertyType))
                 {
                     var describedValue = (prop.Getter(_instance) as DescribedType);
+                    if (describedValue == null)
+                    {
+                        Encoder.WriteNull(_buffer);
+                        return;
+                    }
                     describedValue.Encode(_buffer);
                     return;
                 }
