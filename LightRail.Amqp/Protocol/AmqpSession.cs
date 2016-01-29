@@ -26,7 +26,7 @@ namespace LightRail.Amqp.Protocol
         public SessionStateEnum State { get; private set; }
         public AmqpConnection Connection { get; }
 
-        public const uint DefaultMaxHandle = uint.MaxValue;
+        public const uint DefaultMaxHandle = 256;
         public const uint DefaultWindowSize = 1024;
         public const uint InitialOutgoingId = 1;
 
