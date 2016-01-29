@@ -25,13 +25,12 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using LightRail.Amqp.Protocol;
 using LightRail.Amqp.Types;
-using NLog;
 
 namespace LightRail.Amqp.Network
 {
     public class AsyncPump
     {
-        private static readonly ILogger logger = LogManager.GetLogger("LightRail.Amqp.Network.AsyncPump");
+        private static readonly TraceSource trace = TraceSource.FromClass();
 
         public AsyncPump(AmqpConnection connection, ISocket socket)
         {
@@ -73,7 +72,7 @@ namespace LightRail.Amqp.Network
 
         public async Task PumpAsync(Func<ByteBuffer, bool> onHeader, Func<ByteBuffer, bool> onFrame)
         {
-            logger.Debug("PumpAsync() Starting");
+            trace.Debug("PumpAsync() Starting");
 
             ByteBuffer frameBuffer;
             if (!socket.BufferPool.TryGetByteBuffer(out frameBuffer))
@@ -118,7 +117,7 @@ namespace LightRail.Amqp.Network
                 frameBuffer.ReadOnly = false;
             }
 
-            logger.Debug("PumpAsync() Stopping");
+            trace.Debug("PumpAsync() Stopping");
         }
 
         /// <summary>

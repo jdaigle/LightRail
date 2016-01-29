@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using LightRail.Amqp.Framing;
-using NLog;
+using LightRail.Amqp.Messaging;
 
 namespace LightRail.Amqp.Protocol
 {
     public class AmqpLink
     {
-        private static readonly ILogger logger = LogManager.GetLogger("LightRail.Amqp.Protocol.AmqpLink");
+        private static readonly TraceSource trace = TraceSource.FromClass();
 
         public AmqpLink(AmqpSession session, string name, uint localHandle, bool isReceiverLink, bool isInitiatingLink, uint remoteHandle)
         {
@@ -240,7 +240,7 @@ namespace LightRail.Amqp.Protocol
 
             if (detach.Error != null)
             {
-                logger.Debug("Detaching Link {0} Due to Error From Remote Link Endpoint: '{1}'", LocalHandle, detach.Error);
+                trace.Debug("Detaching Link {0} Due to Error From Remote Link Endpoint: '{1}'", LocalHandle, detach.Error);
             }
 
             if (State == LinkStateEnum.ATTACHED)

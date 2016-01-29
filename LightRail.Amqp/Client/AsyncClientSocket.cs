@@ -8,13 +8,12 @@ using System.Security.Authentication;
 using System.Threading.Tasks;
 using LightRail.Amqp.Network;
 using LightRail.Amqp.Protocol;
-using NLog;
 
 namespace LightRail.Amqp.Client
 {
     public class AsyncClientSocket : ISocket
     {
-        private static readonly ILogger logger = LogManager.GetLogger("LightRail.Amqp.Client.TcpConnection");
+        private static readonly TraceSource trace = TraceSource.FromClass();
 
         private const int defaultMaxBufferBlockSize = 64 * 1024; // 64 KB
 
@@ -71,7 +70,7 @@ namespace LightRail.Amqp.Client
                 }
                 else
                 {
-                    logger.Trace("Resolving DNS for Host '{0}'", host);
+                    trace.Debug("Resolving DNS for Host '{0}'", host);
                     ipAddresses = await GetHostAddressesAsync(host);
                 }
 
@@ -88,9 +87,9 @@ namespace LightRail.Amqp.Client
                     socket = new Socket(ipAddresses[i].AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                     try
                     {
-                        logger.Trace("Attempting to connect to {0}:{1}", ipAddresses[i].ToString(), port.ToString());
+                        trace.Debug("Attempting to connect to {0}:{1}", ipAddresses[i].ToString(), port.ToString());
                         await TcpSocket.ConnectAsync(socket, ipAddresses[i], port);
-                        logger.Trace("Successfully connected to {0}:{1}", ipAddresses[i].ToString(), port.ToString());
+                        trace.Debug("Successfully connected to {0}:{1}", ipAddresses[i].ToString(), port.ToString());
                         exception = null;
                         break;
                     }
@@ -104,16 +103,16 @@ namespace LightRail.Amqp.Client
 
                 if (socket == null)
                 {
-                    logger.Error(exception, "Error connecting to {0}", host);
+                    trace.Error(exception, "Error connecting to {0}", host);
                     throw exception ?? new SocketException((int)SocketError.AddressNotAvailable);
                 }
 
                 if (useTLS)
                 {
-                    logger.Trace("Starting TLS Authentication.");
+                    trace.Debug("Starting TLS Authentication.");
                     sslStream = new SslStream(new NetworkStream(socket));
-                    await sslStream.AuthenticateAsClientAsync(host, null, SslProtocols.Tls12 | SslProtocols.Tls11, true); // TODO super-safe defaults, but need to parameterize
-                    logger.Trace("Finished TLS Authentication.");
+                    await sslStream.AuthenticateAsClientAsync(host, null, SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls, true); // TODO super-safe defaults, but need to parameterize
+                    trace.Debug("Finished TLS Authentication.");
                 }
 
                 IsConnected = true;
@@ -144,17 +143,17 @@ namespace LightRail.Amqp.Client
                 if (sslStream != null)
                 {
                     await sslStream.WriteAsync(buffer, offset, count);
-                    logger.Trace("Sent {0} Bytes", count.ToString());
+                    trace.Debug("Sent {0} Bytes", count.ToString());
                 }
                 else
                 {
                     int bytesSent = await TcpSocket.SendAsync(socket, sendEventArgs, buffer, offset, count);
-                    logger.Trace("Sent {0} Bytes", bytesSent.ToString());
+                    trace.Debug("Sent {0} Bytes", bytesSent.ToString());
                 }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "ReceiveAsync() Error. Closing Socket.");
+                trace.Error(ex, "ReceiveAsync() Error. Closing Socket.");
                 Close();
                 throw;
             }
@@ -173,12 +172,12 @@ namespace LightRail.Amqp.Client
                 {
                     bytesRead = await TcpSocket.ReceiveAsync(socket, receiveEventArgs, buffer, offset, count);
                 }
-                logger.Trace("Read {0} bytes", bytesRead.ToString());
+                trace.Debug("Read {0} bytes", bytesRead.ToString());
                 return bytesRead;
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "ReceiveAsync() Error. Closing Socket.");
+                trace.Error(ex, "ReceiveAsync() Error. Closing Socket.");
                 Close();
                 throw;
             }
@@ -188,9 +187,9 @@ namespace LightRail.Amqp.Client
         {
             try
             {
-                logger.Trace("Shutting Down Socket.");
+                trace.Debug("Shutting Down Socket.");
                 socket.Shutdown(SocketShutdown.Both);
-                logger.Trace("Closing Socket.");
+                trace.Debug("Closing Socket.");
                 socket.Close();
             }
             catch (Exception) { } // intentionally swallow exceptions here.
@@ -204,7 +203,7 @@ namespace LightRail.Amqp.Client
         {
             try
             {
-                logger.Trace("Shutting Down Receive Side of Socket.");
+                trace.Debug("Shutting Down Receive Side of Socket.");
                 socket.Shutdown(SocketShutdown.Receive);
             }
             catch (Exception) { } // intentionally swallow exceptions here.
@@ -214,7 +213,7 @@ namespace LightRail.Amqp.Client
         {
             try
             {
-                logger.Trace("Shutting Down Send Side of Socket.");
+                trace.Debug("Shutting Down Send Side of Socket.");
                 socket.Shutdown(SocketShutdown.Send);
             }
             catch (Exception) { } // intentionally swallow exceptions here.

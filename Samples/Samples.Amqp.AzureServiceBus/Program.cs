@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using LightRail;
 using LightRail.Amqp.Client;
 
 namespace Samples.Amqp.AzureServiceBus
@@ -10,6 +11,7 @@ namespace Samples.Amqp.AzureServiceBus
     {
         public static void Main(string[] args)
         {
+            Trace.OnTraceEvent += Trace.ConsoleTraceEventHandler;
             // Create an AmqpClient from a URI pointing to an address (i.e. a queue)
             // 1) The URI format, simply, is "amqps://[username:password@]host/address"
             // 2) "amqps" specifies TLS over TCP

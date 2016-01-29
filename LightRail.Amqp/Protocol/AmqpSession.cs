@@ -4,13 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using LightRail.Amqp.Framing;
-using NLog;
 
 namespace LightRail.Amqp.Protocol
 {
     public class AmqpSession
     {
-        private static readonly ILogger logger = LogManager.GetLogger("LightRail.Amqp.Protocol.AmqpSession");
+        private static readonly TraceSource trace = TraceSource.FromClass();
 
         public AmqpSession(AmqpConnection connection, ushort channelNumber, ushort remoteChannelNumber)
         {
@@ -190,7 +189,7 @@ namespace LightRail.Amqp.Protocol
 
             if (end.Error != null)
             {
-                logger.Debug("Ending Session {0} Due to Error From Remote Session: '{1}'", ChannelNumber, end.Error);
+                trace.Debug("Ending Session {0} Due to Error From Remote Session: '{1}'", ChannelNumber, end.Error);
             }
 
             // TODO detach links
@@ -327,17 +326,17 @@ namespace LightRail.Amqp.Protocol
 
         public void UnmapLocalLink(AmqpLink link, bool destoryLink)
         {
-            logger.Debug("Detaching Local Link Handle {0}", link.LocalHandle);
+            trace.Debug("Detaching Local Link Handle {0}", link.LocalHandle);
             if (destoryLink)
-                logger.Debug("Destroying Local Link Handle {0}", link.LocalHandle);
+                trace.Debug("Destroying Local Link Handle {0}", link.LocalHandle);
             localLinks[link.LocalHandle] = null;
         }
 
         public void UnmapRemoteLink(AmqpLink link, bool destoryLink)
         {
-            logger.Debug("Detaching Remove Link Handle {0}", link.RemoteHandle);
+            trace.Debug("Detaching Remove Link Handle {0}", link.RemoteHandle);
             if (destoryLink)
-                logger.Debug("Destroying Remove Link Handle {0}", link.RemoteHandle);
+                trace.Debug("Destroying Remove Link Handle {0}", link.RemoteHandle);
             remoteLinks[link.RemoteHandle] = null;
         }
 
@@ -375,7 +374,7 @@ namespace LightRail.Amqp.Protocol
 
         internal void OnConnectionClosed(Error error)
         {
-            logger.Debug("Session {0} ended due to connection closed", ChannelNumber);
+            trace.Debug("Session {0} ended due to connection closed", ChannelNumber);
             UnmapSession();
         }
     }

@@ -4,12 +4,12 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{F7555974-E163-4E4C-91AA-969638899A67}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{0674CFB2-AD00-4FD9-907E-9DF17041DEFC}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>LightRail.Server</RootNamespace>
-    <AssemblyName>LightRail.Server</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <RootNamespace>LightRail</RootNamespace>
+    <AssemblyName>LightRail.Common</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFrameworkProfile />
@@ -24,7 +24,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -35,47 +34,25 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>..\packages\NLog.4.2.3\lib\net45\NLog.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="HostContainer.cs" />
-    <Compile Include="LinkedListQueue.cs" />
-    <Compile Include="MessageStatus.cs" />
-    <Compile Include="Network\TcpConnection.cs" />
-    <Compile Include="Network\TcpListener.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="..\CommonAssemblyInfo.cs">
+      <Link>Properties\CommonAssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="TraceLevel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="QueuedMessage.cs" />
-    <Compile Include="LinkedListQueueNode.cs" />
-    <Compile Include="QueueManager.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\LightRail.Amqp\LightRail.Amqp.csproj">
-      <Project>{79a2c462-b169-4f3a-9eaf-068803c7d7f0}</Project>
-      <Name>LightRail.Amqp</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\LightRail.Common\LightRail.Common.csproj">
-      <Project>{0674cfb2-ad00-4fd9-907e-9df17041defc}</Project>
-      <Name>LightRail.Common</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-    <None Include="packages.config" />
+    <Compile Include="Trace.cs" />
+    <Compile Include="TraceSource.cs" />
+    <Compile Include="Util\Guard.cs" />
+    <Compile Include="Util\StringExtensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

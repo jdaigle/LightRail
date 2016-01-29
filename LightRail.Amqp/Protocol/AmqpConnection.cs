@@ -5,13 +5,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using LightRail.Amqp.Framing;
 using LightRail.Amqp.Network;
-using NLog;
 
 namespace LightRail.Amqp.Protocol
 {
     public class AmqpConnection
     {
-        private static readonly ILogger logger = LogManager.GetLogger("LightRail.Amqp.Protocol.AmqpConnection");
+        private static readonly TraceSource trace = TraceSource.FromClass();
 
         private static readonly byte[] protocol0 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x00, 0x01, 0x00, 0x00 };
         private static readonly byte[] protocol2 = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x02, 0x01, 0x00, 0x00 };
@@ -147,7 +146,7 @@ namespace LightRail.Amqp.Protocol
         {
             if (State != ConnectionStateEnum.END)
             {
-                logger.Error(ex, "IO Exception Handled");
+                trace.Error(ex, "IO Exception Handled");
                 CloseConnection(new Error()
                 {
                     Condition = ErrorCode.InternalError,
@@ -176,7 +175,7 @@ namespace LightRail.Amqp.Protocol
             byte[] protocolVersion = null;
             if (!TryParseProtocolHeader(frameBuffer, out protocolId, out protocolVersion))
             {
-                logger.Debug("Received Invalid Protocol Header");
+                trace.Debug("Received Invalid Protocol Header");
                 // invalid protocol header
                 if (!State.HasSentHeader())
                     writeBuffer.Write(protocol0, 0, 8);
@@ -188,7 +187,7 @@ namespace LightRail.Amqp.Protocol
                 protocolVersion[1] != 0 ||
                 protocolVersion[2] != 0)
             {
-                logger.Debug("Received Invalid Protocol Version");
+                trace.Debug("Received Invalid Protocol Version");
                 // invalid protocol version
                 if (!State.HasSentHeader())
                     writeBuffer.Write(protocol0, 0, 8);
@@ -196,7 +195,7 @@ namespace LightRail.Amqp.Protocol
                 return;
             }
 
-            logger.Debug("Received Protocol Header AMQP.{0}.1.0.0", ((int)protocolId));
+            trace.Debug("Received Protocol Header AMQP.{0}.1.0.0", ((int)protocolId));
 
             // expecting a protocol header
             if (protocolId == 0x00)
@@ -227,7 +226,7 @@ namespace LightRail.Amqp.Protocol
             }
             else
             {
-                logger.Debug("Invalid Protocol ID AMQP.{0}.1.0.0!!", ((int)protocolId));
+                trace.Debug("Invalid Protocol ID AMQP.{0}.1.0.0!!", ((int)protocolId));
                 // invalid protocol id
                 if (!State.HasSentHeader())
                     writeBuffer.Write(protocol0, 0, 8);
@@ -372,7 +371,7 @@ namespace LightRail.Amqp.Protocol
 
         internal void OnSessionUnmapped(AmqpSession session)
         {
-            logger.Debug("Session {0} Unmapped", session.ChannelNumber);
+            trace.Debug("Session {0} Unmapped", session.ChannelNumber);
             localSessionMap[session.ChannelNumber] = null;
             remoteSessionMap[session.RemoteChannelNumber] = null;
         }
@@ -392,7 +391,7 @@ namespace LightRail.Amqp.Protocol
             State = ConnectionStateEnum.CLOSED_RCVD;
             if (close.Error != null)
             {
-                logger.Debug("Closing with Error {0}-{1}", close.Error.Condition, close.Error.Description);
+                trace.Debug("Closing with Error {0}-{1}", close.Error.Condition, close.Error.Description);
             }
             CloseConnection(null);
         }
@@ -415,7 +414,7 @@ namespace LightRail.Amqp.Protocol
 
         public void HandleSocketClosed()
         {
-            logger.Debug("Closing connection due to socket closed.");
+            trace.Debug("Closing connection due to socket closed.");
             State = ConnectionStateEnum.END;
             CloseConnection(new Error());
         }
@@ -453,13 +452,13 @@ namespace LightRail.Amqp.Protocol
                     {
                         State = ConnectionStateEnum.DISCARDING;
                     }
-                    logger.Debug("Closing Sending Side of Socket");
+                    trace.Debug("Closing Sending Side of Socket");
                     socket.CloseWrite();
                 }
                 if (State == ConnectionStateEnum.CLOSED_RCVD)
                 {
                     State = ConnectionStateEnum.END;
-                    logger.Debug("Closing Socket");
+                    trace.Debug("Closing Socket");
                     socket.Close();
                 }
                 return;
@@ -467,7 +466,7 @@ namespace LightRail.Amqp.Protocol
             if (error != null)
             {
                 State = ConnectionStateEnum.END;
-                logger.Debug("Closing Socket Due To Error");
+                trace.Debug("Closing Socket Due To Error");
                 socket.Close();
             }
         }
