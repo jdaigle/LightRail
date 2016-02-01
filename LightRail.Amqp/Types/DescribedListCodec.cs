@@ -221,6 +221,7 @@ namespace LightRail.Amqp.Types
                 }
                 var prop = properties[_index];
                 var propertyType = prop.PropertyType;
+                bool isArrayProperty = propertyType.IsArray;
 
                 var formatCode = Encoder.ReadFormatCode(_buffer);
                 if (formatCode == FormatCode.Null)
@@ -236,6 +237,11 @@ namespace LightRail.Amqp.Types
                     return;
                 }
 
+                if (formatCode == FormatCode.Array32 || formatCode == FormatCode.Array8)
+                {
+                    throw new NotImplementedException("Have Not Implemented Array Decoding");
+                }
+
                 var codec = Encoder.GetTypeCodec(formatCode);
                 if (codec == null)
                 {
@@ -245,13 +251,23 @@ namespace LightRail.Amqp.Types
                 // special handling of Nullable<>
                 if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
                     propertyType = Nullable.GetUnderlyingType(propertyType);
+                // special handling of single value into an array
+                if (isArrayProperty)
+                    propertyType = propertyType.GetElementType();
 
                 if (!propertyType.IsAssignableFrom(codec.Type))
                 {
                     throw new AmqpException(ErrorCode.InternalError, $"Cannot Decode Type {codec.Type} into {prop.PropertyType} at Index[{_index}].{prop.Name}");
                 }
 
-                prop.Setter(_instance, codec.DecodeBoxedValue(_buffer, formatCode)); // TODO boxing!!!
+                var decodedValue = codec.DecodeBoxedValue(_buffer, formatCode); // TODO: boxing!!!
+                if (isArrayProperty)
+                {
+                    var array = (System.Collections.IList)Activator.CreateInstance(prop.PropertyType, new object[] { 1 });
+                    array[0] = decodedValue;
+                    decodedValue = array;
+                }
+                prop.Setter(_instance, decodedValue); // TODO boxing!!!
             });
 
             var decoder = new Action<ByteBuffer, DescribedList>((buffer, instance) =>
