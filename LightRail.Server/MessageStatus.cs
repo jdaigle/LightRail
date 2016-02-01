@@ -9,7 +9,7 @@
         /// <summary>
         /// The message has been transferred and is awaiting settlement. The message is not available for transfer.
         /// </summary>
-        AQUIRED = 1,
+        ACQUIRED = 1,
         /// <summary>
         /// The message has been settled with a terminal outcome. The message is not available for transfer.
         /// It will be cleaned up.

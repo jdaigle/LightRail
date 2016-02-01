@@ -355,7 +355,7 @@ namespace LightRail.Amqp.Protocol
             return session;
         }
 
-        private AmqpSession GetSessionFromLocalChannel(ushort channel, bool throwException)
+        public AmqpSession GetSessionFromLocalChannel(ushort channel, bool throwException)
         {
             AmqpSession session = null;
             if (channel < localSessionMap.Length)
@@ -399,12 +399,6 @@ namespace LightRail.Amqp.Protocol
                 trace.Debug("Closing with Error {0}-{1}", close.Error.Condition, close.Error.Description);
             }
             CloseConnection(null);
-        }
-
-        internal async Task Open(bool openSession)
-        {
-            State = ConnectionStateEnum.HDR_SENT;
-            await socket.SendAsync(protocol0, 0, 8);
         }
 
         public void SendFrame(AmqpFrame frame, ushort channelNumber)
@@ -474,6 +468,45 @@ namespace LightRail.Amqp.Protocol
                 trace.Debug("Closing Socket Due To Error");
                 socket.Close();
             }
+        }
+
+        // BEGIN client API operations
+
+        internal void Open()
+        {
+            lock (stateSyncRoot)
+            {
+                if (State == ConnectionStateEnum.OPENED ||
+                    State == ConnectionStateEnum.OPEN_PIPE)
+                    return;
+
+                writeBuffer.Write(protocol0, 0, 8);
+                State = ConnectionStateEnum.HDR_SENT;
+
+                SendFrame(new Open()
+                {
+                    ContainerID = Container.ContainerId,
+                    Hostname = "",
+                    MaxFrameSize = MaxFrameSize,
+                    ChannelMax = DefaultMaxChannelCount,
+                    IdleTimeOut = DefaultIdleTimeout,
+                }, 0);
+                State = ConnectionStateEnum.OPEN_PIPE;
+            }
+        }
+
+        internal AmqpSession BeginSession(ushort channelNumber)
+        {
+            var session = GetSessionFromLocalChannel(channelNumber, false);
+            if (session != null)
+                return session; // already exists
+
+            // create session. send "Begin", and map
+            session = new AmqpSession(this, channelNumber, 0);
+            session.Begin();
+            localSessionMap[channelNumber] = session;
+
+            return session;
         }
     }
 }

@@ -48,6 +48,8 @@
     <Compile Include="Framing\DeliveryState.cs" />
     <Compile Include="IBufferPool.cs" />
     <Compile Include="Messaging\AnnotatedMessage.cs" />
+    <Compile Include="Messaging\ReceivedDelivery.cs" />
+    <Compile Include="Messaging\ReceivedDeliveryStateEnum.cs" />
     <Compile Include="Network\AsyncPump.cs" />
     <Compile Include="BoundedList.cs" />
     <Compile Include="ByteBuffer.cs" />

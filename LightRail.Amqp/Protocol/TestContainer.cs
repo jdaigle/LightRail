@@ -1,4 +1,5 @@
 ﻿using System;
+using LightRail.Amqp.Framing;
 
 namespace LightRail.Amqp.Protocol
 {
@@ -10,5 +11,13 @@ namespace LightRail.Amqp.Protocol
         }
 
         public string ContainerId { get; }
+
+        public void OnLinkAttached(AmqpLink link)
+        {
+        }
+
+        public void OnTransferReceived(AmqpLink link, Transfer transfer, ByteBuffer buffer)
+        {
+        }
     }
 }

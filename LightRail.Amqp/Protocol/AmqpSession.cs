@@ -379,5 +379,32 @@ namespace LightRail.Amqp.Protocol
             trace.Debug("Session {0} ended due to connection closed", ChannelNumber);
             UnmapSession();
         }
+
+        internal void Begin()
+        {
+            lock (stateSyncRoot)
+            {
+                Connection.SendFrame(new Begin()
+                {
+                    NextOutgoingId = AmqpSession.InitialOutgoingId,
+                    IncomingWindow = AmqpSession.DefaultWindowSize,
+                    OutgoingWindow = AmqpSession.DefaultWindowSize,
+                    HandleMax = AmqpSession.DefaultMaxHandle,
+                }, this.ChannelNumber);
+                State = SessionStateEnum.BEGIN_SENT;
+            }
+        }
+
+        internal AmqpLink AttachSenderLink(string address)
+        {
+            lock (stateSyncRoot)
+            {
+                var nextLocalHandle = localLinks.IndexOfFirstNullItem() ?? localLinks.Length; // reuse existing handle, or just grab the next one
+                var link = new AmqpLink(this, "Sender_" + address, nextLocalHandle, false, true, 0);
+                localLinks[nextLocalHandle] = link;
+                link.Attach(address);
+                return link;
+            }
+        }
     }
 }

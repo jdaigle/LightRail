@@ -159,6 +159,7 @@ namespace LightRail.Amqp.Protocol
             }
 
             State = LinkStateEnum.ATTACHED;
+            Session.Connection.Container.OnLinkAttached(this);
         }
 
         private void HandleFlowFrame(Flow flow)
@@ -231,6 +232,8 @@ namespace LightRail.Amqp.Protocol
 
             linkCredit--;
             deliveryCount++;
+
+            Session.Connection.Container.OnTransferReceived(this, transfer, buffer);
         }
 
         private void HandleDispositionFrame(Disposition disposition)
@@ -275,6 +278,29 @@ namespace LightRail.Amqp.Protocol
                     Session.UnmapRemoteLink(this, destoryLink);
                 }
 
+            }
+        }
+
+        internal void Attach(string address)
+        {
+            lock (stateSyncRoot)
+            {
+                Session.SendFrame(new Attach()
+                {
+                    Name = this.Name,
+                    Handle = this.LocalHandle,
+                    IsReceiver = this.IsReceiverLink,
+                    Source = IsReceiverLink ? new Source()
+                    {
+                        Address = address,
+                    } : null,
+                    Target = IsSenderLink ? new Target()
+                    {
+                        Address = address,
+                    } : null,
+                    InitialDelieveryCount = 0,
+                });
+                State = LinkStateEnum.ATTACH_SENT;
             }
         }
     }

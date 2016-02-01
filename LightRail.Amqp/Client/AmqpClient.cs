@@ -55,8 +55,7 @@ namespace LightRail.Amqp.Client
         public async Task SendAsync(object message)
         {
             AssertNotDisposed();
-            await Task.FromResult(0);
-            throw new NotImplementedException();
+            await container.SendAsync(message);
         }
 
         private void AssertNotDisposed()
