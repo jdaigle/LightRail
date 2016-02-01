@@ -62,6 +62,12 @@
     <Compile Include="QueuedMessage.cs" />
     <Compile Include="LinkedListQueueNode.cs" />
     <Compile Include="QueueManager.cs" />
+    <Compile Include="Queuing\ConcurrentQueue.cs" />
+    <Compile Include="Queuing\ConcurrentQueueEntryList.cs" />
+    <Compile Include="Queuing\QueueEntry.cs" />
+    <Compile Include="Queuing\QueueEntryStateEnum.cs" />
+    <Compile Include="Queuing\Consumer.cs" />
+    <Compile Include="Queuing\QueueLogWriter.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LightRail.Amqp\LightRail.Amqp.csproj">
