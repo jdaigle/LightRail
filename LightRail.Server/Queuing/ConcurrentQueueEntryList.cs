@@ -31,11 +31,11 @@ namespace LightRail.Server.Queuing
             var entry = new QueueEntry();
             entry.QueueEntryList = this;
             entry.EnqueueDateTime = DateTime.UtcNow;
-            for (;;)
+            while (true)
             {
-                var prevTail = tail;
+                var prevTail = this.tail;
                 var prevTailNext = prevTail.Next;
-                if (prevTail == tail)
+                if (prevTail == this.tail)
                 {
                     if (prevTailNext == null)
                     {
@@ -43,7 +43,7 @@ namespace LightRail.Server.Queuing
                         if (prevTail.TrySetNext(entry, null)) // compare and swap, returns if successful
                         {
                             // it shouldn't be possible for two threads to get here at the same time
-                            Interlocked.CompareExchange(ref tail, entry, tail); // compare and swap
+                            Interlocked.CompareExchange(ref this.tail, entry, this.tail); // compare and swap
                             return entry;
                         }
                     }
@@ -51,7 +51,7 @@ namespace LightRail.Server.Queuing
                     {
                         // the tail has been updated before we had a chance. so compare and swap
                         // if it fails... that's okay
-                        Interlocked.CompareExchange(ref tail, prevTailNext, prevTail);
+                        Interlocked.CompareExchange(ref this.tail, prevTailNext, prevTail);
                     }
                 }
             }
