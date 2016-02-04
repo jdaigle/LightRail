@@ -41,14 +41,14 @@ namespace LightRail.Server.Queuing
         public void Release(QueueEntry entry, bool incrementDeliveryCount)
         {
             entry.Release(incrementDeliveryCount);
-            logWriter.WriteReleased(this, entry);
             messageDeliveryPumpSignal.Set(); // new message available, signal to pump to consumers
         }
 
         public void Archive(QueueEntry entry)
         {
-            logWriter.WriteArchived(this, entry);
             entry.Archive();
+            logWriter.WriteArchived(this, entry);
+            queueList.OnEntryArchived(entry);
         }
 
         public bool TryAcquire(QueueEntry entry, Consumer consumer)

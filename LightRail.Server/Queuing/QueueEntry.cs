@@ -7,7 +7,6 @@ namespace LightRail.Server.Queuing
     {
         public uint SeqNum { get; set; }
 
-        public ConcurrentQueueEntryList QueueEntryList { get; set; }
         private volatile QueueEntry next;
 
         private volatile int state = (int)QueueEntryStateEnum.AVAILABLE;
@@ -101,7 +100,6 @@ namespace LightRail.Server.Queuing
         public void Archive()
         {
             Interlocked.Exchange(ref state, (int)QueueEntryStateEnum.ARCHIVED);
-            QueueEntryList.OnEntryArchived(this);
         }
 
         /// <summary>

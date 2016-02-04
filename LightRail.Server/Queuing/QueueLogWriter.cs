@@ -53,13 +53,6 @@ namespace LightRail.Server.Queuing
             flushSignal.Set();
         }
 
-        public void WriteReleased(ConcurrentQueue queue, QueueEntry entry)
-        {
-            buffer.Enqueue(
-            string.Format("Queue {0} Released {1} DateTime {2} TTL {3} DeliveryCount {4}", queue.QueueID, entry.SeqNum, entry.EnqueueDateTime, entry.TTL, entry.DeliveryCount));
-            flushSignal.Set();
-        }
-
         private void Flush()
         {
             if (Interlocked.CompareExchange(ref flushIsRunning, 1, 0) != 0)
