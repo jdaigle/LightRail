@@ -32,6 +32,11 @@ namespace LightRail.Amqp.Protocol
             WriteBuffer.Add(byteBuffer);
         }
 
+        public void ReceiveAsync(int count, Action<ByteBuffer> callback)
+        {
+            // no op
+        }
+
         public void Close()
         {
             CloseCount++;
@@ -51,16 +56,6 @@ namespace LightRail.Amqp.Protocol
         {
             CloseCount++;
             Closed = true;
-        }
-
-        public Task SendAsync(byte[] buffer, int offset, int length)
-        {
-            throw new NotSupportedException();
-        }
-
-        public void ReceiveAsync(int count, Action<ByteBuffer> callback)
-        {
-            // no op
         }
     }
 }

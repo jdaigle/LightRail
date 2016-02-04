@@ -12,6 +12,7 @@ namespace LightRail.Amqp.Network
 
         public Socket UnderlyingSocket { get; }
         public IPEndPoint IPAddress { get; }
+        private readonly IBufferPool bufferPool;
         private readonly SocketAsyncEventArgs receiveEventArgs;
         private readonly SocketAsyncEventArgs sendEventArgs;
         private readonly WriteBuffer socketWriterBuffer;
@@ -21,10 +22,10 @@ namespace LightRail.Amqp.Network
         {
             UnderlyingSocket = acceptSocket;
             IPAddress = acceptSocket.RemoteEndPoint as IPEndPoint;
-            this.BufferPool = bufferPool;
+            this.bufferPool = bufferPool;
 
             ByteBuffer receiveBuffer;
-            if (!BufferPool.TryGetByteBuffer(out receiveBuffer))
+            if (!bufferPool.TryGetByteBuffer(out receiveBuffer))
                 throw new Exception("No free buffers available to receive on the underlying socket.");
 
             this.receiveEventArgs = new SocketAsyncEventArgs();
@@ -35,23 +36,97 @@ namespace LightRail.Amqp.Network
             this.receiveEventArgs.SetBuffer(receiveBuffer.Buffer, 0, 0); // initially assign the buffer
             this.receiveEventArgs.Completed += OnIOOperationCompleted;
 
-            this.sendEventArgs = new SocketAsyncEventArgs();
-            this.sendEventArgs.Completed += (s, a) => TcpSocket.CompleteAsyncIOOperation(((TcpSocket.SendAsyncBufferToken<int>)a.UserToken), a, b => b.bytesTransferred);
+            ByteBuffer sendBuffer;
+            if (!bufferPool.TryGetByteBuffer(out sendBuffer))
+                throw new Exception("No free buffers available to send on the underlying socket.");
 
-            socketWriterBuffer = new WriteBuffer(this);
+            this.sendEventArgs = new SocketAsyncEventArgs();
+            this.sendEventArgs.UserToken = new SendAsyncState()
+            {
+                byteBuffer = sendBuffer,
+            };
+            this.sendEventArgs.SetBuffer(sendBuffer.Buffer, 0, 0); // initially assign the buffer
+            this.sendEventArgs.Completed += OnIOOperationCompleted;
+
+            socketWriterBuffer = new WriteBuffer(SendAsync);
             amqpConnection = new AmqpConnection(this, container);
         }
 
-        public IBufferPool BufferPool { get; }
+        public event EventHandler OnClosed;
+
+        private class SendAsyncState
+        {
+            internal int countToWrite;
+            internal ByteBuffer byteBuffer;
+            internal Action sendCompleteCallback;
+        }
 
         public void Write(ByteBuffer byteBuffer)
         {
             socketWriterBuffer.Write(byteBuffer);
         }
 
-        public Task SendAsync(byte[] buffer, int offset, int count)
+        public void SendAsync(ByteBuffer byteBuffer, Action sendCompleteCallback)
         {
-            return SendAsync(UnderlyingSocket, sendEventArgs, buffer, offset, count);
+            SendAsync(byteBuffer.Buffer, byteBuffer.ReadOffset, byteBuffer.LengthAvailableToRead, sendCompleteCallback);
+        }
+
+        public void SendAsync(byte[] buffer, int offset, int count, Action sendCompleteCallback)
+        {
+            var sendState = sendEventArgs.UserToken as SendAsyncState;
+            sendState.byteBuffer.ResetReadWrite();
+            sendState.sendCompleteCallback = sendCompleteCallback;
+
+            Array.Copy(buffer, offset, sendState.byteBuffer.Buffer, sendState.byteBuffer.WriteOffset, count);
+            sendState.byteBuffer.AppendWrite(count);
+
+            sendState.countToWrite = count;
+
+            SendAsyncLoop(sendState);
+        }
+
+        private void SendAsyncLoop(SendAsyncState sendState)
+        {
+sendAsyncLoopAgain:
+            if (sendState.countToWrite > 0)
+            {
+                sendEventArgs.SetBuffer(sendState.byteBuffer.ReadOffset, sendState.countToWrite);
+                if (UnderlyingSocket.SendAsync(sendEventArgs) == false)
+                {
+                    // completed synchrounsly
+                    CompleteSend(sendEventArgs, false);
+                    goto sendAsyncLoopAgain;
+                }
+            }
+        }
+
+        private void CompleteSend(SocketAsyncEventArgs args, bool executeLoop = false)
+        {
+            if (args.SocketError != SocketError.Success)
+            {
+                var exception = new SocketException((int)args.SocketError);
+                amqpConnection.OnIoException(exception);
+                return; // no more sending
+            }
+
+            var sendState = sendEventArgs.UserToken as SendAsyncState;
+
+            int sentCount = args.BytesTransferred;
+            sendState.countToWrite -= sentCount;
+            sendState.byteBuffer.CompleteRead(sentCount);
+
+            trace.Debug("Sent {0} bytes on socket", sentCount.ToString());
+
+            if (sendState.countToWrite <= 0)
+            {
+                // all bytes sent
+                sendState.sendCompleteCallback();
+                return;
+            }
+
+            // more bytes to send
+            if (sendState.countToWrite > 0 && executeLoop)
+                SendAsyncLoop(sendState);
         }
 
         private class ReceiveAsyncState
@@ -120,12 +195,14 @@ receiveAsyncLoopAgain:
                 case SocketAsyncOperation.Receive:
                     CompleteReceive(e, true);
                     break;
+                case SocketAsyncOperation.Send:
+                    CompleteSend(e, true);
+                    break;
                 default:
                     throw new InvalidOperationException("Unhandled Operation: " + e.LastOperation);
             }
         }
 
-        public event EventHandler OnClosed;
 
         public void Close()
         {
@@ -157,7 +234,6 @@ receiveAsyncLoopAgain:
         public void CloseWrite()
         {
             Shutdown(SocketShutdown.Send);
-            socketWriterBuffer.Stop();
         }
 
         /// <summary>
@@ -175,38 +251,6 @@ receiveAsyncLoopAgain:
             {
                 trace.Error(e, "Non-fatal error shuttind down socket");
             }
-        }
-
-        public static Task<int> SendAsync(Socket socket, SocketAsyncEventArgs args, byte[] buffer, int offset, int count)
-        {
-            // The buffer should come from the underlying pinned buffer pool
-            var tcs = new TaskCompletionSource<int>();
-            args.SetBuffer(buffer, offset, count);
-            var token = new SendAsyncBufferToken<int>
-            {
-                socket = socket,
-                taskCompletionSource = tcs,
-                buffer = buffer,
-                offset = offset,
-                count = count,
-                bytesTransferred = 0,
-            };
-            args.UserToken = token;
-            if (socket.SendAsync(args) == false)
-            {
-                CompleteAsyncIOOperation(token, args, a => a.bytesTransferred);
-            }
-            return tcs.Task;
-        }
-
-        public class SendAsyncBufferToken<T>
-        {
-            public Socket socket;
-            public TaskCompletionSource<T> taskCompletionSource;
-            public byte[] buffer;
-            public int offset;
-            public int count;
-            public int bytesTransferred;
         }
 
         /// <summary>
@@ -245,36 +289,6 @@ receiveAsyncLoopAgain:
             else
             {
                 tcs.SetResult(getResult(args));
-            }
-        }
-
-        public static void CompleteAsyncIOOperation<T>(SendAsyncBufferToken<T> token, SocketAsyncEventArgs args, Func<SendAsyncBufferToken<T>, T> getResult)
-        {
-            completeAgain:
-            var tcs = token.taskCompletionSource;
-            args.UserToken = null;
-            if (args.SocketError != SocketError.Success)
-            {
-                tcs.SetException(new SocketException((int)args.SocketError));
-            }
-            else
-            {
-                token.bytesTransferred += args.BytesTransferred;
-                if (token.bytesTransferred < token.count)
-                {
-                    // send again
-                    args.SetBuffer(token.buffer, token.offset + token.bytesTransferred, token.count - token.bytesTransferred);
-                    args.UserToken = token;
-                    if (!token.socket.ConnectAsync(args))
-                    {
-                        // operation completed synchronously
-                        goto completeAgain; // loop instead of calling self (shields against a stackoverflow);
-                    }
-                }
-                else
-                {
-                    tcs.SetResult(getResult(token));
-                }
             }
         }
     }

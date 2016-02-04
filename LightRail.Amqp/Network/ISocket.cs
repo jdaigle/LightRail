@@ -21,11 +21,6 @@ namespace LightRail.Amqp.Network
         void Write(ByteBuffer byteBuffer);
 
         /// <summary>
-        /// Sends the specified byte buffer on the socket.
-        /// </summary>
-        Task SendAsync(byte[] buffer, int offset, int count);
-
-        /// <summary>
         /// Immediately closes the underlying socket and cleans up.
         /// </summary>
         void Close();

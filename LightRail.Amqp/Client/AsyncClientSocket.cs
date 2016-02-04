@@ -27,10 +27,8 @@ namespace LightRail.Amqp.Client
             BufferPool = new PinnedMemoryBufferPool(bufferPoolSize, defaultMaxBufferBlockSize);
 
             this.receiveEventArgs = new SocketAsyncEventArgs();
-            this.receiveEventArgs.Completed += (s, a) => TcpSocket.CompleteAsyncIOOperation(((TaskCompletionSource<int>)a.UserToken), a, b => b.BytesTransferred);
 
             this.sendEventArgs = new SocketAsyncEventArgs();
-            this.sendEventArgs.Completed += (s, a) => TcpSocket.CompleteAsyncIOOperation(((TcpSocket.SendAsyncBufferToken<int>)a.UserToken), a, b => b.bytesTransferred);
         }
 
         private readonly string host;
@@ -131,34 +129,6 @@ namespace LightRail.Amqp.Client
                 (c, s) => Dns.BeginGetHostAddresses(host, c, s),
                 (r) => Dns.EndGetHostAddresses(r),
                 null);
-        }
-
-        public Task SendAsync(ByteBuffer byteBuffer)
-        {
-            return SendAsync(byteBuffer.Buffer, byteBuffer.ReadOffset, byteBuffer.LengthAvailableToRead);
-        }
-
-        public async Task SendAsync(byte[] buffer, int offset, int count)
-        {
-            try
-            {
-                if (sslStream != null)
-                {
-                    await sslStream.WriteAsync(buffer, offset, count);
-                    trace.Debug("Sent {0} Bytes", count.ToString());
-                }
-                else
-                {
-                    int bytesSent = await TcpSocket.SendAsync(socket, sendEventArgs, buffer, offset, count);
-                    trace.Debug("Sent {0} Bytes", bytesSent.ToString());
-                }
-            }
-            catch (Exception ex)
-            {
-                trace.Error(ex, "ReceiveAsync() Error. Closing Socket.");
-                Close();
-                throw;
-            }
         }
 
         public void Close()
