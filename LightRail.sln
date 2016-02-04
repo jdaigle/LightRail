@@ -51,13 +51,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Amqp", "LightRail
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Amqp.UnitTests", "LightRail.Amqp.UnitTests\LightRail.Amqp.UnitTests.csproj", "{B79A33F4-BF5E-4DC0-8E83-B1815C1F634A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AmqpPerfTest", "AmqpPerfTest\AmqpPerfTest.csproj", "{24E0EEE4-8EF5-48C7-BD27-468E75EF50A2}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Extensions", "Extensions", "{DD040411-521E-4FC5-BC09-B1DE3F3D4193}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.Amqp.AzureServiceBus", "Samples\Samples.Amqp.AzureServiceBus\Samples.Amqp.AzureServiceBus.csproj", "{B66EDDE9-EAB9-4042-A6EE-C1A950856418}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Common", "LightRail.Common\LightRail.Common.csproj", "{0674CFB2-AD00-4FD9-907E-9DF17041DEFC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.AmqpNetClient", "Samples\Samples.AmqpNetClient\Samples.AmqpNetClient.csproj", "{F5CB3549-41B7-4694-875D-0399FE19646B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -129,10 +129,6 @@ Global
 		{B79A33F4-BF5E-4DC0-8E83-B1815C1F634A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B79A33F4-BF5E-4DC0-8E83-B1815C1F634A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B79A33F4-BF5E-4DC0-8E83-B1815C1F634A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{24E0EEE4-8EF5-48C7-BD27-468E75EF50A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{24E0EEE4-8EF5-48C7-BD27-468E75EF50A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{24E0EEE4-8EF5-48C7-BD27-468E75EF50A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{24E0EEE4-8EF5-48C7-BD27-468E75EF50A2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B66EDDE9-EAB9-4042-A6EE-C1A950856418}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B66EDDE9-EAB9-4042-A6EE-C1A950856418}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B66EDDE9-EAB9-4042-A6EE-C1A950856418}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -141,6 +137,10 @@ Global
 		{0674CFB2-AD00-4FD9-907E-9DF17041DEFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0674CFB2-AD00-4FD9-907E-9DF17041DEFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0674CFB2-AD00-4FD9-907E-9DF17041DEFC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5CB3549-41B7-4694-875D-0399FE19646B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5CB3549-41B7-4694-875D-0399FE19646B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5CB3549-41B7-4694-875D-0399FE19646B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5CB3549-41B7-4694-875D-0399FE19646B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -157,5 +157,6 @@ Global
 		{78512FBA-5BCA-4EB6-8E0C-16197B5388AC} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 		{C5D6BA95-24E1-4520-9ABE-9520126183A5} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 		{B66EDDE9-EAB9-4042-A6EE-C1A950856418} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
+		{F5CB3549-41B7-4694-875D-0399FE19646B} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 	EndGlobalSection
 EndGlobal

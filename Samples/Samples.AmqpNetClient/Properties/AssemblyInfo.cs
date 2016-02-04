@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("AmqpPerfTest")]
+[assembly: AssemblyTitle("Samples.AmqpNetClient")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("AmqpPerfTest")]
+[assembly: AssemblyProduct("Samples.AmqpNetClient")]
 [assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("24e0eee4-8ef5-48c7-bd27-468e75ef50a2")]
+[assembly: Guid("f5cb3549-41b7-4694-875d-0399fe19646b")]
 
 // Version information for an assembly consists of the following four values:
 //
