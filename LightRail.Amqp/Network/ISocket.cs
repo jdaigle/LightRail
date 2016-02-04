@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace LightRail.Amqp.Network
 {
@@ -13,9 +14,9 @@ namespace LightRail.Amqp.Network
         IBufferPool BufferPool { get; }
 
         /// <summary>
-        /// Sends the specified byte buffer on the socket.
+        /// Queues up a write to the underlying socket.
         /// </summary>
-        Task SendAsync(ByteBuffer byteBuffer);
+        void Write(ByteBuffer byteBuffer);
 
         /// <summary>
         /// Sends the specified byte buffer on the socket.
@@ -45,5 +46,10 @@ namespace LightRail.Amqp.Network
         /// <param name="count">The maximum number of bytes to write into the buffer.</param>
         /// <returns>The actual number of bytes read into the buffer.</returns>
         Task<int> ReceiveAsync(byte[] buffer, int offset, int count);
+
+        /// <summary>
+        /// Fires when the underlying socket is closed.
+        /// </summary>
+        event EventHandler OnClosed;
     }
 }

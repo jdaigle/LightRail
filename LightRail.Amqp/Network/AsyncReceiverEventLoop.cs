@@ -28,11 +28,11 @@ using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Network
 {
-    public class AsyncPump
+    public class AsyncReceiverEventLoop
     {
         private static readonly TraceSource trace = TraceSource.FromClass();
 
-        public AsyncPump(AmqpConnection connection, ISocket socket)
+        public AsyncReceiverEventLoop(AmqpConnection connection, ISocket socket)
         {
             this.connection = connection;
             this.socket = socket;
@@ -40,21 +40,21 @@ namespace LightRail.Amqp.Network
 
         private readonly AmqpConnection connection;
         private readonly ISocket socket;
-        private Task asyncPumpTask;
+        private Task eventLoopTask;
         private bool continuePumping = true;
 
         public void Start()
         {
             continuePumping = true;
-            if (asyncPumpTask != null && asyncPumpTask.Status == TaskStatus.Running)
+            if (eventLoopTask != null && eventLoopTask.Status == TaskStatus.Running)
                 return;
-            asyncPumpTask = StartAsync();
+            eventLoopTask = StartAsync();
         }
 
         public void Stop()
         {
             continuePumping = false;
-            asyncPumpTask = null;
+            eventLoopTask = null;
         }
 
         private async Task StartAsync()
@@ -72,7 +72,7 @@ namespace LightRail.Amqp.Network
 
         public async Task PumpAsync(Func<ByteBuffer, bool> onHeader, Func<ByteBuffer, bool> onFrame)
         {
-            trace.Debug("PumpAsync() Starting");
+            trace.Debug("AsyncReceiverEventLoop() Starting");
 
             ByteBuffer frameBuffer;
             if (!socket.BufferPool.TryGetByteBuffer(out frameBuffer))
@@ -117,7 +117,7 @@ namespace LightRail.Amqp.Network
                 frameBuffer.ReadOnly = false;
             }
 
-            trace.Debug("PumpAsync() Stopping");
+            trace.Debug("AsyncReceiverEventLoop() Stopping");
         }
 
         /// <summary>

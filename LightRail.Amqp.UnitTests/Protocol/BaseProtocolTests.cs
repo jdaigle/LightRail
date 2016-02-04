@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using LightRail.Amqp.Framing;
 using NUnit.Framework;
 
@@ -20,12 +21,18 @@ namespace LightRail.Amqp.Protocol
             connection = new AmqpConnection(socket, container);
         }
 
+        [TearDown]
+        public void TearDown()
+        {
+            socket.Close(); // cleanup
+        }
+
         protected void Given_Exchanged_Headers()
         {
             connection.HandleHeader(new ByteBuffer(defaultAcceptedProtocol));
 
-            Assert.AreEqual(1, socket.SentBufferFrames.Count);
-            CollectionAssert.AreEqual(defaultAcceptedProtocol, socket.SentBufferFrames[0].Item1);
+            Assert.AreEqual(1, socket.WriteBuffer.Count);
+            CollectionAssert.AreEqual(defaultAcceptedProtocol, socket.WriteBuffer[0].Buffer);
             Assert.AreEqual(ConnectionStateEnum.HDR_EXCH, connection.State);
             Assert.True(socket.IsNotClosed);
 
@@ -59,12 +66,12 @@ namespace LightRail.Amqp.Protocol
         protected AmqpFrame DecodeLastFrame()
         {
             ushort channelNumber = 0;
-            return AmqpFrameCodec.DecodeFrame(socket.GetSentBufferFrame(socket.SentBufferFrames.Count - 1), out channelNumber);
+            return AmqpFrameCodec.DecodeFrame(socket.WriteBuffer.Last(), out channelNumber);
         }
 
         protected AmqpFrame DecodeLastFrame(out ushort channelNumber)
         {
-            return AmqpFrameCodec.DecodeFrame(socket.GetSentBufferFrame(socket.SentBufferFrames.Count - 1), out channelNumber);
+            return AmqpFrameCodec.DecodeFrame(socket.WriteBuffer.Last(), out channelNumber);
         }
     }
 }

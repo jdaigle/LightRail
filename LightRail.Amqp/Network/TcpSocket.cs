@@ -2,11 +2,111 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using LightRail.Amqp.Protocol;
 
 namespace LightRail.Amqp.Network
 {
-    public class TcpSocket
+    public class TcpSocket : ISocket
     {
+        private static readonly TraceSource trace = TraceSource.FromClass();
+
+        public Socket UnderlyingSocket { get; }
+        public IPEndPoint IPAddress { get; }
+        private readonly SocketAsyncEventArgs receiveEventArgs;
+        private readonly SocketAsyncEventArgs sendEventArgs;
+        private readonly AsyncReceiverEventLoop receiverEventLoop;
+        private readonly WriteBuffer socketWriterBuffer;
+        private readonly AmqpConnection amqpConnection;
+
+        public TcpSocket(Socket acceptSocket, IBufferPool bufferPool, IContainer container)
+        {
+            UnderlyingSocket = acceptSocket;
+            IPAddress = acceptSocket.RemoteEndPoint as IPEndPoint;
+            this.BufferPool = bufferPool;
+
+            this.receiveEventArgs = new SocketAsyncEventArgs();
+            this.receiveEventArgs.Completed += (s, a) => TcpSocket.CompleteAsyncIOOperation(((TaskCompletionSource<int>)a.UserToken), a, b => b.BytesTransferred);
+
+            this.sendEventArgs = new SocketAsyncEventArgs();
+            this.sendEventArgs.Completed += (s, a) => TcpSocket.CompleteAsyncIOOperation(((TcpSocket.SendAsyncBufferToken<int>)a.UserToken), a, b => b.bytesTransferred);
+
+            amqpConnection = new AmqpConnection(this, container);
+
+            receiverEventLoop = new AsyncReceiverEventLoop(amqpConnection, this);
+            receiverEventLoop.Start();
+
+            socketWriterBuffer = new WriteBuffer(this);
+        }
+
+        public IBufferPool BufferPool { get; }
+
+        public void Write(ByteBuffer byteBuffer)
+        {
+            socketWriterBuffer.Write(byteBuffer);
+        }
+
+        public Task SendAsync(byte[] buffer, int offset, int count)
+        {
+            return SendAsync(UnderlyingSocket, sendEventArgs, buffer, offset, count);
+        }
+
+        public Task<int> ReceiveAsync(byte[] buffer, int offset, int count)
+        {
+            return TcpSocket.ReceiveAsync(this.UnderlyingSocket, receiveEventArgs, buffer, offset, count);
+        }
+
+        public event EventHandler OnClosed;
+
+        public void Close()
+        {
+            try
+            {
+                try
+                {
+                    UnderlyingSocket.Shutdown(SocketShutdown.Both);
+                }
+                catch (Exception e)
+                {
+                    trace.Error(e, "Non-fatal error shutting down socket");
+                }
+                UnderlyingSocket.Close();
+            }
+            finally
+            {
+                var onClosedEvent = OnClosed;
+                if (onClosedEvent != null)
+                    onClosedEvent(this, EventArgs.Empty);
+            }
+        }
+
+        public void CloseRead()
+        {
+            Shutdown(SocketShutdown.Receive);
+        }
+
+        public void CloseWrite()
+        {
+            Shutdown(SocketShutdown.Send);
+        }
+
+        /// <summary>
+        /// Marks a specific connection for graceful shutdown. The next receive or send to be posted
+        /// will fail and close the connection.
+        /// </summary>
+        public void Shutdown(SocketShutdown socketShutdown)
+        {
+            try
+            {
+                trace.Debug("Shutting Down Socket to {0} Side = {1}", IPAddress, socketShutdown.ToString());
+                UnderlyingSocket.Shutdown(socketShutdown);
+            }
+            catch (Exception e)
+            {
+                trace.Error(e, "Non-fatal error shuttind down socket");
+            }
+        }
+
+
         /// <summary>
         /// From the specified socket, asynchronously tries to read up to "count" bytes into the specified buffer writing at the specified offset.
         /// </summary>

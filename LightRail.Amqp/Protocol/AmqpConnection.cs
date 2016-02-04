@@ -26,13 +26,11 @@ namespace LightRail.Amqp.Protocol
         public AmqpConnection(ISocket socket, IContainer container)
         {
             this.socket = socket;
-            this.writeBuffer = new WriteBuffer(socket);
             Container = container;
             State = ConnectionStateEnum.START;
         }
 
         private readonly ISocket socket;
-        private readonly WriteBuffer writeBuffer;
 
         /// <summary>
         /// The current state of the Connection.
@@ -186,7 +184,7 @@ namespace LightRail.Amqp.Protocol
                 trace.Debug("Received Invalid Protocol Header");
                 // invalid protocol header
                 if (!State.HasSentHeader())
-                    writeBuffer.Write(protocol0, 0, 8);
+                    socket.Write(new ByteBuffer(protocol0, 0, 8, 8));
                 CloseConnection(new Error());
                 return;
             }
@@ -198,7 +196,7 @@ namespace LightRail.Amqp.Protocol
                 trace.Debug("Received Invalid Protocol Version");
                 // invalid protocol version
                 if (!State.HasSentHeader())
-                    writeBuffer.Write(protocol0, 0, 8);
+                    socket.Write(new ByteBuffer(protocol0, 0, 8, 8));
                 CloseConnection(new Error());
                 return;
             }
@@ -209,7 +207,7 @@ namespace LightRail.Amqp.Protocol
             if (protocolId == 0x00)
             {
                 if (!State.HasSentHeader())
-                    writeBuffer.Write(protocol0, 0, 8);
+                    socket.Write(new ByteBuffer(protocol0, 0, 8, 8));
                 if (State == ConnectionStateEnum.OPEN_PIPE)
                     State = ConnectionStateEnum.OPEN_SENT;
                 else
@@ -219,14 +217,14 @@ namespace LightRail.Amqp.Protocol
             {
                 // TLS... no supported
                 if (!State.HasSentHeader())
-                    writeBuffer.Write(protocol0, 0, 8);
+                    socket.Write(new ByteBuffer(protocol0, 0, 8, 8));
                 CloseConnection(new Error());
             }
             else if (protocolId == 0x03)
             {
                 // SASL... not yet supported
                 if (!State.HasSentHeader())
-                    writeBuffer.Write(protocol3, 0, 8);
+                    socket.Write(new ByteBuffer(protocol3, 0, 8, 8));
                 if (State == ConnectionStateEnum.OPEN_PIPE)
                     State = ConnectionStateEnum.OPEN_SENT;
                 else
@@ -237,7 +235,7 @@ namespace LightRail.Amqp.Protocol
                 trace.Debug("Invalid Protocol ID AMQP.{0}.1.0.0!!", ((int)protocolId));
                 // invalid protocol id
                 if (!State.HasSentHeader())
-                    writeBuffer.Write(protocol0, 0, 8);
+                    socket.Write(new ByteBuffer(protocol0, 0, 8, 8));
                 CloseConnection(new Error());
             }
         }
@@ -408,7 +406,7 @@ namespace LightRail.Amqp.Protocol
             AmqpFrameCodec.EncodeFrame(buffer, frame, channelNumber);
             if (Trace.IsDebugEnabled)
                 trace.Debug("Sending Frame: {0}", frame.ToString());
-            writeBuffer.Write(buffer);
+            socket.Write(buffer);
         }
 
         public void HandleSocketClosed()
@@ -480,7 +478,7 @@ namespace LightRail.Amqp.Protocol
                     State == ConnectionStateEnum.OPEN_PIPE)
                     return;
 
-                writeBuffer.Write(protocol0, 0, 8);
+                socket.Write(new ByteBuffer(protocol0, 0, 8, 8));
                 State = ConnectionStateEnum.HDR_SENT;
 
                 SendFrame(new Open()

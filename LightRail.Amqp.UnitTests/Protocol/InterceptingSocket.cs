@@ -7,69 +7,62 @@ namespace LightRail.Amqp.Protocol
 {
     public class InterceptingSocket : ISocket
     {
+        public event EventHandler OnClosed;
+
         public void Reset()
         {
-            SentBufferFrames.Clear();
+            WriteBuffer.Clear();
             CloseCount = 0;
             Closed = false;
         }
 
-        public List<Tuple<byte[], int, int>> SentBufferFrames { get; set; } = new List<Tuple<byte[], int, int>>();
+        public List<ByteBuffer> WriteBuffer { get; set; } = new List<ByteBuffer>();
         public int CloseCount { get; set; } = 0;
 
         public ByteBuffer GetSentBufferFrame(int index)
         {
-            return new ByteBuffer(SentBufferFrames[index].Item1, SentBufferFrames[index].Item2, SentBufferFrames[index].Item3, SentBufferFrames[index].Item3);
+            return WriteBuffer[index];
         }
 
-        public Action<byte[], int, int> OnSendAsync { get; set; }
-        public Action OnClose { get; set; }
         public bool Closed { get; set; }
         public bool IsNotClosed { get { return !Closed; } }
 
         IBufferPool ISocket.BufferPool { get; }
 
-        public Task SendAsync(ByteBuffer byteBuffer)
+        public void Write(ByteBuffer byteBuffer)
         {
-            SendAsync(byteBuffer.Buffer, byteBuffer.ReadOffset, byteBuffer.LengthAvailableToRead);
-            return Task.FromResult(0);
-        }
-
-        public Task SendAsync(byte[] buffer, int offset, int length)
-        {
-            SentBufferFrames.Add(new Tuple<byte[], int, int>(buffer, offset, length));
-            if (OnSendAsync != null)
-                OnSendAsync(buffer, offset, length);
-            return Task.FromResult(0);
+            WriteBuffer.Add(byteBuffer);
         }
 
         public void Close()
         {
             CloseCount++;
             Closed = true;
-            if (OnClose != null)
-                OnClose();
+            var onClosedEvent = OnClosed;
+            if (onClosedEvent != null)
+                onClosedEvent(this, EventArgs.Empty);
         }
 
         public void CloseRead()
         {
             CloseCount++;
             Closed = true;
-            if (OnClose != null)
-                OnClose();
         }
 
         public void CloseWrite()
         {
             CloseCount++;
             Closed = true;
-            if (OnClose != null)
-                OnClose();
+        }
+
+        public Task SendAsync(byte[] buffer, int offset, int length)
+        {
+            throw new NotSupportedException();
         }
 
         public Task<int> ReceiveAsync(byte[] buffer, int offset, int count)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
     }
 }

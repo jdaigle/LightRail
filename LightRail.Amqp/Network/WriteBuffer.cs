@@ -7,23 +7,24 @@ namespace LightRail.Amqp.Network
 {
     public class WriteBuffer
     {
+        private static readonly TraceSource trace = TraceSource.FromClass();
+
         public WriteBuffer(ISocket socket)
         {
             this.socket = socket;
-            flushLoopTask = Task.Factory.StartNew(FlushLoop);
+            socket.OnClosed += OnSocketClosed;
+            cancellationTokenSource = new CancellationTokenSource();
+            flushLoopTask = Task.Factory.StartNew(FlushLoop, cancellationTokenSource.Token);
         }
 
         private Task flushLoopTask;
         private readonly ISocket socket;
         private readonly ConcurrentQueue<ByteBuffer> buffers = new ConcurrentQueue<ByteBuffer>();
         private readonly AutoResetEvent flushSignal = new AutoResetEvent(false);
+        private readonly CancellationTokenSource cancellationTokenSource;
+        private readonly CancellationToken ct;
 
         private Exception handledException;
-
-        public void Write(byte[] buffer, int offset, int count)
-        {
-            Write(new ByteBuffer(buffer, offset, count, count, false));
-        }
 
         public void Write(ByteBuffer buffer)
         {
@@ -33,29 +34,62 @@ namespace LightRail.Amqp.Network
             }
             buffers.Enqueue(buffer);
             flushSignal.Set();
+            while (!buffers.IsEmpty)
+            {
+                Thread.Sleep(10);
+            }
         }
 
         private void FlushLoop()
         {
-            while (true)
+            trace.Debug("WriteBuffer Flush Loop Started");
+            try
             {
-                try
+                while (true)
                 {
-                    ByteBuffer buffer;
-                    if (!buffers.TryDequeue(out buffer))
+                    if (ct.IsCancellationRequested)
+                        return;
+                    try
                     {
-                        flushSignal.WaitOne(); // wait for someone to enqueue a buffer to write
-                        continue;
+                        ByteBuffer buffer;
+                        if (!buffers.TryDequeue(out buffer))
+                        {
+                            flushSignal.WaitOne(); // wait for someone to enqueue a buffer to write
+                            continue;
+                        }
+                        if (ct.IsCancellationRequested)
+                            return;
+                        socket.SendAsync(buffer.Buffer, buffer.ReadOffset, buffer.LengthAvailableToRead).Wait();
                     }
-                    socket.SendAsync(buffer).Wait();
+                    catch (Exception ex)
+                    {
+                        // TODO: log and bubble up
+                        trace.Error(ex, "WriteBuffer Flush Loop Error");
+                        handledException = ex;
+                        return;
+                    }
                 }
-                catch (Exception ex)
-                {
-                    // TODO: log and bubble up
-                    handledException = ex;
-                    return;
-                }
+            }
+            finally
+            {
+                trace.Debug("WriteBuffer Flush Loop Finished");
+            }
+        }
+
+        private void OnSocketClosed(object sender, EventArgs args)
+        {
+            try
+            {
+                cancellationTokenSource.Cancel();
+                flushSignal.Set();
+            }
+            finally
+            {
+                cancellationTokenSource.Dispose();
+                flushSignal.Dispose();
+                socket.OnClosed -= OnSocketClosed;
             }
         }
     }
 }
+

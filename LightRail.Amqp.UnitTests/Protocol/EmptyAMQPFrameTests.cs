@@ -29,7 +29,7 @@ namespace LightRail.Amqp.Protocol
             connection.HandleFrame(buffer);
 
             Assert.True(socket.IsNotClosed);
-            CollectionAssert.IsEmpty(socket.SentBufferFrames);
+            CollectionAssert.IsEmpty(socket.WriteBuffer);
         }
 
         [Test]

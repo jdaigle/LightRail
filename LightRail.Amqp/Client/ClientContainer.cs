@@ -43,7 +43,7 @@ namespace LightRail.Amqp.Client
 
             this.clientSocket = new AsyncClientSocket(host, port, useTLS);
             this.connection = new AmqpConnection(clientSocket, this);
-            this.asyncReceivePump = new AsyncPump(connection, clientSocket);
+            this.asyncReceiverEventLoop = new AsyncReceiverEventLoop(connection, clientSocket);
         }
 
         private static void ValidateUri(Uri uri)
@@ -63,7 +63,7 @@ namespace LightRail.Amqp.Client
         private readonly string address;
         private readonly AsyncClientSocket clientSocket;
         private readonly AmqpConnection connection;
-        private readonly AsyncPump asyncReceivePump;
+        private readonly AsyncReceiverEventLoop asyncReceiverEventLoop;
 
         private readonly List<AmqpClient> clientReferences = new List<AmqpClient>();
 
@@ -82,7 +82,7 @@ namespace LightRail.Amqp.Client
             if (!clientSocket.IsConnected)
             {
                 await clientSocket.ConnectAsync();
-                asyncReceivePump.Start();
+                asyncReceiverEventLoop.Start();
             }
 
             // open the connection

@@ -48,6 +48,8 @@ namespace LightRail.Amqp.Client
         private volatile bool isConnecting = false;
         private readonly object connectAsyncLock = new object();
 
+        public event EventHandler OnClosed;
+
         public async Task ConnectAsync()
         {
             if (IsConnected || isConnecting)
@@ -193,6 +195,9 @@ namespace LightRail.Amqp.Client
                 socket.Close();
                 if (sslStream != null)
                     sslStream.Close();
+                var onClosedEvent = OnClosed;
+                if (onClosedEvent != null)
+                    onClosedEvent(this, EventArgs.Empty);
             }
             catch (Exception) { } // intentionally swallow exceptions here.
             finally
@@ -219,6 +224,11 @@ namespace LightRail.Amqp.Client
                 socket.Shutdown(SocketShutdown.Send);
             }
             catch (Exception) { } // intentionally swallow exceptions here.
+        }
+
+        public void Write(ByteBuffer byteBuffer)
+        {
+            throw new NotImplementedException();
         }
     }
 }

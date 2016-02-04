@@ -10,19 +10,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using LightRail.Amqp;
 using LightRail.Amqp.Network;
-using NLog;
 
 namespace LightRail.Server.Network
 {
     public class TcpListener
     {
-        private static readonly ILogger logger = LogManager.GetLogger("LightRail.Server.Network.TcpListener");
+        private static readonly TraceSource trace = TraceSource.FromClass();
 
         private const int maxBufferBlockSize = 64 * 1024; // 64 KB
 
         public int ListenPort { get; } = Constants.AmqpPort;
         public int MaxConnections { get; } = 100;
-        private int currentConnections;
+        //private int currentConnections;
 
         private readonly IBufferPool _memoryBufferPool;
         private Socket _listenSocket;
@@ -44,7 +43,7 @@ namespace LightRail.Server.Network
             _listenSocket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             _listenSocket.Bind(endpoint);
             _listenSocket.Listen(100);
-            logger.Info("Listening on {0}:{1}", endpoint.Address.ToString(), ListenPort.ToString());
+            trace.Info("Listening on {0}:{1}", endpoint.Address.ToString(), ListenPort.ToString());
 
             StartAccept(_acceptSocketAsyncEventArgs);
         }
@@ -89,58 +88,16 @@ namespace LightRail.Server.Network
             e.AcceptSocket.NoDelay = true;
 #if DEBUG
             var ipAddress = (e.AcceptSocket.RemoteEndPoint as IPEndPoint);
-            logger.Trace("Connection Accepting From {0}:{1}", ipAddress.Address.ToString(), ipAddress.Port.ToString());
+            trace.Info("Connection Accepting From {0}:{1}", ipAddress.Address.ToString(), ipAddress.Port.ToString());
 #endif
 
             // create the connection, will immediately starting polling the receive side of the socket
             // via an async pump
-            new TcpConnection(this, e.AcceptSocket, _memoryBufferPool);
+            new TcpSocket(e.AcceptSocket, _memoryBufferPool, HostContainer.Instance);
 
             // Loop to accept another connection.
             if (startAccept)
                 StartAccept(e);
-        }
-
-        private void CloseSocket(Socket socket, TcpConnection connection)
-        {
-            try
-            {
-                try
-                {
-                    if (connection != null)
-                    {
-                        connection.HandleSocketClosed();
-                    }
-                    socket.Shutdown(SocketShutdown.Both);
-                }
-                catch (Exception e)
-                {
-                    logger.Error(e, "Non-fatal error shutting down socket");
-                }
-                socket.Close();
-            }
-            finally
-            {
-                logger.Debug("Decrement Connection Count");
-                Interlocked.Decrement(ref currentConnections);
-            }
-        }
-
-        /// <summary>
-        /// Marks a specific connection for graceful shutdown. The next receive or send to be posted
-        /// will fail and close the connection.
-        /// </summary>
-        public void Disconnect(TcpConnection connection, SocketShutdown socketShutdown)
-        {
-            try
-            {
-                logger.Debug("Shutting Down Socket to {0} Side = {1}", connection.IPAddress, socketShutdown.ToString());
-                connection.Socket.Shutdown(socketShutdown);
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Non-fatal error shuttind down socket");
-            }
         }
     }
 }

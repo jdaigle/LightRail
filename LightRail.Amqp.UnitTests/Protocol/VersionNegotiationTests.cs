@@ -26,8 +26,8 @@ namespace LightRail.Amqp.Protocol
 
             connection.HandleHeader(new ByteBuffer(protocol0));
 
-            Assert.AreEqual(1, socket.SentBufferFrames.Count);
-            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
+            Assert.AreEqual(1, socket.WriteBuffer.Count);
+            CollectionAssert.AreEqual(protocol0, socket.WriteBuffer[0].Buffer);
             Assert.AreEqual(ConnectionStateEnum.HDR_EXCH, connection.State);
             Assert.True(socket.IsNotClosed);
         }
@@ -42,8 +42,8 @@ namespace LightRail.Amqp.Protocol
             AmqpFrameCodec.EncodeFrame(buffer, new Open(), 0);
             connection.HandleHeader(buffer);
 
-            Assert.GreaterOrEqual(socket.SentBufferFrames.Count, 1);
-            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
+            Assert.GreaterOrEqual(socket.WriteBuffer.Count, 1);
+            CollectionAssert.AreEqual(protocol0, socket.WriteBuffer[0].Buffer);
             Assert.False(ConnectionStateEnum.HDR_EXCH.IsExpectingProtocolHeader());
         }
 
@@ -55,8 +55,8 @@ namespace LightRail.Amqp.Protocol
 
             connection.HandleHeader(new ByteBuffer(protocol1));
 
-            Assert.AreEqual(1, socket.SentBufferFrames.Count);
-            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
+            Assert.AreEqual(1, socket.WriteBuffer.Count);
+            CollectionAssert.AreEqual(protocol0, socket.WriteBuffer[0].Buffer);
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);
         }
@@ -69,8 +69,8 @@ namespace LightRail.Amqp.Protocol
 
             connection.HandleHeader(new ByteBuffer(protocol2));
 
-            Assert.AreEqual(1, socket.SentBufferFrames.Count);
-            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
+            Assert.AreEqual(1, socket.WriteBuffer.Count);
+            CollectionAssert.AreEqual(protocol0, socket.WriteBuffer[0].Buffer);
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);
         }
@@ -83,8 +83,8 @@ namespace LightRail.Amqp.Protocol
 
             connection.HandleHeader(new ByteBuffer(malformedProtocol0));
 
-            Assert.AreEqual(1, socket.SentBufferFrames.Count);
-            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
+            Assert.AreEqual(1, socket.WriteBuffer.Count);
+            CollectionAssert.AreEqual(protocol0, socket.WriteBuffer[0].Buffer);
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);
         }
@@ -97,8 +97,8 @@ namespace LightRail.Amqp.Protocol
 
             connection.HandleHeader(new ByteBuffer(incorrectVerProtocol0));
 
-            Assert.AreEqual(1, socket.SentBufferFrames.Count);
-            CollectionAssert.AreEqual(protocol0, socket.SentBufferFrames[0].Item1);
+            Assert.AreEqual(1, socket.WriteBuffer.Count);
+            CollectionAssert.AreEqual(protocol0, socket.WriteBuffer[0].Buffer);
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);
         }

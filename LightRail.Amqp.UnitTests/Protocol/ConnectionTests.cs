@@ -17,8 +17,8 @@ namespace LightRail.Amqp.Protocol
 
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);
-            Assert.AreEqual(1, socket.SentBufferFrames.Count);
-            Assert.AreEqual(8, socket.SentBufferFrames[0].Item3); // 8 byte for proto header
+            Assert.AreEqual(1, socket.WriteBuffer.Count);
+            Assert.AreEqual(8, socket.WriteBuffer[0].LengthAvailableToRead); // 8 byte for proto header
         }
 
         [Test]
@@ -31,7 +31,7 @@ namespace LightRail.Amqp.Protocol
 
             Assert.AreEqual(ConnectionStateEnum.OPENED, connection.State);
             Assert.True(socket.IsNotClosed);
-            Assert.AreEqual(1, socket.SentBufferFrames.Count);
+            Assert.AreEqual(1, socket.WriteBuffer.Count);
         }
 
         [Test]
@@ -77,7 +77,7 @@ namespace LightRail.Amqp.Protocol
 
             Assert.AreEqual(ConnectionStateEnum.OPENED, connection.State);
             Assert.True(socket.IsNotClosed);
-            Assert.AreEqual(2, socket.SentBufferFrames.Count);
+            Assert.AreEqual(2, socket.WriteBuffer.Count);
         }
 
         [Test]
@@ -93,7 +93,7 @@ namespace LightRail.Amqp.Protocol
 
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);
-            Assert.AreEqual(2, socket.SentBufferFrames.Count);
+            Assert.AreEqual(2, socket.WriteBuffer.Count);
         }
 
         [Test]
@@ -125,7 +125,7 @@ namespace LightRail.Amqp.Protocol
 
             Assert.AreEqual(ConnectionStateEnum.END, connection.State);
             Assert.True(socket.Closed);
-            Assert.AreEqual(3, socket.SentBufferFrames.Count);
+            Assert.AreEqual(3, socket.WriteBuffer.Count);
         }
 
         [Test]
