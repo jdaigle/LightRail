@@ -14,7 +14,6 @@ namespace LightRail.Amqp.Network
         public IPEndPoint IPAddress { get; }
         private readonly SocketAsyncEventArgs receiveEventArgs;
         private readonly SocketAsyncEventArgs sendEventArgs;
-        private readonly AsyncReceiverEventLoop receiverEventLoop;
         private readonly WriteBuffer socketWriterBuffer;
         private readonly AmqpConnection amqpConnection;
 
@@ -24,17 +23,23 @@ namespace LightRail.Amqp.Network
             IPAddress = acceptSocket.RemoteEndPoint as IPEndPoint;
             this.BufferPool = bufferPool;
 
+            ByteBuffer receiveBuffer;
+            if (!BufferPool.TryGetByteBuffer(out receiveBuffer))
+                throw new Exception("No free buffers available to receive on the underlying socket.");
+
             this.receiveEventArgs = new SocketAsyncEventArgs();
-            this.receiveEventArgs.Completed += (s, a) => TcpSocket.CompleteAsyncIOOperation(((TaskCompletionSource<int>)a.UserToken), a, b => b.BytesTransferred);
+            this.receiveEventArgs.UserToken = new ReceiveAsyncState()
+            {
+                byteBuffer = receiveBuffer,
+            };
+            this.receiveEventArgs.SetBuffer(receiveBuffer.Buffer, 0, 0); // initially assign the buffer
+            this.receiveEventArgs.Completed += OnIOOperationCompleted;
 
             this.sendEventArgs = new SocketAsyncEventArgs();
             this.sendEventArgs.Completed += (s, a) => TcpSocket.CompleteAsyncIOOperation(((TcpSocket.SendAsyncBufferToken<int>)a.UserToken), a, b => b.bytesTransferred);
 
-            amqpConnection = new AmqpConnection(this, container);
-
             socketWriterBuffer = new WriteBuffer(this);
-            receiverEventLoop = new AsyncReceiverEventLoop(amqpConnection, this);
-            receiverEventLoop.Start();
+            amqpConnection = new AmqpConnection(this, container);
         }
 
         public IBufferPool BufferPool { get; }
@@ -49,9 +54,75 @@ namespace LightRail.Amqp.Network
             return SendAsync(UnderlyingSocket, sendEventArgs, buffer, offset, count);
         }
 
-        public Task<int> ReceiveAsync(byte[] buffer, int offset, int count)
+        private class ReceiveAsyncState
         {
-            return TcpSocket.ReceiveAsync(this.UnderlyingSocket, receiveEventArgs, buffer, offset, count);
+            internal int countToRead;
+            internal Action<ByteBuffer> callback;
+            internal ByteBuffer byteBuffer;
+        }
+
+        public void ReceiveAsync(int count, Action<ByteBuffer> callback)
+        {
+            var receiveState = receiveEventArgs.UserToken as ReceiveAsyncState;
+            receiveState.countToRead = count;
+            receiveState.callback = callback;
+            ReceiveAsyncLoop(receiveState);
+        }
+
+        private void ReceiveAsyncLoop(ReceiveAsyncState receiveState)
+        {
+receiveAsyncLoopAgain:
+            if (receiveState.countToRead > 0)
+            {
+                receiveEventArgs.SetBuffer(receiveState.byteBuffer.WriteOffset, receiveState.countToRead);
+                if (UnderlyingSocket.ReceiveAsync(receiveEventArgs) == false)
+                {
+                    // completed synchrounsly
+                    CompleteReceive(receiveEventArgs, false);
+                    goto receiveAsyncLoopAgain;
+                }
+            }
+        }
+
+        private void CompleteReceive(SocketAsyncEventArgs args, bool executeLoop = false)
+        {
+            if (args.SocketError != SocketError.Success)
+            {
+                var exception = new SocketException((int)args.SocketError);
+                amqpConnection.OnIoException(exception);
+                return; // no more receiving
+            }
+
+            var receiveState = receiveEventArgs.UserToken as ReceiveAsyncState;
+
+            int receivedCount = args.BytesTransferred;
+            receiveState.countToRead -= receivedCount;
+            receiveState.byteBuffer.AppendWrite(receivedCount);
+
+            trace.Debug("Read {0} bytes from socket", receivedCount.ToString());
+
+            if (receiveState.countToRead <= 0)
+            {
+                // all bytes read, call the callback
+                receiveState.callback(receiveState.byteBuffer);
+                return;
+            }
+
+            // more bytes to read
+            if (receiveState.countToRead > 0 && executeLoop)
+                ReceiveAsyncLoop(receiveState);
+        }
+
+        private void OnIOOperationCompleted(object sender, SocketAsyncEventArgs e)
+        {
+            switch (e.LastOperation)
+            {
+                case SocketAsyncOperation.Receive:
+                    CompleteReceive(e, true);
+                    break;
+                default:
+                    throw new InvalidOperationException("Unhandled Operation: " + e.LastOperation);
+            }
         }
 
         public event EventHandler OnClosed;
@@ -81,7 +152,6 @@ namespace LightRail.Amqp.Network
         public void CloseRead()
         {
             Shutdown(SocketShutdown.Receive);
-            receiverEventLoop.Stop();
         }
 
         public void CloseWrite()
@@ -105,29 +175,6 @@ namespace LightRail.Amqp.Network
             {
                 trace.Error(e, "Non-fatal error shuttind down socket");
             }
-        }
-
-
-        /// <summary>
-        /// From the specified socket, asynchronously tries to read up to "count" bytes into the specified buffer writing at the specified offset.
-        /// </summary>
-        /// <param name="socket">The socket to read from.</param>
-        /// <param name="args">Pool SocketAsyncEventArgs instance. Must have Completed event set prior to this method call.</param>
-        /// <param name="buffer">A buffer to write to.</param>
-        /// <param name="offset">The offset in the buffer to start writing.</param>
-        /// <param name="count">The maximum number of bytes to write into the buffer.</param>
-        /// <returns>The actual number of bytes read into the buffer.</returns>
-        public static Task<int> ReceiveAsync(Socket socket, SocketAsyncEventArgs args, byte[] buffer, int offset, int count)
-        {
-            // The buffer should come from the underlying pinned buffer pool
-            var tcs = new TaskCompletionSource<int>();
-            args.SetBuffer(buffer, offset, count);
-            args.UserToken = tcs;
-            if (socket.ReceiveAsync(args) == false)
-            {
-                CompleteAsyncIOOperation(tcs, args, a => a.BytesTransferred);
-            }
-            return tcs.Task;
         }
 
         public static Task<int> SendAsync(Socket socket, SocketAsyncEventArgs args, byte[] buffer, int offset, int count)

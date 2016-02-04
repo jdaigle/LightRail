@@ -161,30 +161,6 @@ namespace LightRail.Amqp.Client
             }
         }
 
-        public async Task<int> ReceiveAsync(byte[] buffer, int offset, int count)
-        {
-            try
-            {
-                int bytesRead;
-                if (sslStream != null)
-                {
-                    bytesRead = await sslStream.ReadAsync(buffer, offset, count);
-                }
-                else
-                {
-                    bytesRead = await TcpSocket.ReceiveAsync(socket, receiveEventArgs, buffer, offset, count);
-                }
-                trace.Debug("Read {0} bytes", bytesRead.ToString());
-                return bytesRead;
-            }
-            catch (Exception ex)
-            {
-                trace.Error(ex, "ReceiveAsync() Error. Closing Socket.");
-                Close();
-                throw;
-            }
-        }
-
         public void Close()
         {
             try
@@ -227,6 +203,11 @@ namespace LightRail.Amqp.Client
         }
 
         public void Write(ByteBuffer byteBuffer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ReceiveAsync(int count, Action<ByteBuffer> callback)
         {
             throw new NotImplementedException();
         }

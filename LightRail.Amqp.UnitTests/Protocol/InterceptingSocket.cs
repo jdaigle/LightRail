@@ -27,8 +27,6 @@ namespace LightRail.Amqp.Protocol
         public bool Closed { get; set; }
         public bool IsNotClosed { get { return !Closed; } }
 
-        IBufferPool ISocket.BufferPool { get; }
-
         public void Write(ByteBuffer byteBuffer)
         {
             WriteBuffer.Add(byteBuffer);
@@ -60,9 +58,9 @@ namespace LightRail.Amqp.Protocol
             throw new NotSupportedException();
         }
 
-        public Task<int> ReceiveAsync(byte[] buffer, int offset, int count)
+        public void ReceiveAsync(int count, Action<ByteBuffer> callback)
         {
-            throw new NotSupportedException();
+            // no op
         }
     }
 }

@@ -9,9 +9,11 @@ namespace LightRail.Amqp.Network
     public interface ISocket
     {
         /// <summary>
-        /// A buffer pool used by the network layer for sending and receiving.
+        /// Starts an async operations to read "count" bytes into a buffer
+        /// from the underlying stream. The specified callback is called
+        /// after "count" bytes have been read.
         /// </summary>
-        IBufferPool BufferPool { get; }
+        void ReceiveAsync(int count, Action<ByteBuffer> callback);
 
         /// <summary>
         /// Queues up a write to the underlying socket.
@@ -37,15 +39,6 @@ namespace LightRail.Amqp.Network
         /// Closes the write side of the socket.
         /// </summary>
         void CloseWrite();
-
-        /// <summary>
-        /// Asynchronously tries to read up to "count" bytes into the specified buffer writing at the specified offset.
-        /// </summary>
-        /// <param name="buffer">A buffer to write to.</param>
-        /// <param name="offset">The offset in the buffer to start writing.</param>
-        /// <param name="count">The maximum number of bytes to write into the buffer.</param>
-        /// <returns>The actual number of bytes read into the buffer.</returns>
-        Task<int> ReceiveAsync(byte[] buffer, int offset, int count);
 
         /// <summary>
         /// Fires when the underlying socket is closed.

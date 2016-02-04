@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using LightRail.Amqp.Framing;
 using LightRail.Amqp.Network;
+using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Protocol
 {
@@ -28,6 +29,8 @@ namespace LightRail.Amqp.Protocol
             this.socket = socket;
             Container = container;
             State = ConnectionStateEnum.START;
+
+            StartReceiveHeader(); // this begins the async receive pump
         }
 
         private readonly ISocket socket;
@@ -70,6 +73,21 @@ namespace LightRail.Amqp.Protocol
         private BoundedList<AmqpSession> localSessionMap = new BoundedList<AmqpSession>(2, DefaultMaxChannelCount);
         private BoundedList<AmqpSession> remoteSessionMap = new BoundedList<AmqpSession>(2, DefaultMaxChannelCount);
 
+        private void StartReceiveHeader()
+        {
+            socket.ReceiveAsync(FixedWidth.ULong, OnHeaderReceived); // 8 bytes for header
+        }
+
+        /// <summary>
+        /// Handles a buffered header (should be 8 byte buffer). Returns false the underyling connection should stop receiving.
+        /// </summary>
+        private void OnHeaderReceived(ByteBuffer buffer)
+        {
+            if (HandleHeader(buffer))
+                StartReceiveFrame(buffer);
+            // TODO: handle SASL frames?
+        }
+
         /// <summary>
         /// Handles a buffered header (should be 8 byte buffer). Returns false the underyling connection should stop receiving.
         /// </summary>
@@ -100,6 +118,31 @@ namespace LightRail.Amqp.Protocol
                     return false;
                 }
             }
+        }
+
+        private void StartReceiveFrame(ByteBuffer buffer)
+        {
+            buffer.ResetReadWrite();
+            socket.ReceiveAsync(FixedWidth.UInt, OnFrameLengthReceived);
+        }
+
+        private void OnFrameLengthReceived(ByteBuffer buffer)
+        {
+            int frameSize = (int)AmqpBitConverter.ReadUInt(buffer);
+            if (frameSize > MaxFrameSize)
+            {
+                throw new AmqpException(ErrorCode.InvalidField, $"Invalid frame size:{frameSize}, maximum frame size:{MaxFrameSize}");
+            }
+            buffer.ResetReadWrite(); // back to 0 to start reading
+            buffer.AppendWrite(FixedWidth.UInt); // advance the write the 4 bytes we already received
+            // receive the rest of the frame
+            socket.ReceiveAsync((frameSize - FixedWidth.UInt), OnFrameReceived);
+        }
+
+        private void OnFrameReceived(ByteBuffer buffer)
+        {
+            if (HandleFrame(buffer))
+                StartReceiveFrame(buffer); // loop if HandleFrame returns true
         }
 
         /// <summary>
