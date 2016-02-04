@@ -14,6 +14,7 @@ namespace LightRail.Amqp.Network
             this.socket = socket;
             socket.OnClosed += OnSocketClosed;
             cancellationTokenSource = new CancellationTokenSource();
+            cancellationToken = cancellationTokenSource.Token;
             flushLoopTask = Task.Factory.StartNew(FlushLoop, cancellationTokenSource.Token);
         }
 
@@ -22,7 +23,7 @@ namespace LightRail.Amqp.Network
         private readonly ConcurrentQueue<ByteBuffer> buffers = new ConcurrentQueue<ByteBuffer>();
         private readonly AutoResetEvent flushSignal = new AutoResetEvent(false);
         private readonly CancellationTokenSource cancellationTokenSource;
-        private readonly CancellationToken ct;
+        private readonly CancellationToken cancellationToken;
 
         private Exception handledException;
 
@@ -47,7 +48,7 @@ namespace LightRail.Amqp.Network
             {
                 while (true)
                 {
-                    if (ct.IsCancellationRequested)
+                    if (cancellationToken.IsCancellationRequested)
                         return;
                     try
                     {
@@ -57,7 +58,7 @@ namespace LightRail.Amqp.Network
                             flushSignal.WaitOne(); // wait for someone to enqueue a buffer to write
                             continue;
                         }
-                        if (ct.IsCancellationRequested)
+                        if (cancellationToken.IsCancellationRequested)
                             return;
                         socket.SendAsync(buffer.Buffer, buffer.ReadOffset, buffer.LengthAvailableToRead).Wait();
                     }
@@ -72,21 +73,26 @@ namespace LightRail.Amqp.Network
             }
             finally
             {
+                cancellationTokenSource.Dispose();
+                flushSignal.Dispose();
                 trace.Debug("WriteBuffer Flush Loop Finished");
             }
         }
 
         private void OnSocketClosed(object sender, EventArgs args)
         {
+            Stop();
+        }
+
+        public void Stop()
+        {
             try
             {
                 cancellationTokenSource.Cancel();
-                flushSignal.Set();
+                flushSignal.Set(); // signal to force a loop and exit
             }
             finally
             {
-                cancellationTokenSource.Dispose();
-                flushSignal.Dispose();
                 socket.OnClosed -= OnSocketClosed;
             }
         }

@@ -152,6 +152,7 @@ namespace LightRail.Amqp.Protocol
         {
             if (State != ConnectionStateEnum.END)
             {
+                State = ConnectionStateEnum.END;
                 trace.Error(ex, "IO Exception Handled");
                 CloseConnection(new Error()
                 {

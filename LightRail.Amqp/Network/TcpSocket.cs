@@ -32,10 +32,9 @@ namespace LightRail.Amqp.Network
 
             amqpConnection = new AmqpConnection(this, container);
 
+            socketWriterBuffer = new WriteBuffer(this);
             receiverEventLoop = new AsyncReceiverEventLoop(amqpConnection, this);
             receiverEventLoop.Start();
-
-            socketWriterBuffer = new WriteBuffer(this);
         }
 
         public IBufferPool BufferPool { get; }
@@ -82,11 +81,13 @@ namespace LightRail.Amqp.Network
         public void CloseRead()
         {
             Shutdown(SocketShutdown.Receive);
+            receiverEventLoop.Stop();
         }
 
         public void CloseWrite()
         {
             Shutdown(SocketShutdown.Send);
+            socketWriterBuffer.Stop();
         }
 
         /// <summary>

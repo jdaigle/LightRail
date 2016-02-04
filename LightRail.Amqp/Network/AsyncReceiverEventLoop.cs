@@ -73,51 +73,55 @@ namespace LightRail.Amqp.Network
         public async Task PumpAsync(Func<ByteBuffer, bool> onHeader, Func<ByteBuffer, bool> onFrame)
         {
             trace.Debug("AsyncReceiverEventLoop() Starting");
-
-            ByteBuffer frameBuffer;
-            if (!socket.BufferPool.TryGetByteBuffer(out frameBuffer))
-                throw new Exception("No free buffers available to receive on the underlying socket.");
-
-            if (onHeader != null)
+            try
             {
-                // header
-                frameBuffer.ResetReadWrite();
-                await ReceiveBufferAsync(frameBuffer.Buffer, frameBuffer.WriteOffset, FixedWidth.ULong); // read 8 bytes from socket
-                frameBuffer.AppendWrite(FixedWidth.ULong);
-                if (!onHeader(frameBuffer))
+                ByteBuffer frameBuffer;
+                if (!socket.BufferPool.TryGetByteBuffer(out frameBuffer))
+                    throw new Exception("No free buffers available to receive on the underlying socket.");
+
+                if (onHeader != null)
                 {
-                    return; // stop immediately
+                    // header
+                    frameBuffer.ResetReadWrite();
+                    await ReceiveBufferAsync(frameBuffer.Buffer, frameBuffer.WriteOffset, FixedWidth.ULong); // read 8 bytes from socket
+                    frameBuffer.AppendWrite(FixedWidth.ULong);
+                    if (!onHeader(frameBuffer))
+                    {
+                        return; // stop immediately
+                    }
+                }
+
+                // frames
+                while (continuePumping)
+                {
+                    frameBuffer.ResetReadWrite();
+                    await ReceiveBufferAsync(frameBuffer.Buffer, frameBuffer.WriteOffset, FixedWidth.UInt); // read 4 bytes from socket
+                    frameBuffer.AppendWrite(FixedWidth.UInt);
+
+                    int frameSize = (int)AmqpBitConverter.ReadUInt(frameBuffer);
+
+                    if (frameSize > connection.MaxFrameSize)
+                    {
+                        throw new AmqpException(ErrorCode.InvalidField, $"Invalid frame size:{frameSize}, maximum frame size:{connection.MaxFrameSize}");
+                    }
+
+                    await ReceiveBufferAsync(frameBuffer.Buffer, frameBuffer.WriteOffset, (frameSize - FixedWidth.UInt)); // read sizeof(frame) - 4 bytes from socket
+
+                    frameBuffer.ResetReadWrite(); // back to 0 to start reading
+                    frameBuffer.AppendWrite(frameSize); // we shouldn't write... but that's okay
+
+                    frameBuffer.ReadOnly = true; // mark read-only
+                    if (!onFrame(frameBuffer))
+                    {
+                        break; // stop immediately
+                    }
+                    frameBuffer.ReadOnly = false;
                 }
             }
-
-            // frames
-            while (continuePumping)
+            finally
             {
-                frameBuffer.ResetReadWrite();
-                await ReceiveBufferAsync(frameBuffer.Buffer, frameBuffer.WriteOffset, FixedWidth.UInt); // read 4 bytes from socket
-                frameBuffer.AppendWrite(FixedWidth.UInt);
-
-                int frameSize = (int)AmqpBitConverter.ReadUInt(frameBuffer);
-
-                if (frameSize > connection.MaxFrameSize)
-                {
-                    throw new AmqpException(ErrorCode.InvalidField, $"Invalid frame size:{frameSize}, maximum frame size:{connection.MaxFrameSize}");
-                }
-
-                await ReceiveBufferAsync(frameBuffer.Buffer, frameBuffer.WriteOffset, (frameSize - FixedWidth.UInt)); // read sizeof(frame) - 4 bytes from socket
-
-                frameBuffer.ResetReadWrite(); // back to 0 to start reading
-                frameBuffer.AppendWrite(frameSize); // we shouldn't write... but that's okay
-
-                frameBuffer.ReadOnly = true; // mark read-only
-                if (!onFrame(frameBuffer))
-                {
-                    break; // stop immediately
-                }
-                frameBuffer.ReadOnly = false;
+                trace.Debug("AsyncReceiverEventLoop() Stopping");
             }
-
-            trace.Debug("AsyncReceiverEventLoop() Stopping");
         }
 
         /// <summary>
