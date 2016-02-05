@@ -27,7 +27,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Attach : AmqpFrame
     {
-        public Attach() : base(DescribedListCodec.Attach) { }
+        public Attach() : base(DescribedTypeCodec.Attach) { }
 
         /// <summary>
         /// This name uniquely identifies the link from the container of the source to the container of the target

@@ -20,7 +20,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Target : DescribedList
     {
-        public Target() : base(DescribedListCodec.Target) { }
+        public Target() : base(DescribedTypeCodec.Target) { }
 
         /// <summary>
         /// The address of the target MUST NOT be set when sent on a attach frame sent by the sending

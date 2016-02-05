@@ -21,7 +21,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Begin : AmqpFrame
     {
-        public Begin() : base(DescribedListCodec.Begin) { }
+        public Begin() : base(DescribedTypeCodec.Begin) { }
 
         /// <summary>
         /// If a session is locally initiated, the remote-channel MUST NOT be set. When an endpoint responds

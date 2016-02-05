@@ -16,7 +16,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Detach : AmqpFrame
     {
-        public Detach() : base(DescribedListCodec.Detach) { }
+        public Detach() : base(DescribedTypeCodec.Detach) { }
 
         /// <summary>
         /// the local handle of the link to be detached

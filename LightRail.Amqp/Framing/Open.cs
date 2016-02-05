@@ -26,7 +26,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Open : AmqpFrame
     {
-        public Open() : base(DescribedListCodec.Open) { }
+        public Open() : base(DescribedTypeCodec.Open) { }
 
         /// <summary>
         /// The ID of the source container

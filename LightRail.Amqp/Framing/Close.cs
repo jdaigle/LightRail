@@ -16,7 +16,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Close : AmqpFrame
     {
-        public Close() : base(DescribedListCodec.Close) { }
+        public Close() : base(DescribedTypeCodec.Close) { }
 
         /// <summary>
         /// If set, this field indicates that the connection is being closed due to an error condition. The value

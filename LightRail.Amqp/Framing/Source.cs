@@ -24,7 +24,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Source : DescribedList
     {
-        public Source() : base(DescribedListCodec.Source) { }
+        public Source() : base(DescribedTypeCodec.Source) { }
 
         /// <summary>
         /// The address of the source MUST NOT be set when sent on a attach frame sent by the receiving

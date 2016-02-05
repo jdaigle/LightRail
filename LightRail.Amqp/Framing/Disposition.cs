@@ -30,7 +30,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Disposition : AmqpFrame
     {
-        public Disposition() : base(DescribedListCodec.Disposition) { }
+        public Disposition() : base(DescribedTypeCodec.Disposition) { }
 
         /// <summary>
         /// The role identifies whether the disposition frame contains information about sending link endpoints

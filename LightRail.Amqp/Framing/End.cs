@@ -14,7 +14,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class End : AmqpFrame
     {
-        public End() : base(DescribedListCodec.End) { }
+        public End() : base(DescribedTypeCodec.End) { }
 
         /// <summary>
         /// If set, this field indicates that the session is being ended due to an error condition. The value of

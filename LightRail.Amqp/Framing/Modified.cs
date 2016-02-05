@@ -4,7 +4,7 @@ namespace LightRail.Amqp.Framing
 {
     public abstract class Modified : Outcome
     {
-        protected Modified() : base(DescribedListCodec.Modified) { }
+        protected Modified() : base(DescribedTypeCodec.Modified) { }
 
         [AmqpDescribedListIndex(0)]
         public bool DeliveryFailed { get; set; }

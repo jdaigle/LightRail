@@ -104,6 +104,7 @@
     <Compile Include="Protocol\ConnectionStateEnum.cs" />
     <Compile Include="Network\ISocket.cs" />
     <Compile Include="Types\AmqpList.cs" />
+    <Compile Include="Types\DescribedTypeCodec.cs" />
     <Compile Include="Types\DescribedValue.cs" />
     <Compile Include="Types\Fields.cs" />
     <Compile Include="Types\DescribedList.cs" />

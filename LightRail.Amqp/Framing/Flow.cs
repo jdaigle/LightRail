@@ -24,7 +24,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Flow : AmqpFrame
     {
-        public Flow() : base(DescribedListCodec.Flow) { }
+        public Flow() : base(DescribedTypeCodec.Flow) { }
 
         /// <summary>
         /// Identifies the expected transfer-id of the next incoming transfer frame. This value MUST be set

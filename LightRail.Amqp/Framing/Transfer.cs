@@ -26,7 +26,7 @@ namespace LightRail.Amqp.Framing
     /// </summary>
     public sealed class Transfer : AmqpFrame
     {
-        public Transfer() : base(DescribedListCodec.Transfer) { }
+        public Transfer() : base(DescribedTypeCodec.Transfer) { }
 
         /// <summary>
         /// Specifies the link on which the message is transferred.

@@ -4,7 +4,7 @@ namespace LightRail.Amqp.Framing
 {
     public abstract class Received : DeliveryState
     {
-        protected Received() : base(DescribedListCodec.Received) { }
+        protected Received() : base(DescribedTypeCodec.Received) { }
 
         [AmqpDescribedListIndex(0)]
         public uint SectionNumber { get; set; }

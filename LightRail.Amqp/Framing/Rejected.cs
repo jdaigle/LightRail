@@ -4,7 +4,7 @@ namespace LightRail.Amqp.Framing
 {
     public abstract class Rejected : Outcome
     {
-        protected Rejected() : base(DescribedListCodec.Rejected) { }
+        protected Rejected() : base(DescribedTypeCodec.Rejected) { }
 
         [AmqpDescribedListIndex(0)]
         public Error Error { get; set; }

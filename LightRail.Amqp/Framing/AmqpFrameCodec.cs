@@ -37,8 +37,8 @@ namespace LightRail.Amqp.Framing
                 throw new AmqpException(ErrorCode.FramingError, $"Expected Format Code = {FormatCode.Described.ToHex()} but was {formatCode.ToHex()}");
 
             // decode
-            var descriptor = DescribedListCodec.ReadDescriptorCode(buffer);
-            return (AmqpFrame)DescribedListCodec.DecodeDescribedList(buffer, descriptor);
+            var descriptor = DescribedTypeCodec.ReadDescriptorCode(buffer);
+            return (AmqpFrame)DescribedTypeCodec.DecodeDescribedList(buffer, descriptor);
         }
 
         public static void EncodeFrame(ByteBuffer buffer, AmqpFrame frame, ushort channelNumber)

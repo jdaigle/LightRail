@@ -21,12 +21,12 @@ namespace LightRail.Amqp.Types
 
         protected override void EncodeValue(ByteBuffer buffer)
         {
-            DescribedListCodec.EncodeValue(buffer, this);
+            DescribedTypeCodec.EncodeValue(buffer, this);
         }
 
         protected override void DecodeValue(ByteBuffer buffer)
         {
-            DescribedListCodec.DecodeValue(buffer, this);
+            DescribedTypeCodec.DecodeValue(buffer, this);
         }
 
 #if DEBUG

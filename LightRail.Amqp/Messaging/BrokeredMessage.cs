@@ -85,57 +85,57 @@ namespace LightRail.Amqp.Messaging
                 if (formatCode != FormatCode.Described)
                     throw new AmqpException(ErrorCode.FramingError, $"Expected Format Code = {FormatCode.Described.ToHex()} but was {formatCode.ToHex()}");
 
-                var descriptorCode = DescribedListCodec.ReadDescriptorCode(buffer);
+                var descriptorCode = DescribedTypeCodec.ReadDescriptorCode(buffer);
 
-                if (descriptorCode == DescribedListCodec.Header.Code)
+                if (descriptorCode == DescribedTypeCodec.Header.Code)
                 {
-                    message.Header = (Header)DescribedListCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.Header = (Header)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
                     continue;
                 }
 
-                if (descriptorCode == DescribedListCodec.DeliveryAnnotations.Code)
+                if (descriptorCode == DescribedTypeCodec.DeliveryAnnotations.Code)
                 {
-                    message.DeliveryAnnotations = (DeliveryAnnotations)DescribedListCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.DeliveryAnnotations = (DeliveryAnnotations)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
                     continue;
                 }
 
-                if (descriptorCode == DescribedListCodec.MessageAnnotations.Code)
+                if (descriptorCode == DescribedTypeCodec.MessageAnnotations.Code)
                 {
-                    message.MessageAnnotations = (MessageAnnotations)DescribedListCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.MessageAnnotations = (MessageAnnotations)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
                     continue;
                 }
 
-                if (descriptorCode == DescribedListCodec.Footer.Code)
+                if (descriptorCode == DescribedTypeCodec.Footer.Code)
                 {
-                    message.Footer = (Footer)DescribedListCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.Footer = (Footer)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
                     continue;
                 }
 
-                if (descriptorCode == DescribedListCodec.Properties.Code)
+                if (descriptorCode == DescribedTypeCodec.Properties.Code)
                 {
-                    message.Properties = (Properties)DescribedListCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.Properties = (Properties)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
                     continue;
                 }
 
-                if (descriptorCode == DescribedListCodec.ApplicationProperties.Code)
+                if (descriptorCode == DescribedTypeCodec.ApplicationProperties.Code)
                 {
-                    message.ApplicationProperties = (ApplicationProperties)DescribedListCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.ApplicationProperties = (ApplicationProperties)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
                     continue;
                 }
 
-                if (descriptorCode == DescribedListCodec.Data.Code)
+                if (descriptorCode == DescribedTypeCodec.Data.Code)
                 {
                     throw new NotImplementedException("TODO: Decode Described amqp:data:binary");
                     // continue;
                 }
 
-                if (descriptorCode == DescribedListCodec.AmqpValue.Code)
+                if (descriptorCode == DescribedTypeCodec.AmqpValue.Code)
                 {
                     throw new NotImplementedException("TODO: Decode Described amqp:amqp-value:*");
                     // continue;
                 }
 
-                if (descriptorCode == DescribedListCodec.AmqpSequence.Code)
+                if (descriptorCode == DescribedTypeCodec.AmqpSequence.Code)
                 {
                     throw new NotImplementedException("TODO: Decode Described amqp:amqp-sequence:list");
                     //continue;
