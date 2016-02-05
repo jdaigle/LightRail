@@ -82,15 +82,15 @@ namespace LightRail.Amqp.Client
                 await clientSocket.ConnectAsync();
             }
 
-            // open the connection
-            connection.Open();
+            //// open the connection
+            //connection.Open();
 
-            var session = connection.GetSessionFromLocalChannel(1, false);
-            if (session == null || session.State != SessionStateEnum.MAPPED)
-                session = connection.BeginSession(1);
+            //var session = connection.GetSessionFromLocalChannel(1, false);
+            //if (session == null || session.State != SessionStateEnum.MAPPED)
+            //    session = connection.BeginSession(1);
 
-            var link = session.AttachSenderLink(address);
-            // TODO open link
+            ////var link = session.AttachSenderLink(address);
+            //// TODO open link
         }
 
         internal void AddAmqpClientRef(AmqpClient client)

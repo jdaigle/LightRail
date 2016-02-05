@@ -280,29 +280,6 @@ namespace LightRail.Amqp.Protocol
 
             }
         }
-
-        internal void Attach(string address)
-        {
-            lock (stateSyncRoot)
-            {
-                Session.SendFrame(new Attach()
-                {
-                    Name = this.Name,
-                    Handle = this.LocalHandle,
-                    IsReceiver = this.IsReceiverLink,
-                    Source = IsReceiverLink ? new Source()
-                    {
-                        Address = address,
-                    } : null,
-                    Target = IsSenderLink ? new Target()
-                    {
-                        Address = address,
-                    } : null,
-                    InitialDelieveryCount = 0,
-                });
-                State = LinkStateEnum.ATTACH_SENT;
-            }
-        }
     }
 }
 

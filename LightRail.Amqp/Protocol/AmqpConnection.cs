@@ -511,44 +511,5 @@ namespace LightRail.Amqp.Protocol
                 socket.Close();
             }
         }
-
-        // BEGIN client API operations
-
-        internal void Open()
-        {
-            lock (stateSyncRoot)
-            {
-                if (State == ConnectionStateEnum.OPENED ||
-                    State == ConnectionStateEnum.OPEN_PIPE)
-                    return;
-
-                socket.Write(new ByteBuffer(protocol0, 0, 8, 8));
-                State = ConnectionStateEnum.HDR_SENT;
-
-                SendFrame(new Open()
-                {
-                    ContainerID = Container.ContainerId,
-                    Hostname = "",
-                    MaxFrameSize = MaxFrameSize,
-                    ChannelMax = DefaultMaxChannelCount,
-                    IdleTimeOut = DefaultIdleTimeout,
-                }, 0);
-                State = ConnectionStateEnum.OPEN_PIPE;
-            }
-        }
-
-        internal AmqpSession BeginSession(ushort channelNumber)
-        {
-            var session = GetSessionFromLocalChannel(channelNumber, false);
-            if (session != null)
-                return session; // already exists
-
-            // create session. send "Begin", and map
-            session = new AmqpSession(this, channelNumber, 0);
-            session.Begin();
-            localSessionMap[channelNumber] = session;
-
-            return session;
-        }
     }
 }
