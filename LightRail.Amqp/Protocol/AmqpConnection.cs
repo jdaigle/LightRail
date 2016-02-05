@@ -141,7 +141,7 @@ namespace LightRail.Amqp.Protocol
 
         private void OnFrameReceived(ByteBuffer buffer)
         {
-            if (HandleFrame(buffer))
+            if (HandleFrame(buffer) && State.CanReceiveFrames())
                 StartReceiveFrame(buffer); // loop if HandleFrame returns true
         }
 
