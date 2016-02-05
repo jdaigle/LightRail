@@ -47,9 +47,14 @@ namespace LightRail.Amqp.Types
             {
                 Property = property;
                 PropertyType = property.PropertyType;
+
                 IsNullable = Property.PropertyType.IsGenericType && Property.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>);
                 if (IsNullable)
                     PropertyType = Nullable.GetUnderlyingType(Property.PropertyType);
+
+                IsArrayType = Property.PropertyType.IsArray && !(typeof(byte[]).IsAssignableFrom(Property.PropertyType)); // ignore byte[] is a special type
+                if (IsArrayType)
+                    PropertyType = Property.PropertyType.GetElementType();
 
                 IsDescribedType = typeof(DescribedType).IsAssignableFrom(Property.PropertyType);
                 DescribedListIndex = property.GetCustomAttribute<AmqpDescribedListIndexAttribute>().Index;
@@ -58,7 +63,10 @@ namespace LightRail.Amqp.Types
             public PropertyInfo Property { get; }
             public Type PropertyType { get; }
             public bool IsNullable { get; }
+            public bool IsArrayType { get; }
+
             public object GetValue(object instance) => Property.GetValue(instance);
+            public void SetValue(object instance, object value) => Property.SetValue(instance, value);
 
             public bool IsDescribedType { get; }
             public int DescribedListIndex { get; }
@@ -110,70 +118,16 @@ namespace LightRail.Amqp.Types
             var properties = describedListType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(x => x.CanWrite)
                 .Where(x => x.GetCustomAttribute<AmqpDescribedListIndexAttribute>(false) != null)
-                .Select(x => new
-                {
-                    Name = x.Name,
-                    PropertyType = x.PropertyType,
-                    Setter = new Action<object, object>(x.SetValue), // TODO boxing!!!
-                    ListIndex = x.GetCustomAttribute<AmqpDescribedListIndexAttribute>().Index,
-                })
-                .ToDictionary(x => x.ListIndex);
+                .Select(x => new PropertyEncodingInfo(x))
+                .ToDictionary(x => x.DescribedListIndex);
 
-            var setIndexedValue = new Action<object, ByteBuffer, int>((_instance, _buffer, _index) =>
+            var setIndexedValue = new Action<ByteBuffer, object, int>((_buffer, _instance, _index) =>
             {
                 if (!properties.ContainsKey(_index))
                 {
                     throw new AmqpException(ErrorCode.InternalError, $"Invalid AMQP Frame[{describedListType.FullName}] at Index[{_index}]");
                 }
-                var prop = properties[_index];
-                var propertyType = prop.PropertyType;
-                bool isArrayProperty = propertyType.IsArray;
-
-                var formatCode = Encoder.ReadFormatCode(_buffer);
-                if (formatCode == FormatCode.Null)
-                {
-                    // null value, return
-                    return;
-                }
-
-                // special handling of nested described type
-                if (formatCode == FormatCode.Described)
-                {
-                    prop.Setter(_instance, Encoder.ReadDescribed(_buffer, formatCode));
-                    return;
-                }
-
-                if (formatCode == FormatCode.Array32 || formatCode == FormatCode.Array8)
-                {
-                    throw new NotImplementedException("Have Not Implemented Array Decoding");
-                }
-
-                var codec = Encoder.GetTypeCodec(formatCode);
-                if (codec == null)
-                {
-                    throw new AmqpException(ErrorCode.InternalError, $"Could Not Find Type Codec For FormateCode {formatCode.ToHex()} at Index[{_index}].{prop.Name}");
-                }
-
-                // special handling of Nullable<>
-                if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
-                    propertyType = Nullable.GetUnderlyingType(propertyType);
-                // special handling of single value into an array
-                if (isArrayProperty)
-                    propertyType = propertyType.GetElementType();
-
-                if (!propertyType.IsAssignableFrom(codec.Type))
-                {
-                    throw new AmqpException(ErrorCode.InternalError, $"Cannot Decode Type {codec.Type} into {prop.PropertyType} at Index[{_index}].{prop.Name}");
-                }
-
-                var decodedValue = codec.DecodeBoxedValue(_buffer, formatCode); // TODO: boxing!!!
-                if (isArrayProperty)
-                {
-                    var array = (System.Collections.IList)Activator.CreateInstance(prop.PropertyType, new object[] { 1 });
-                    array[0] = decodedValue;
-                    decodedValue = array;
-                }
-                prop.Setter(_instance, decodedValue); // TODO boxing!!!
+                DecodeProperty(_buffer, _instance, properties[_index]);
             });
 
             return new Action<ByteBuffer, DescribedType>((buffer, instance) =>
@@ -185,13 +139,57 @@ namespace LightRail.Amqp.Types
                     formatCode == FormatCode.List32 ||
                     formatCode == FormatCode.Null)
                 {
-                    Encoder.ReadList(buffer, formatCode, (_buffer, _index) => setIndexedValue(instance, _buffer, _index));
+                    Encoder.ReadList(buffer, formatCode, (_buffer, _index) => setIndexedValue(_buffer, instance, _index));
                 }
                 else
                 {
                     throw new AmqpException(ErrorCode.FramingError, $"Invalid Format Code For Frame: {formatCode.ToHex()}");
                 }
             });
+        }
+
+        private static void DecodeProperty(ByteBuffer buffer, object instance, PropertyEncodingInfo propertyInfo)
+        {
+            var formatCode = Encoder.ReadFormatCode(buffer);
+            if (formatCode == FormatCode.Null)
+            {
+                // null value, return
+                return;
+            }
+
+            // special handling of nested described type
+            if (formatCode == FormatCode.Described)
+            {
+                propertyInfo.SetValue(instance, Encoder.ReadDescribed(buffer, formatCode));
+                return;
+            }
+
+            if (formatCode == FormatCode.Array32 || formatCode == FormatCode.Array8)
+            {
+                throw new NotImplementedException("Have Not Implemented Array Decoding");
+            }
+
+            var codec = Encoder.GetTypeCodec(formatCode);
+            if (codec == null)
+            {
+                throw new AmqpException(ErrorCode.InternalError, $"Could Not Find Type Codec For FormateCode {formatCode.ToHex()} {propertyInfo.Property.PropertyType} {propertyInfo.Property.Name}");
+            }
+
+            if (!propertyInfo.PropertyType.IsAssignableFrom(codec.Type))
+            {
+                throw new AmqpException(ErrorCode.InternalError, $"Cannot Decode Type {codec.Type} into {propertyInfo.PropertyType} {propertyInfo.Property.PropertyType} {propertyInfo.Property.Name}");
+            }
+
+            var decodedValue = codec.DecodeBoxedValue(buffer, formatCode); // TODO: boxing!!!
+
+            if (propertyInfo.IsArrayType)
+            {
+                var array = (System.Collections.IList)Activator.CreateInstance(propertyInfo.Property.PropertyType, new object[] { 1 });
+                array[0] = decodedValue;
+                decodedValue = array;
+            }
+
+            propertyInfo.SetValue(instance, decodedValue); // TODO boxing!!!
         }
     }
 }
