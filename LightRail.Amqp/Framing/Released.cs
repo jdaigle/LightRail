@@ -2,8 +2,8 @@
 
 namespace LightRail.Amqp.Framing
 {
-    public abstract class Released : Outcome
+    public sealed class Released : Outcome
     {
-        protected Released() : base(DescribedTypeCodec.Released) { }
+        public Released() : base(DescribedTypeCodec.Released) { }
     }
 }

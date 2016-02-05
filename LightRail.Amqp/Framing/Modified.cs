@@ -2,9 +2,9 @@
 
 namespace LightRail.Amqp.Framing
 {
-    public abstract class Modified : Outcome
+    public sealed class Modified : Outcome
     {
-        protected Modified() : base(DescribedTypeCodec.Modified) { }
+        public Modified() : base(DescribedTypeCodec.Modified) { }
 
         [AmqpDescribedListIndex(0)]
         public bool DeliveryFailed { get; set; }
