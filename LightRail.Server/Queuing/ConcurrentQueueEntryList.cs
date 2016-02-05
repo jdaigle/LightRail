@@ -29,6 +29,7 @@ namespace LightRail.Server.Queuing
         public QueueEntry Enqueue(object item)
         {
             var entry = new QueueEntry();
+            entry.Item = item;
             entry.EnqueueDateTime = DateTime.UtcNow;
             while (true)
             {

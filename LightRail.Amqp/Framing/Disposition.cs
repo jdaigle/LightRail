@@ -66,7 +66,7 @@ namespace LightRail.Amqp.Framing
 
         /// <summary>
         /// If true, then the issuer is hinting that there is no need for the peer to urgently communicate the
-        /// impact of the updated delivery states.This hint MAY be used to artificially increase the amount of
+        /// impact of the updated delivery states. This hint MAY be used to artificially increase the amount of
         /// batching an implementation uses when communicating delivery states, and thereby save bandwidth.
         /// </summary>
         [AmqpDescribedListIndex(5)]

@@ -114,5 +114,10 @@ namespace LightRail.Amqp.Client
                 }
             }
         }
+
+        public bool CanAttachLink(AmqpLink newLink, Attach attach)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -46,6 +46,8 @@ namespace LightRail.Server.Queuing
         /// </summary>
         public QueueEntry Next { get { return next; } }
 
+        public object Item { get; internal set; }
+
         /// <summary>
         /// Returns the next non-archived entry. Or null. This method has the side-effect
         /// of updating .Next in case the current .Next is ARCHIVED.

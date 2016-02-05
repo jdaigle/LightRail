@@ -27,7 +27,7 @@ namespace LightRail.Amqp.Protocol
             senderSettlementMode = LinkSenderSettlementModeEnum.Mixed;
             receiverSettlementMode = LinkReceiverSettlementModeEnum.First;
 
-            deliveryCount = initialDeliveryCount = 0;
+            DeliveryCount = initialDeliveryCount = 0;
         }
 
         public string Name { get; }
@@ -49,6 +49,9 @@ namespace LightRail.Amqp.Protocol
 
         public LinkStateEnum State { get; private set; }
 
+        public string SourceAddress { get; private set; }
+        public string TargetAddress { get; private set; }
+
         private LinkSenderSettlementModeEnum senderSettlementMode;
         private LinkReceiverSettlementModeEnum receiverSettlementMode;
 
@@ -61,7 +64,7 @@ namespace LightRail.Amqp.Protocol
         /// 
         /// Only the sender MAY independently modify this field.
         /// </summary>
-        private uint deliveryCount;
+        public uint DeliveryCount { get; private set; }
         /// <summary>
         /// The maximum legal amount that the delivery-count can be increased by.
         /// 
@@ -71,7 +74,7 @@ namespace LightRail.Amqp.Protocol
         /// 
         /// Only the receiver can independently choose a value for this field.
         /// </summary>
-        private uint linkCredit;
+        public uint LinkCredit { get; private set; }
         /// <summary>
         /// Indicates how the sender SHOULD behave when insufficient messages are
         /// available to consume the current link-creditt. If set, the sender will (after sending all available
@@ -129,9 +132,15 @@ namespace LightRail.Amqp.Protocol
                 throw new AmqpException(ErrorCode.IllegalState, $"Received Attach frame but link state is {State.ToString()}.");
 
             if (!IsInitiatingLink && IsSenderLink)
+            {
                 senderSettlementMode = (LinkSenderSettlementModeEnum)attach.SenderSettlementMode;
+                SourceAddress = attach.Source.Address;
+            }
             if (!IsInitiatingLink && IsReceiverLink)
+            {
                 receiverSettlementMode = (LinkReceiverSettlementModeEnum)attach.ReceiverSettlementMode;
+                TargetAddress = attach.Target.Address;
+            }
 
             if (State == LinkStateEnum.DETACHED)
             {
@@ -154,7 +163,7 @@ namespace LightRail.Amqp.Protocol
                     if (attach.InitialDelieveryCount == null)
                         throw new AmqpException(ErrorCode.InvalidField, "initial-delivery-count must be set on attach from of sender.");
                     // expecting initial delivery count
-                    deliveryCount = attach.InitialDelieveryCount.Value;
+                    DeliveryCount = attach.InitialDelieveryCount.Value;
                 }
             }
 
@@ -175,7 +184,7 @@ namespace LightRail.Amqp.Protocol
             {
                 // flow control from sender
                 if (flow.DeliveryCount.HasValue)
-                    deliveryCount = flow.DeliveryCount.Value;
+                    DeliveryCount = flow.DeliveryCount.Value;
                 // TODO: ignoring Available field for now
                 //if (flow.Available.HasValue)
                 //    available = flow.Available.Value;
@@ -186,7 +195,7 @@ namespace LightRail.Amqp.Protocol
             {
                 // flow control from receiver
                 if (flow.LinkCredit.HasValue)
-                    linkCredit = flow.LinkCredit.Value;
+                    LinkCredit = flow.LinkCredit.Value;
                 drainFlag = flow.Drain ?? false;
                 // TODO respond to new flow control
             }
@@ -196,8 +205,8 @@ namespace LightRail.Amqp.Protocol
                 Session.SendFlow(new Flow()
                 {
                     Handle = LocalHandle,
-                    DeliveryCount = this.deliveryCount,
-                    LinkCredit = this.linkCredit,
+                    DeliveryCount = this.DeliveryCount,
+                    LinkCredit = this.LinkCredit,
                     Available = 0,
                     Drain = false,
                     Echo = drainFlag,
@@ -210,13 +219,13 @@ namespace LightRail.Amqp.Protocol
             if (IsSenderLink)
                 throw new InvalidOperationException("Cannot set link-credit on a sender link");
 
-            linkCredit = Math.Max(value, 0);
+            LinkCredit = Math.Max(value, 0);
 
             Session.SendFlow(new Flow()
             {
                 Handle = LocalHandle,
-                DeliveryCount = this.deliveryCount,
-                LinkCredit = this.linkCredit,
+                DeliveryCount = this.DeliveryCount,
+                LinkCredit = this.LinkCredit,
                 Available = 0,
                 Drain = false,
                 Echo = drainFlag,
@@ -227,11 +236,11 @@ namespace LightRail.Amqp.Protocol
         {
             if (State != LinkStateEnum.ATTACHED)
                 throw new AmqpException(ErrorCode.IllegalState, $"Received Transfer frame but link state is {State.ToString()}.");
-            if (linkCredit <= 0)
+            if (LinkCredit <= 0)
                 throw new AmqpException(ErrorCode.TransferLimitExceeded, "The link credit has dropped to 0. Wait for messages to finishing processing.");
 
-            linkCredit--;
-            deliveryCount++;
+            LinkCredit--;
+            DeliveryCount++;
 
             Session.Connection.Container.OnTransferReceived(this, transfer, buffer);
         }
@@ -279,6 +288,11 @@ namespace LightRail.Amqp.Protocol
                 }
 
             }
+        }
+
+        public void SendDisposition(Disposition disposition)
+        {
+            Session.SendFrame(disposition);
         }
     }
 }

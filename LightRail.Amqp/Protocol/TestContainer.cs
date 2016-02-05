@@ -16,6 +16,11 @@ namespace LightRail.Amqp.Protocol
         {
         }
 
+        public bool CanAttachLink(AmqpLink newLink, Attach attach)
+        {
+            return true;
+        }
+
         public void OnTransferReceived(AmqpLink link, Transfer transfer, ByteBuffer buffer)
         {
         }

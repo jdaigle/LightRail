@@ -19,6 +19,11 @@ namespace LightRail.Amqp
         void OnLinkAttached(AmqpLink link);
 
         /// <summary>
+        /// Returns whether or not the link can be attached to this container.
+        /// </summary>
+        bool CanAttachLink(AmqpLink newLink, Attach attach);
+
+        /// <summary>
         /// Called whenever a link receives a Transfer with a Message.
         /// </summary>
         /// <param name="link">The link on which the transfer was received.</param>
