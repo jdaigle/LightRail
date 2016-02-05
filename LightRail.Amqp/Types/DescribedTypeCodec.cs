@@ -85,7 +85,7 @@ namespace LightRail.Amqp.Types
                 .Select(x => x.GetValue(null) as Descriptor);
             foreach (var descriptor in descriptors)
             {
-                var className = descriptor.Name.Substring(5, descriptor.Name.LastIndexOf(':') - 5);
+                var className = descriptor.Name.Substring(5, descriptor.Name.LastIndexOf(':') - 5).Replace("-", "");
                 var describedType = describedTypes.FirstOrDefault(x => string.Equals(x.Name, className, StringComparison.InvariantCultureIgnoreCase));
 
                 knownDescribedTypeDescriptors.Add(descriptor.Code, descriptor);
@@ -120,7 +120,7 @@ namespace LightRail.Amqp.Types
             if (typeof(DescribedList).IsAssignableFrom(describedType))
                 return DescribedListCodec.CompileDecoder(descriptor, describedType);
             else
-                throw new NotImplementedException($"Have not implemented decoder for {describedType.ToString()}");
+                return (buffer, instance) => instance.Decode(buffer);
         }
 
         private static Action<ByteBuffer, DescribedType> CompileEncoder(Descriptor descriptor, Type describedType)
@@ -128,15 +128,15 @@ namespace LightRail.Amqp.Types
             if (typeof(DescribedList).IsAssignableFrom(describedType))
                 return DescribedListCodec.CompileEncoder(descriptor, describedType);
             else
-                throw new NotImplementedException($"Have not implemented decoder for {describedType.ToString()}");
+                return (buffer, instance) => instance.Encode(buffer);
         }
 
-        internal static bool IsKnownDescribedList(Descriptor descriptor)
+        internal static bool IsKnownDescribedType(Descriptor descriptor)
         {
             return knownDescribedTypeDescriptors.ContainsKey(descriptor.Code);
         }
 
-        internal static object DecodeDescribedList(ByteBuffer buffer, ulong code)
+        internal static object DecodeDescribedType(ByteBuffer buffer, ulong code)
         {
             var descriptor = knownDescribedTypeDescriptors[code];
             Func<object> ctor;

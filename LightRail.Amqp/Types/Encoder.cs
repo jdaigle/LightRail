@@ -696,9 +696,9 @@ namespace LightRail.Amqp.Types
             }
 
             var descriptor = new Descriptor(Encoder.ReadBoxedObject(buffer));
-            if (DescribedTypeCodec.IsKnownDescribedList(descriptor))
+            if (DescribedTypeCodec.IsKnownDescribedType(descriptor))
             {
-                return DescribedTypeCodec.DecodeDescribedList(buffer, descriptor.Code);
+                return DescribedTypeCodec.DecodeDescribedType(buffer, descriptor.Code);
             }
             // TODO: boxed object
             object value = Encoder.ReadBoxedObject(buffer);

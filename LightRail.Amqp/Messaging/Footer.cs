@@ -16,7 +16,7 @@ namespace LightRail.Amqp.Messaging
     /// 
     /// A registry of defined footers and their meanings is maintained[AMQPFOOTER].
     /// </remarks>
-    public class Footer : DescribedList // TODO: this should be a map, not a list
+    public sealed class Footer : DescribedMap
     {
         public Footer() : base(MessagingDescriptors.Footer) { }
     }

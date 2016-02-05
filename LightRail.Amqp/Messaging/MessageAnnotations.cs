@@ -24,7 +24,7 @@ namespace LightRail.Amqp.Messaging
     /// </type>
     /// 
     /// </remarks>
-    public class MessageAnnotations : DescribedList // TODO: this should be a map, not a list
+    public sealed class MessageAnnotations : DescribedMap
     {
         public MessageAnnotations() : base(MessagingDescriptors.MessageAnnotations) { }
     }

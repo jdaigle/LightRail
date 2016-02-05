@@ -89,37 +89,37 @@ namespace LightRail.Amqp.Messaging
 
                 if (descriptorCode == DescribedTypeCodec.Header.Code)
                 {
-                    message.Header = (Header)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.Header = (Header)DescribedTypeCodec.DecodeDescribedType(buffer, descriptorCode);
                     continue;
                 }
 
                 if (descriptorCode == DescribedTypeCodec.DeliveryAnnotations.Code)
                 {
-                    message.DeliveryAnnotations = (DeliveryAnnotations)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.DeliveryAnnotations = (DeliveryAnnotations)DescribedTypeCodec.DecodeDescribedType(buffer, descriptorCode);
                     continue;
                 }
 
                 if (descriptorCode == DescribedTypeCodec.MessageAnnotations.Code)
                 {
-                    message.MessageAnnotations = (MessageAnnotations)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.MessageAnnotations = (MessageAnnotations)DescribedTypeCodec.DecodeDescribedType(buffer, descriptorCode);
                     continue;
                 }
 
                 if (descriptorCode == DescribedTypeCodec.Footer.Code)
                 {
-                    message.Footer = (Footer)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.Footer = (Footer)DescribedTypeCodec.DecodeDescribedType(buffer, descriptorCode);
                     continue;
                 }
 
                 if (descriptorCode == DescribedTypeCodec.Properties.Code)
                 {
-                    message.Properties = (Properties)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.Properties = (Properties)DescribedTypeCodec.DecodeDescribedType(buffer, descriptorCode);
                     continue;
                 }
 
                 if (descriptorCode == DescribedTypeCodec.ApplicationProperties.Code)
                 {
-                    message.ApplicationProperties = (ApplicationProperties)DescribedTypeCodec.DecodeDescribedList(buffer, descriptorCode);
+                    message.ApplicationProperties = (ApplicationProperties)DescribedTypeCodec.DecodeDescribedType(buffer, descriptorCode);
                     continue;
                 }
 

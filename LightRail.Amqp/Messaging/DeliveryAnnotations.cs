@@ -19,7 +19,7 @@ namespace LightRail.Amqp.Messaging
     /// If the delivery-annotations section is omitted, it is equivalent to a delivery-annotations section containing an empty
     /// map of annotations.
     /// </remarks>
-    public sealed class DeliveryAnnotations : DescribedList // TODO: this should be a map, not a list
+    public sealed class DeliveryAnnotations : DescribedMap
     {
         public DeliveryAnnotations() : base(MessagingDescriptors.DeliveryAnnotations) { }
     }

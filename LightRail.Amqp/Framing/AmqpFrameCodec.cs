@@ -38,7 +38,7 @@ namespace LightRail.Amqp.Framing
 
             // decode
             var descriptor = DescribedTypeCodec.ReadDescriptorCode(buffer);
-            return (AmqpFrame)DescribedTypeCodec.DecodeDescribedList(buffer, descriptor);
+            return (AmqpFrame)DescribedTypeCodec.DecodeDescribedType(buffer, descriptor);
         }
 
         public static void EncodeFrame(ByteBuffer buffer, AmqpFrame frame, ushort channelNumber)

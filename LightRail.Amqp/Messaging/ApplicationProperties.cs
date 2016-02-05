@@ -14,7 +14,7 @@ namespace LightRail.Amqp.Messaging
     /// The keys of this map are restricted to be of type string (which excludes the possibility of a null key) and the
     /// values are restricted to be of simple types only, that is, excluding map, list, and array types.
     /// </remarks>
-    public sealed class ApplicationProperties : DescribedList // TODO: this should be a map, not a list
+    public sealed class ApplicationProperties : DescribedMap
     {
         public ApplicationProperties() : base(MessagingDescriptors.ApplicationProperties) { }
     }

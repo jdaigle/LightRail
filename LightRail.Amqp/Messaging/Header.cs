@@ -20,7 +20,7 @@ namespace LightRail.Amqp.Messaging
     /// by no value being set) for the fields within the header unless other target or node specific defaults have otherwise
     /// been set.
     /// </remarks>
-    public class Header : DescribedList
+    public sealed class Header : DescribedList
     {
         public Header() : base(MessagingDescriptors.Header) { }
 
