@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace LightRail.Amqp.Types
@@ -110,7 +111,9 @@ namespace LightRail.Amqp.Types
             var ctor = describedType.GetConstructor(new Type[0]);
             if (ctor != null)
             {
-                return () => ctor.Invoke(null);
+                NewExpression newExp = Expression.New(ctor);
+                LambdaExpression lambda = Expression.Lambda(typeof(Func<object>), newExp);
+                return (Func<object>)lambda.Compile();
             }
             return null;
         }

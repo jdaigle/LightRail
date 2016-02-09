@@ -131,7 +131,8 @@ namespace LightRail.Amqp.Types
             {
                 return DescribedTypeCodec.DecodeDescribedType(buffer, descriptor.Code);
             }
-            object value = DecodeBoxedObject(buffer); // TODO: boxing
+            object value = DecodeBoxedObject(buffer); // TODO: performance. boxing
+            // TODO: performance. Can we compile and cache a lambda expression instead of using reflection?
             var describedType = typeof(DescribedValue<>).MakeGenericType(value.GetType());
             return Activator.CreateInstance(describedType, descriptor, value);
         }
@@ -236,7 +237,7 @@ namespace LightRail.Amqp.Types
 
             if (value is Array)
             {
-                // TODO: strongly typed arrays
+                // TODO: performance. strongly typed arrays
                 EncodeBoxedObject(buffer, value, arrayEncoding);
                 return;
             }
