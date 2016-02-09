@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using LightRail.Amqp.Framing;
+using LightRail.Amqp.Types;
 using NUnit.Framework;
 
 namespace LightRail.Amqp.Protocol
@@ -198,8 +199,8 @@ namespace LightRail.Amqp.Protocol
             var chan = (ushort)ran.Next(1, 100);
 
             var buffer = new ByteBuffer(defaultAcceptedProtocol, 0, defaultAcceptedProtocol.Length, defaultAcceptedProtocol.Length, true);
-            AmqpFrameCodec.EncodeFrame(buffer, new Open(), 0);
-            AmqpFrameCodec.EncodeFrame(buffer, new Begin(), chan);
+            AmqpCodec.EncodeFrame(buffer, new Open(), 0);
+            AmqpCodec.EncodeFrame(buffer, new Begin(), chan);
             connection.HandleHeader(buffer);
             connection.HandleFrame(buffer);
             connection.HandleFrame(buffer);

@@ -30,11 +30,8 @@ using LightRail.Amqp.Framing;
 
 namespace LightRail.Amqp.Types
 {
-    delegate void Encode<T>(ByteBuffer buffer, T value, bool smallEncoding);
-    delegate T Decode<T>(ByteBuffer buffer, byte formatCode);
-
     /// <summary>
-    /// Encodes or decodes AMQP types.
+    /// Encodes or decodes AMQP primative types.
     /// </summary>
     public static class Encoder
     {
@@ -61,92 +58,12 @@ namespace LightRail.Amqp.Types
             return new DateTime(epochTicks + timestamp * ticksPerMillisecond, DateTimeKind.Utc);
         }
 
-        public static byte ReadFormatCode(ByteBuffer buffer)
-        {
-            return AmqpBitConverter.ReadUByte(buffer);
-        }
-
         /// <summary>
         /// Writes an AMQP null value to a buffer.
         /// </summary>
         public static void WriteNull(ByteBuffer buffer)
         {
             AmqpBitConverter.WriteUByte(buffer, FormatCode.Null);
-        }
-
-        /// <summary>
-        /// Writes a boxed AMQP object to a buffer.
-        /// </summary>
-        /// <param name="buffer">The buffer to write.</param>
-        /// <param name="value">The boxed AMQP value.</param>
-        /// <param name="arrayEncoding">if true, will force the primative to be written in it's largest representation.</param>
-        public static void WriteBoxedObject(ByteBuffer buffer, object value, bool arrayEncoding = false)
-        {
-            if (value == null)
-            {
-                Encoder.WriteNull(buffer);
-            }
-            else
-            {
-                if (value is DescribedType)
-                {
-                    (value as DescribedType).Encode(buffer);
-                }
-                else
-                {
-                    var codec = GetTypeCodec(value.GetType());
-                    if (codec != null)
-                    {
-                        codec.EncodeBoxedValue(buffer, value, arrayEncoding);
-                    }
-                    else
-                    {
-                        throw TypeNotSupportedException(value.GetType());
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Writes an AMQP object to a buffer.
-        /// </summary>
-        /// <param name="buffer">The buffer to write.</param>
-        /// <param name="value">The AMQP value.</param>
-        /// <param name="arrayEncoding">if true, will force the primative to be written in it's largest representation.</param>
-        public static void WriteObject<T>(ByteBuffer buffer, T value, bool arrayEncoding = false)
-        {
-#if DEBUG
-            if (typeof(T) == typeof(object))
-            {
-                System.Diagnostics.Debug.Fail("Cannot Call WriteObject<t> with base object. Call WriteBoxedObject() instead.");
-            }
-#endif
-            if (value == null)
-            {
-                Encoder.WriteNull(buffer);
-            }
-            else if (value is Array)
-            {
-                // TODO: strongly typed arrays
-                WriteBoxedObject(buffer, value, arrayEncoding);
-            }
-            else
-            {
-                Encode<T> encoder;
-                Decode<T> decoder;
-                if (TryGetCodec<T>(out encoder, out decoder))
-                {
-                    encoder(buffer, value, arrayEncoding);
-                }
-                else if (value is DescribedType)
-                {
-                    (value as DescribedType).Encode(buffer);
-                }
-                else
-                {
-                    throw TypeNotSupportedException(value.GetType());
-                }
-            }
         }
 
         /// <summary>
@@ -465,7 +382,7 @@ namespace LightRail.Amqp.Types
 
                 WriteList(buffer, listSize, (_buffer, _index, _arrayEncoding) =>
                 {
-                    Encoder.WriteBoxedObject(_buffer, value[_index], _arrayEncoding);
+                    AmqpCodec.EncodeBoxedObject(_buffer, value[_index], _arrayEncoding);
                 }, arrayEncoding);
             }
         }
@@ -543,14 +460,14 @@ namespace LightRail.Amqp.Types
                     if (i == 0)
                     {
                         // TODO: strongly typed arrays
-                        Encoder.WriteBoxedObject(buffer, item, false);
+                        AmqpCodec.EncodeBoxedObject(buffer, item, false);
                     }
                     else
                     {
                         int lastPos = buffer.WriteOffset - 1;
                         byte lastByte = buffer.Buffer[lastPos];
                         buffer.ShrinkWrite(1);
-                        Encoder.WriteBoxedObject(buffer, item, false);
+                        AmqpCodec.EncodeBoxedObject(buffer, item, false);
                         buffer.Buffer[lastPos] = lastByte;
                     }
                 }
@@ -595,8 +512,8 @@ namespace LightRail.Amqp.Types
 
                 foreach (var key in value.Keys)
                 {
-                    Encoder.WriteBoxedObject(buffer, key);
-                    Encoder.WriteBoxedObject(buffer, value[key]);
+                    AmqpCodec.EncodeBoxedObject(buffer, key);
+                    AmqpCodec.EncodeBoxedObject(buffer, value[key]);
                 }
 
                 int size = buffer.WriteOffset - pos - 9;
@@ -617,93 +534,6 @@ namespace LightRail.Amqp.Types
                     AmqpBitConverter.WriteInt(buffer.Buffer, pos + 5, count);
                 }
             }
-        }
-
-        /// <summary>
-        /// Reads a boxed object from a buffer.
-        /// </summary>
-        /// <param name="buffer">The buffer to read.</param>
-        public static object ReadBoxedObject(ByteBuffer buffer)
-        {
-            byte formatCode = Encoder.ReadFormatCode(buffer);
-            return ReadBoxedObject(buffer, formatCode);
-        }
-
-        /// <summary>
-        /// Reads an object from a buffer.
-        /// </summary>
-        /// <param name="buffer">The buffer to read.</param>
-        public static T ReadObject<T>(ByteBuffer buffer)
-        {
-            byte formatCode = Encoder.ReadFormatCode(buffer);
-            return ReadObject<T>(buffer, formatCode);
-        }
-
-        /// <summary>
-        /// Reads an object from a buffer.
-        /// </summary>
-        /// <param name="buffer">The buffer to read.</param>
-        /// <param name="formatCode">The format code of the value.</param>
-        /// <returns></returns>
-        public static object ReadBoxedObject(ByteBuffer buffer, byte formatCode)
-        {
-            var codec = GetTypeCodec(formatCode);
-            if (codec != null)
-            {
-                return codec.DecodeBoxedValue(buffer, formatCode);
-            }
-            if (formatCode == FormatCode.Described)
-            {
-                return ReadDescribed(buffer, formatCode);
-            }
-            throw InvalidFormatCodeException(formatCode, buffer.ReadOffset);
-        }
-
-        /// <summary>
-        /// Reads an object from a buffer.
-        /// </summary>
-        /// <param name="buffer">The buffer to read.</param>
-        /// <param name="formatCode">The format code of the value.</param>
-        /// <returns></returns>
-        public static T ReadObject<T>(ByteBuffer buffer, byte formatCode)
-        {
-            var codec = GetTypeCodec(formatCode);
-            if (codec is NullTypeCodec)
-            {
-                return default(T);
-            }
-            if (codec is TypeCodec<T>)
-            {
-                return ((TypeCodec<T>)codec).Decode(buffer, formatCode);
-            }
-            if (formatCode == FormatCode.Described)
-            {
-                return (T)ReadDescribed(buffer, formatCode);
-            }
-            throw InvalidFormatCodeException(formatCode, buffer.ReadOffset);
-        }
-
-        /// <summary>
-        /// Reads a described value from a buffer.
-        /// </summary>
-        /// <param name="buffer">The buffer to read.</param>
-        /// <param name="formatCode">The format code of the value.</param>
-        public static object ReadDescribed(ByteBuffer buffer, byte formatCode)
-        {
-            if (formatCode != FormatCode.Described)
-            {
-                throw new ArgumentException(nameof(formatCode), "Format code must be described (0)");
-            }
-
-            var descriptor = new Descriptor(Encoder.ReadBoxedObject(buffer));
-            if (DescribedTypeCodec.IsKnownDescribedType(descriptor))
-            {
-                return DescribedTypeCodec.DecodeDescribedType(buffer, descriptor.Code);
-            }
-            // TODO: boxed object
-            object value = Encoder.ReadBoxedObject(buffer);
-            var describedType = typeof(DescribedValue<>).MakeGenericType(value.GetType());
-            return Activator.CreateInstance(describedType, descriptor, value);
         }
 
         /// <summary>
@@ -1047,7 +877,7 @@ namespace LightRail.Amqp.Types
             var list = new AmqpList();
             ReadList(buffer, formatCode, (_byteBuffer, _index) =>
             {
-                list.Add(ReadBoxedObject(buffer));
+                list.Add(AmqpCodec.DecodeBoxedObject(buffer));
             });
             return list;
         }
@@ -1121,7 +951,7 @@ namespace LightRail.Amqp.Types
                 throw InvalidFormatCodeException(formatCode, buffer.ReadOffset);
             }
 
-            formatCode = Encoder.ReadFormatCode(buffer);
+            formatCode = AmqpCodec.DecodeFormatCode(buffer);
 
             // TODO: generic arrays
             var codec = GetTypeCodec(formatCode);
@@ -1177,7 +1007,7 @@ namespace LightRail.Amqp.Types
             Map value = new Map();
             for (int i = 0; i < count; i += 2)
             {
-                value.Add(ReadBoxedObject(buffer), ReadBoxedObject(buffer));
+                value.Add(AmqpCodec.DecodeBoxedObject(buffer), AmqpCodec.DecodeBoxedObject(buffer));
             }
 
             return value;
@@ -1229,217 +1059,128 @@ namespace LightRail.Amqp.Types
                 $"The type '{type}' is not a valid AMQP type and cannot be encoded.");
         }
 
-
-        public static void WriteBinaryBuffer(ByteBuffer buffer, ByteBuffer value)
-        {
-            if (value == null)
-            {
-                Encoder.WriteNull(buffer);
-            }
-            else if (value.LengthAvailableToRead <= byte.MaxValue)
-            {
-                AmqpBitConverter.WriteUByte(buffer, FormatCode.Binary8);
-                AmqpBitConverter.WriteUByte(buffer, (byte)value.LengthAvailableToRead);
-            }
-            else
-            {
-                AmqpBitConverter.WriteUByte(buffer, FormatCode.Binary32);
-                AmqpBitConverter.WriteUInt(buffer, (uint)value.LengthAvailableToRead);
-            }
-
-            AmqpBitConverter.WriteBytes(buffer, value.Buffer, value.ReadOffset, value.LengthAvailableToRead);
-        }
-
-        public static ByteBuffer ReadBinaryBuffer(ByteBuffer buffer)
-        {
-            byte formatCode = Encoder.ReadFormatCode(buffer);
-            if (formatCode == FormatCode.Null)
-            {
-                return null;
-            }
-
-            int count;
-            if (formatCode == FormatCode.Binary8)
-            {
-                count = AmqpBitConverter.ReadUByte(buffer);
-            }
-            else if (formatCode == FormatCode.Binary32)
-            {
-                count = (int)AmqpBitConverter.ReadUInt(buffer);
-            }
-            else
-            {
-                throw InvalidFormatCodeException(formatCode, buffer.ReadOffset);
-            }
-
-            buffer.ValidateRead(count);
-            ByteBuffer result = new ByteBuffer(buffer.Buffer, buffer.ReadOffset, count, count);
-            buffer.CompleteRead(count);
-
-            return result;
-        }
-
-        internal abstract class TypeCodec
-        {
-            public abstract Type Type { get; }
-            public abstract void EncodeBoxedValue(ByteBuffer buffer, object value, bool arrayEncoding);
-            public abstract object DecodeBoxedValue(ByteBuffer buffer, byte formatCode);
-        }
-
-        internal class TypeCodec<T> : TypeCodec
-        {
-            public TypeCodec()
-            {
-                Type = typeof(T);
-            }
-            public override Type Type { get; }
-            public Encode<T> Encode { get; set; }
-            public Decode<T> Decode { get; set; }
-
-            public override void EncodeBoxedValue(ByteBuffer buffer, object value, bool arrayEncoding)
-            {
-                Encode(buffer, (T)value, arrayEncoding);
-            }
-
-            public override object DecodeBoxedValue(ByteBuffer buffer, byte formatCode)
-            {
-                return Decode(buffer, formatCode);
-            }
-        }
-
-        internal class NullTypeCodec : TypeCodec<object>
-        {
-            public NullTypeCodec()
-            {
-                Encode = (buffer, value, arrayEncoding) => WriteNull(buffer);
-                Decode = (buffer, _byte) => null;
-            }
-
-            public override Type Type { get { return null; } }
-        }
-
         static Encoder()
         {
-            typeCodecs = new TypeCodec[]
+            typeCodecs = new PrimativeTypeCodec[]
             {
                 // 0: null
                 new NullTypeCodec(),
                 // 1: boolean
-                new TypeCodec<bool>
+                new PrimativeTypeCodec<bool>
                 {
                     Encode = WriteBoolean,
                     Decode = ReadBoolean,
                 },
                 // 2: ubyte
-                new TypeCodec<byte>
+                new PrimativeTypeCodec<byte>
                 {
                     Encode = (buffer, value, arrayEncoding) => WriteUByte(buffer, value),
                     Decode = ReadUByte,
                 },
                 // 3: ushort
-                new TypeCodec<ushort>
+                new PrimativeTypeCodec<ushort>
                 {
                     Encode = (buffer, value, arrayEncoding) => WriteUShort(buffer, value),
                     Decode = ReadUShort
                 },
                 // 4: uint
-                new TypeCodec<uint>
+                new PrimativeTypeCodec<uint>
                 {
                     Encode = WriteUInt,
                     Decode = ReadUInt
                 },
                 // 5: ulong
-                new TypeCodec<ulong>
+                new PrimativeTypeCodec<ulong>
                 {
                     Encode = WriteULong,
                     Decode = ReadULong,
                 },
                 // 6: byte
-                new TypeCodec<sbyte>
+                new PrimativeTypeCodec<sbyte>
                 {
                     Encode = (buffer, value, arrayEncoding) => WriteByte(buffer, value),
                     Decode = ReadByte,
                 },
                 // 7: short
-                new TypeCodec<short>
+                new PrimativeTypeCodec<short>
                 {
                     Encode = (buffer, value, arrayEncoding) => WriteShort(buffer, value),
                     Decode = ReadShort,
                 },
                 // 8: int
-                new TypeCodec<int>
+                new PrimativeTypeCodec<int>
                 {
                     Encode = WriteInt,
                     Decode = ReadInt,
                 },
                 // 9: long
-                new TypeCodec<long>
+                new PrimativeTypeCodec<long>
                 {
                     Encode = WriteLong,
                     Decode = ReadLong,
                 },
                 // 10: float
-                new TypeCodec<float>
+                new PrimativeTypeCodec<float>
                 {
                     Encode = (buffer, value, arrayEncoding) => WriteFloat(buffer, value),
                     Decode = ReadFloat
                 },
                 // 11: double
-                new TypeCodec<double>
+                new PrimativeTypeCodec<double>
                 {
                     Encode = (buffer, value, arrayEncoding) => WriteDouble(buffer, value),
                     Decode = ReadDouble,
                 },
                 // 12: char
-                new TypeCodec<char>
+                new PrimativeTypeCodec<char>
                 {
                     Encode = (buffer, value, arrayEncoding) => WriteChar(buffer, value),
                     Decode = ReadChar,
                 },
                 // 13: timestamp
-                new TypeCodec<DateTime>
+                new PrimativeTypeCodec<DateTime>
                 {
                     Encode = (buffer, value, arrayEncoding) => WriteTimestamp(buffer, value),
                     Decode = ReadTimestamp,
                 },
                 // 14: uuid
-                new TypeCodec<Guid>
+                new PrimativeTypeCodec<Guid>
                 {
                     Encode = (buffer, value, arrayEncoding) => WriteUuid(buffer, value),
                     Decode = ReadUuid,
                 },
                 // 15: binary
-                new TypeCodec<byte[]>
+                new PrimativeTypeCodec<byte[]>
                 {
                     Encode = WriteBinary,
                     Decode = ReadBinary,
                 },
                 // 16: string
-                new TypeCodec<string>
+                new PrimativeTypeCodec<string>
                 {
                     Encode = WriteString,
                     Decode = ReadString,
                 },
                 // 17: symbol
-                new TypeCodec<Symbol>
+                new PrimativeTypeCodec<Symbol>
                 {
                     Encode = WriteSymbol,
                     Decode = ReadSymbol,
                 },
                 // 18: list
-                new TypeCodec<AmqpList>
+                new PrimativeTypeCodec<AmqpList>
                 {
                     Encode = WriteBoxedList,
                     Decode = ReadBoxedList,
                 },
                 // 19: map
-                new TypeCodec<Map>
+                new PrimativeTypeCodec<Map>
                 {
                     Encode = WriteMap,
                     Decode = ReadMap,
                 },
                 // 20: array
-                new TypeCodec<Array>
+                new PrimativeTypeCodec<Array>
                 {
                     Encode = (buffer, value, arrayEncoding) => WriteArray(buffer, value),
                     Decode = ReadArray,
@@ -1448,7 +1189,7 @@ namespace LightRail.Amqp.Types
                 null
             };
 
-            codecByType = new Dictionary<Type, TypeCodec>()
+            codecByType = new Dictionary<Type, PrimativeTypeCodec>()
             {
                 { typeof(bool),     typeCodecs[1] },
                 { typeof(byte),     typeCodecs[2] },
@@ -1473,53 +1214,53 @@ namespace LightRail.Amqp.Types
                 { typeof(Array),    typeCodecs[20] },
             };
 
-            codecIndexTable = new byte[][]
+            codecIndexTable = new PrimativeTypeCodec[][]
             {
                 // 0x40:null, 0x41:boolean.true, 0x42:boolean.false, 0x43:uint0, 0x44:ulong0, 0x45:list0
-                new byte[] { 0, 1, 1, 4, 5, 18 },
+                new PrimativeTypeCodec[] { typeCodecs[0], typeCodecs[1], typeCodecs[1], typeCodecs[4], typeCodecs[5], typeCodecs[18] },
 
                 // 0x50:ubyte, 0x51:byte, 0x52:small.uint, 0x53:small.ulong, 0x54:small.int, 0x55:small.long, 0x56:boolean
-                new byte[] { 2, 6, 4, 5, 8, 9, 1 },
+                new PrimativeTypeCodec[] { typeCodecs[2], typeCodecs[6], typeCodecs[4], typeCodecs[5], typeCodecs[8], typeCodecs[9], typeCodecs[1] },
 
                 // 0x60:ushort, 0x61:short
-                new byte[] { 3, 7 },
+                new PrimativeTypeCodec[] { typeCodecs[3], typeCodecs[7] },
 
                 // 0x70:uint, 0x71:int, 0x72:float, 0x73:char, 0x74:decimal32
-                new byte[] { 4, 8, 10, 12 },
+                new PrimativeTypeCodec[] { typeCodecs[4], typeCodecs[8], typeCodecs[10], typeCodecs[12] },
 
                 // 0x80:ulong, 0x81:long, 0x82:double, 0x83:timestamp, 0x84:decimal64
-                new byte[] { 5, 9, 11, 13 },
+                new PrimativeTypeCodec[] { typeCodecs[5], typeCodecs[9], typeCodecs[11], typeCodecs[13] },
 
                 // 0x98:uuid
-                new byte[] { 21, 21, 21, 21, 21, 21, 21, 21, 14 },
+                new PrimativeTypeCodec[] { typeCodecs[21], typeCodecs[21], typeCodecs[21], typeCodecs[21], typeCodecs[21], typeCodecs[21], typeCodecs[21], typeCodecs[21], typeCodecs[14] },
             
                 // 0xa0:bin8, 0xa1:str8, 0xa3:sym8
-                new byte[] { 15, 16, 21, 17 },
+                new PrimativeTypeCodec[] { typeCodecs[15], typeCodecs[16], typeCodecs[21], typeCodecs[17] },
 
                 // 0xb0:bin32, 0xb1:str32, 0xb3:sym32
-                new byte[] { 15, 16, 21, 17 },
+                new PrimativeTypeCodec[] { typeCodecs[15], typeCodecs[16], typeCodecs[21], typeCodecs[17] },
 
                 // 0xc0:list8, 0xc1:map8
-                new byte[] { 18, 19 },
+                new PrimativeTypeCodec[] { typeCodecs[18], typeCodecs[19] },
 
                 // 0xd0:list32, 0xd1:map32
-                new byte[] { 18, 19 },
+                new PrimativeTypeCodec[] { typeCodecs[18], typeCodecs[19] },
 
                 // 0xe0:array8
-                new byte[] { 20 },
+                new PrimativeTypeCodec[] { typeCodecs[20] },
 
                 // 0xf0:array32
-                new byte[] { 20 }
+                new PrimativeTypeCodec[] { typeCodecs[20] }
             };
         }
 
-        private static readonly TypeCodec[] typeCodecs;
-        private static readonly Dictionary<Type, TypeCodec> codecByType;
-        private static readonly byte[][] codecIndexTable;
+        private static readonly PrimativeTypeCodec[] typeCodecs;
+        private static readonly Dictionary<Type, PrimativeTypeCodec> codecByType;
+        private static readonly PrimativeTypeCodec[][] codecIndexTable;
 
-        internal static TypeCodec GetTypeCodec(Type type)
+        internal static PrimativeTypeCodec GetTypeCodec(Type type)
         {
-            TypeCodec codec = null;
+            PrimativeTypeCodec codec = null;
             codecByType.TryGetValue(type, out codec);
             if (codec == null)
             {
@@ -1532,40 +1273,12 @@ namespace LightRail.Amqp.Types
             return codec;
         }
 
-        internal static TypeCodec<T> GetTypeCodec<T>()
+        internal static PrimativeTypeCodec<T> GetTypeCodec<T>()
         {
-            return (TypeCodec<T>)GetTypeCodec(typeof(T));
+            return (PrimativeTypeCodec<T>)GetTypeCodec(typeof(T));
         }
 
-        internal static bool TryGetCodec<T>(out Encode<T> encoder, out Decode<T> decoder)
-        {
-            var type = typeof(T);
-            var codec = GetTypeCodec<T>();
-
-            if (codec == null)
-            {
-                if (type.IsArray)
-                {
-                    throw new NotImplementedException("TODO: strongly typed arrays...");
-                    //codec = GetTypeCodec<Array>();
-                }
-            }
-
-            if (codec != null)
-            {
-                encoder = codec.Encode;
-                decoder = codec.Decode;
-                return true;
-            }
-            else
-            {
-                encoder = null;
-                decoder = null;
-                return false;
-            }
-        }
-
-        internal static TypeCodec GetTypeCodec(byte formatCode)
+        internal static PrimativeTypeCodec GetTypeCodec(byte formatCode)
         {
             int type = ((formatCode & 0xF0) >> 4) - 4;
             if (type >= 0 && type < codecIndexTable.Length)
@@ -1573,10 +1286,9 @@ namespace LightRail.Amqp.Types
                 int index = formatCode & 0x0F;
                 if (index < codecIndexTable[type].Length)
                 {
-                    return typeCodecs[codecIndexTable[type][index]];
+                    return codecIndexTable[type][index];
                 }
             }
-
             return null;
         }
     }

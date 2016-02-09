@@ -17,7 +17,7 @@
 
         protected override void DecodeValue(ByteBuffer buffer)
         {
-            Value = Encoder.ReadObject<T>(buffer);
+            Value = AmqpCodec.DecodeObject<T>(buffer);
         }
 
         public override int GetHashCode()

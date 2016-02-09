@@ -159,7 +159,7 @@ namespace LightRail.Amqp.Protocol
                     if (State.ShouldIgnoreReceivedData())
                         return true;
                     ushort remoteChannelNumber = 0;
-                    var frame = AmqpFrameCodec.DecodeFrame(buffer, out remoteChannelNumber);
+                    var frame = AmqpCodec.DecodeFrame(buffer, out remoteChannelNumber);
                     LastFrameReceivedDateTime = DateTime.UtcNow;
                     if (frame == null)
                     {
@@ -447,7 +447,7 @@ namespace LightRail.Amqp.Protocol
         {
             // TODO: get pinned send buffer from socket to prevent an unneccessary array copy
             var buffer = new ByteBuffer((int)MaxFrameSize, false);
-            AmqpFrameCodec.EncodeFrame(buffer, frame, channelNumber);
+            AmqpCodec.EncodeFrame(buffer, frame, channelNumber);
             if (Trace.IsDebugEnabled)
                 trace.Debug("Sending Frame: {0}", frame.ToString());
             socket.Write(buffer);

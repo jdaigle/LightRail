@@ -81,7 +81,7 @@ namespace LightRail.Amqp.Messaging
                 int offOfDescribedList = buffer.ReadOffset;
 
                 // peak at the type of the described list
-                var formatCode = Encoder.ReadFormatCode(buffer);
+                var formatCode = AmqpCodec.DecodeFormatCode(buffer);
                 if (formatCode != FormatCode.Described)
                     throw new AmqpException(ErrorCode.FramingError, $"Expected Format Code = {FormatCode.Described.ToHex()} but was {formatCode.ToHex()}");
 

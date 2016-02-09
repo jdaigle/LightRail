@@ -17,7 +17,7 @@
 
         protected override void DecodeValue(ByteBuffer buffer)
         {
-            map = Encoder.ReadMap(buffer, Encoder.ReadFormatCode(buffer));
+            map = Encoder.ReadMap(buffer, AmqpCodec.DecodeFormatCode(buffer));
         }
     }
 }

@@ -62,7 +62,6 @@
     <Compile Include="Framing\Released.cs" />
     <Compile Include="Framing\Modified.cs" />
     <Compile Include="Framing\AmqpFrame.cs" />
-    <Compile Include="Framing\AmqpFrameCodec.cs" />
     <Compile Include="Framing\Accepted.cs" />
     <Compile Include="Framing\Outcome.cs" />
     <Compile Include="Framing\Target.cs" />
@@ -87,6 +86,7 @@
     <Compile Include="Protocol\SessionStateEnum.cs" />
     <Compile Include="Protocol\ConnectionStateEnumExtensions.cs" />
     <Compile Include="Protocol\TestContainer.cs" />
+    <Compile Include="Types\AmqpCodec.cs" />
     <Compile Include="Types\AmqpDescribedListIndexAttribute.cs" />
     <Compile Include="Framing\Open.cs" />
     <Compile Include="Framing\Error.cs" />
@@ -115,6 +115,7 @@
     <Compile Include="Types\FixedWidth.cs" />
     <Compile Include="Types\FormatCode.cs" />
     <Compile Include="Types\Map.cs" />
+    <Compile Include="Types\PrimativeTypeCodec.cs" />
     <Compile Include="Types\Symbol.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using LightRail.Amqp.Framing;
+using LightRail.Amqp.Types;
 using NUnit.Framework;
 
 namespace LightRail.Amqp.Protocol
@@ -59,19 +60,19 @@ namespace LightRail.Amqp.Protocol
         protected void EncodeAndSend(AmqpFrame frame, ushort channelNumber = 0)
         {
             var buffer = new ByteBuffer(512, true);
-            AmqpFrameCodec.EncodeFrame(buffer, frame, channelNumber);
+            AmqpCodec.EncodeFrame(buffer, frame, channelNumber);
             connection.HandleFrame(buffer);
         }
 
         protected AmqpFrame DecodeLastFrame()
         {
             ushort channelNumber = 0;
-            return AmqpFrameCodec.DecodeFrame(socket.WriteBuffer.Last(), out channelNumber);
+            return AmqpCodec.DecodeFrame(socket.WriteBuffer.Last(), out channelNumber);
         }
 
         protected AmqpFrame DecodeLastFrame(out ushort channelNumber)
         {
-            return AmqpFrameCodec.DecodeFrame(socket.WriteBuffer.Last(), out channelNumber);
+            return AmqpCodec.DecodeFrame(socket.WriteBuffer.Last(), out channelNumber);
         }
     }
 }

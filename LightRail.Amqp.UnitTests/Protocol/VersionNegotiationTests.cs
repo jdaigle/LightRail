@@ -1,4 +1,5 @@
 ﻿using LightRail.Amqp.Framing;
+using LightRail.Amqp.Types;
 using NUnit.Framework;
 
 namespace LightRail.Amqp.Protocol
@@ -39,7 +40,7 @@ namespace LightRail.Amqp.Protocol
             // requested version to the socket, and then proceed according to the protocol definition.
 
             var buffer = new ByteBuffer(protocol0, 0, protocol0.Length, protocol0.Length, true);
-            AmqpFrameCodec.EncodeFrame(buffer, new Open(), 0);
+            AmqpCodec.EncodeFrame(buffer, new Open(), 0);
             connection.HandleHeader(buffer);
 
             Assert.GreaterOrEqual(socket.WriteBuffer.Count, 1);

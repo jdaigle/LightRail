@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using LightRail.Amqp.Framing;
+using LightRail.Amqp.Types;
 using NUnit.Framework;
 
 namespace LightRail.Amqp.Protocol
@@ -25,7 +26,7 @@ namespace LightRail.Amqp.Protocol
             Given_Open_Connection();
 
             var buffer = new ByteBuffer(8, true);
-            AmqpFrameCodec.EncodeFrame(buffer, null, 0);
+            AmqpCodec.EncodeFrame(buffer, null, 0);
             connection.HandleFrame(buffer);
 
             Assert.True(socket.IsNotClosed);

@@ -150,11 +150,11 @@ namespace LightRail.Amqp.Types
             RunSingleValueTest(workBuffer, strValue, str8Utf8ValueEncoded, "UTF8 string8 string value is not equal.");
 
             // symbol 32
-            Symbol symbol32v = Encoder.ReadObject<Symbol>(new ByteBuffer(sym32ValueEncoded, 0, sym32ValueEncoded.Length, sym32ValueEncoded.Length));
+            Symbol symbol32v = AmqpCodec.DecodeObject<Symbol>(new ByteBuffer(sym32ValueEncoded, 0, sym32ValueEncoded.Length, sym32ValueEncoded.Length));
             Assert.AreEqual((string)symbol32v, strValue, "Symbol32 string value is not equal.");
 
             // string 32 UTF8
-            string str32Utf8 = Encoder.ReadObject<string>(new ByteBuffer(str32Utf8ValueEncoded, 0, str32Utf8ValueEncoded.Length, str32Utf8ValueEncoded.Length));
+            string str32Utf8 = AmqpCodec.DecodeObject<string>(new ByteBuffer(str32Utf8ValueEncoded, 0, str32Utf8ValueEncoded.Length, str32Utf8ValueEncoded.Length));
             Assert.AreEqual(str32Utf8, strValue, "UTF8 string32 string value is not equal.");
         }
 
@@ -194,14 +194,14 @@ namespace LightRail.Amqp.Types
             list.Add(described3);
             list.Add(described4);
 
-            Encoder.WriteObject(buffer, list);
+            AmqpCodec.EncodeObject(buffer, list);
 
             // make sure the size written is correct (it has to be List32)
             // the first byte is FormatCode.List32
             int listSize = (workBuffer[1] << 24) | (workBuffer[2] << 16) | (workBuffer[3] << 8) | workBuffer[4];
             Assert.AreEqual(buffer.LengthAvailableToRead - 5, listSize);
 
-            IList decList = Encoder.ReadObject<AmqpList>(buffer);
+            IList decList = AmqpCodec.DecodeObject<AmqpList>(buffer);
             int index = 0;
 
             Assert.IsTrue(decList[index++].Equals(true), "Boolean true expected.");
@@ -269,10 +269,10 @@ namespace LightRail.Amqp.Types
             ByteBuffer buffer = new ByteBuffer(workBuffer, 0, 0, workBuffer.Length);
 
             var list0 = new AmqpList();
-            Encoder.WriteObject(buffer, list0);
+            AmqpCodec.EncodeObject(buffer, list0);
             EnsureEqual(list0Bin, 0, list0Bin.Length, buffer.Buffer, buffer.ReadOffset, buffer.LengthAvailableToRead);
 
-            IList list0v = (IList)Encoder.ReadBoxedObject(buffer);
+            IList list0v = (IList)AmqpCodec.DecodeBoxedObject(buffer);
             Assert.AreEqual(0, list0v.Count, "The list should contain 0 items.");
         }
 
@@ -320,14 +320,14 @@ namespace LightRail.Amqp.Types
             map.Add(new Symbol("string32"), strBig);
             map.Add(new Symbol("described1"), described1);
 
-            Encoder.WriteObject(buffer, map);
+            AmqpCodec.EncodeObject(buffer, map);
 
             // make sure the size written is correct (it has to be Map32)
             // the first byte is FormatCode.Map32
             int mapSize = (workBuffer[1] << 24) | (workBuffer[2] << 16) | (workBuffer[3] << 8) | workBuffer[4];
             Assert.AreEqual(buffer.LengthAvailableToRead - 5, mapSize);
 
-            Map decMap = (Map)Encoder.ReadBoxedObject(buffer);
+            Map decMap = (Map)AmqpCodec.DecodeBoxedObject(buffer);
 
             Assert.IsTrue(decMap[new Symbol("boolTrue")].Equals(true), "Boolean true expected.");
             Assert.IsTrue(decMap[new Symbol("boolFalse")].Equals(false), "Boolean false expected.");
@@ -418,8 +418,8 @@ namespace LightRail.Amqp.Types
         {
             var dv = new DescribedValue<T>(new Descriptor(descriptor), value);
             ByteBuffer buffer;
-            Encoder.WriteObject(buffer = new ByteBuffer(workBuffer, 0, 0, workBuffer.Length), dv);
-            var dv2 = (DescribedValue<T>)Encoder.ReadObject<DescribedValue<T>>(buffer);
+            AmqpCodec.EncodeObject(buffer = new ByteBuffer(workBuffer, 0, 0, workBuffer.Length), dv);
+            var dv2 = (DescribedValue<T>)AmqpCodec.DecodeObject<DescribedValue<T>>(buffer);
 
             Assert.AreEqual(dv.Descriptor, dv2.Descriptor);
             if (dv.Value == null)
@@ -440,11 +440,11 @@ namespace LightRail.Amqp.Types
         {
             var buffer = new ByteBuffer(workBuffer, 0, 0, workBuffer.Length);
 
-            Encoder.WriteObject(buffer, value);
+            AmqpCodec.EncodeObject(buffer, value);
 
             EnsureEqual(result, 0, result.Length, buffer.Buffer, buffer.ReadOffset, buffer.LengthAvailableToRead);
 
-            T decodeValue = Encoder.ReadObject<T>(new ByteBuffer(result, 0, result.Length, result.Length));
+            T decodeValue = AmqpCodec.DecodeObject<T>(new ByteBuffer(result, 0, result.Length, result.Length));
 
             if (typeof(T) == typeof(byte[]))
             {
@@ -466,9 +466,9 @@ namespace LightRail.Amqp.Types
 
             T[] array = new T[count];
             for (int i = 0; i < count; i++) array[i] = generator(i);
-            Encoder.WriteObject(buffer, array);
+            AmqpCodec.EncodeObject(buffer, array);
 
-            var array2 = (T[])Encoder.ReadBoxedObject(buffer);
+            var array2 = (T[])AmqpCodec.DecodeBoxedObject(buffer);
             Assert.AreEqual(array.Length, array2.Length);
         }
 

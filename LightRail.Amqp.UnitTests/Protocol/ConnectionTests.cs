@@ -1,5 +1,6 @@
 ﻿using System;
 using LightRail.Amqp.Framing;
+using LightRail.Amqp.Types;
 using NUnit.Framework;
 
 namespace LightRail.Amqp.Protocol
@@ -71,7 +72,7 @@ namespace LightRail.Amqp.Protocol
             //Given_Exchanged_Headers();
 
             var buffer = new ByteBuffer(defaultAcceptedProtocol, 0, defaultAcceptedProtocol.Length, defaultAcceptedProtocol.Length, true);
-            AmqpFrameCodec.EncodeFrame(buffer, new Open(), 0);
+            AmqpCodec.EncodeFrame(buffer, new Open(), 0);
             connection.HandleHeader(buffer);
             connection.HandleFrame(buffer);
 
@@ -117,8 +118,8 @@ namespace LightRail.Amqp.Protocol
             //Given_Exchanged_Headers();
 
             var buffer = new ByteBuffer(defaultAcceptedProtocol, 0, defaultAcceptedProtocol.Length, defaultAcceptedProtocol.Length, true);
-            AmqpFrameCodec.EncodeFrame(buffer, new Open(), 0);
-            AmqpFrameCodec.EncodeFrame(buffer, new Close(), 0);
+            AmqpCodec.EncodeFrame(buffer, new Open(), 0);
+            AmqpCodec.EncodeFrame(buffer, new Close(), 0);
             connection.HandleHeader(buffer);
             connection.HandleFrame(buffer);
             connection.HandleFrame(buffer);

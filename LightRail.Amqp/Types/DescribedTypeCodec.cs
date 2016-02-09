@@ -136,6 +136,11 @@ namespace LightRail.Amqp.Types
             return knownDescribedTypeDescriptors.ContainsKey(descriptor.Code);
         }
 
+        internal static bool TryGetKnownDescribedType(ulong code, out Descriptor descriptor)
+        {
+            return knownDescribedTypeDescriptors.TryGetValue(code, out descriptor);
+        }
+
         internal static object DecodeDescribedType(ByteBuffer buffer, ulong code)
         {
             var descriptor = knownDescribedTypeDescriptors[code];
@@ -154,7 +159,7 @@ namespace LightRail.Amqp.Types
 
         internal static ulong ReadDescriptorCode(ByteBuffer buffer)
         {
-            var descriptorFormatCode = Encoder.ReadFormatCode(buffer);
+            var descriptorFormatCode = AmqpCodec.DecodeFormatCode(buffer);
             if (descriptorFormatCode == FormatCode.ULong ||
                 descriptorFormatCode == FormatCode.SmallULong)
             {

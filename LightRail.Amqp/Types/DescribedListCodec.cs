@@ -132,7 +132,7 @@ namespace LightRail.Amqp.Types
 
             return new Action<ByteBuffer, DescribedType>((buffer, instance) =>
             {
-                var formatCode = Encoder.ReadFormatCode(buffer);
+                var formatCode = AmqpCodec.DecodeFormatCode(buffer);
                 // ensure it is a list format code or null
                 if (formatCode == FormatCode.List0 ||
                     formatCode == FormatCode.List8 ||
@@ -150,7 +150,7 @@ namespace LightRail.Amqp.Types
 
         private static void DecodeProperty(ByteBuffer buffer, object instance, PropertyEncodingInfo propertyInfo)
         {
-            var formatCode = Encoder.ReadFormatCode(buffer);
+            var formatCode = AmqpCodec.DecodeFormatCode(buffer);
             if (formatCode == FormatCode.Null)
             {
                 // null value, return
@@ -160,7 +160,7 @@ namespace LightRail.Amqp.Types
             // special handling of nested described type
             if (formatCode == FormatCode.Described)
             {
-                propertyInfo.SetValue(instance, Encoder.ReadDescribed(buffer, formatCode));
+                propertyInfo.SetValue(instance, AmqpCodec.DecodeDescribedType(buffer, formatCode));
                 return;
             }
 

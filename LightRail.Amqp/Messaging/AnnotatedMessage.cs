@@ -53,7 +53,7 @@ namespace LightRail.Amqp.Messaging
                 int offOfDescribedList = buffer.ReadOffset;
 
                 // peak at the type of the described list
-                var formatCode = Encoder.ReadFormatCode(buffer);
+                var formatCode = AmqpCodec.DecodeFormatCode(buffer);
                 if (formatCode != FormatCode.Described)
                     throw new AmqpException(ErrorCode.FramingError, $"Expected Format Code = {FormatCode.Described.ToHex()} but was {formatCode.ToHex()}");
 
@@ -138,7 +138,7 @@ namespace LightRail.Amqp.Messaging
         private static void SkipDescribedList(ByteBuffer buffer)
         {
             // read the list length and move forward
-            var listFormatCode = Encoder.ReadFormatCode(buffer);
+            var listFormatCode = AmqpCodec.DecodeFormatCode(buffer);
             int size = 0;
             if (listFormatCode == FormatCode.List0)
                 size = 0;
@@ -151,7 +151,7 @@ namespace LightRail.Amqp.Messaging
 
         private static void SkipBinaryBuffer(ByteBuffer buffer)
         {
-            var binaryFormatCode = Encoder.ReadFormatCode(buffer);
+            var binaryFormatCode = AmqpCodec.DecodeFormatCode(buffer);
             int size = 0;
             if (binaryFormatCode == FormatCode.Binary8)
                 size = AmqpBitConverter.ReadUByte(buffer);
