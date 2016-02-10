@@ -9,14 +9,15 @@ namespace LightRail.Server.Queuing
 
         public ConcurrentQueueEntryList()
         {
-            head = tail = new QueueEntry()
+            head = tail = new QueueEntry(null, DateTime.MinValue, uint.MinValue, 0, QueueEntryStateEnum.ARCHIVED)
             {
-                SeqNum = 1,
+                SeqNum = 0,
             };
         }
 
         /// <summary>
-        /// The "first" entry in the queue. This is the entry that is popped.
+        /// The head of the queue is always a fixed object. It's "Next"
+        /// property is the first item in the queue.
         /// </summary>
         private volatile QueueEntry head;
         /// <summary>
@@ -24,13 +25,15 @@ namespace LightRail.Server.Queuing
         /// </summary>
         private volatile QueueEntry tail;
 
+        /// <summary>
+        /// The head of the queue is always a fixed object. It's "Next"
+        /// property is the first item in the queue.
+        /// </summary>
         public QueueEntry Head { get { return head; } }
 
         public QueueEntry Enqueue(object item)
         {
-            var entry = new QueueEntry();
-            entry.Item = item;
-            entry.EnqueueDateTime = DateTime.UtcNow;
+            var entry = new QueueEntry(item, DateTime.UtcNow, uint.MaxValue, 0, QueueEntryStateEnum.ARCHIVED);
             while (true)
             {
                 var prevTail = this.tail;

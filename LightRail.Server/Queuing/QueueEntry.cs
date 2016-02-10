@@ -5,52 +5,72 @@ namespace LightRail.Server.Queuing
 {
     public class QueueEntry
     {
+        public QueueEntry(object item, DateTime enqueuedDateTime, uint ttl, int initialDeliveryCount, QueueEntryStateEnum initialState)
+        {
+            Item = item;
+            EnqueueDateTime = enqueuedDateTime;
+            TTL = ttl;
+            deliveryCount = initialDeliveryCount;
+            state = (int)initialState;
+        }
+
+        /// <summary>
+        /// Monotonically increasing sequence number (can wrap) to indicate order in which the entry was was enqueued.
+        /// </summary>
         public uint SeqNum { get; set; }
 
-        private volatile QueueEntry next;
 
         private volatile int state = (int)QueueEntryStateEnum.AVAILABLE;
         public bool IsAvailable { get { return state == (int)QueueEntryStateEnum.AVAILABLE; } }
         public bool IsArchived { get { return state == (int)QueueEntryStateEnum.ARCHIVED; } }
         public bool IsAcquired { get { return state == (int)QueueEntryStateEnum.ACQUIRED; } }
 
-        private volatile int deliveryCount = 0;
-
         /// <summary>
         /// The DateTime in which the entry was enqueued.
         /// </summary>
-        public DateTime EnqueueDateTime { get; set; }
+        public DateTime EnqueueDateTime { get; }
+
+        /// <summary>
+        /// The queued item.
+        /// </summary>
+        public object Item { get; }
 
         /// <summary>
         /// Time to live in milliseconds.
         /// </summary>
-        public uint TTL { get; set; } = uint.MaxValue;
-
-        /// <summary>
-        /// The number of prior unsuccessful delivery attempts.
-        /// </summary>
-        public uint DeliveryCount { get { return (uint)deliveryCount; } }
+        public uint TTL { get; }
 
         /// <summary>
         /// Returns true of the TTL has expired this message.
         /// </summary>
         public bool IsExpired { get { return EnqueueDateTime.AddMilliseconds(TTL) < DateTime.UtcNow; } }
 
+        private volatile int deliveryCount = 0;
+        /// <summary>
+        /// The number of prior unsuccessful delivery attempts.
+        /// </summary>
+        public uint DeliveryCount { get { return (uint)deliveryCount; } }
+
+        private volatile QueueEntry next;
+        /// <summary>
+        /// Returns the current next QueueEntry from the ConcurrentQueueEntryList
+        /// </summary>
+        public QueueEntry Next { get { return next; } }
+
+        /// <summary>
+        /// Wraps up call to Interlocked.CompareExchange to compare & swap a new
+        /// "next" QueueEntry pointer.
+        /// 
+        /// Returns true if the compare & swap succeeded, false other.
+        /// </summary>
         public bool TrySetNext(QueueEntry entry, QueueEntry previous)
         {
             return Interlocked.CompareExchange(ref next, entry, previous) == previous;
         }
 
         /// <summary>
-        /// Returns the next QueueEntry from the ConcurrentQueueEntryList
-        /// </summary>
-        public QueueEntry Next { get { return next; } }
-
-        public object Item { get; internal set; }
-
-        /// <summary>
-        /// Returns the next non-archived entry. Or null. This method has the side-effect
-        /// of updating .Next in case the current .Next is ARCHIVED.
+        /// Returns the next non-archived entry. Or null. This method a the side-effect
+        /// of updating "Next" to "Next.Next" in a loop whenver it is ARCHIVED.
         /// </summary>
         public QueueEntry GetNextValidEntry()
         {
@@ -74,8 +94,12 @@ namespace LightRail.Server.Queuing
             return currentNext;
         }
 
+        /// <summary>
+        /// Compares the sequence number of this QueueEntry to another QueueEntry for ordering purposes.
+        /// </summary>
         public int CompareTo(QueueEntry item)
         {
+            // TODO: sequence number wrapping
             return SeqNum > item.SeqNum ? 1 : SeqNum < item.SeqNum ? -1 : 0;
         }
 
@@ -85,15 +109,10 @@ namespace LightRail.Server.Queuing
         public bool TryAcquire(Consumer consumer)
         {
             // can only acquire if available
-            var acquired = Interlocked.CompareExchange(ref state, (int)QueueEntryStateEnum.ACQUIRED, (int)QueueEntryStateEnum.AVAILABLE) == (int)QueueEntryStateEnum.AVAILABLE;
-            if (acquired)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            var acquired =
+                Interlocked.CompareExchange(ref state, (int)QueueEntryStateEnum.ACQUIRED, (int)QueueEntryStateEnum.AVAILABLE)
+                    == (int)QueueEntryStateEnum.AVAILABLE;
+            return acquired;
         }
 
         /// <summary>

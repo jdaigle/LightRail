@@ -77,6 +77,8 @@ namespace LightRail.Server.Queuing
                 while (true)
                 {
                     var head = queueList.Head;
+
+                    // peek for work
                     var next = head.GetNextValidEntry();
                     if (next == null)
                     {
