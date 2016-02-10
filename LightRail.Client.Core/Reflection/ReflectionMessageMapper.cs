@@ -266,6 +266,7 @@ namespace LightRail.Client.Reflection
                 }
             }
 
+            // TODO: performance. cache a lambda expression instead of using reflection
             ConstructorInfo constructor = null;
             typeToConstructor.TryGetValue(mapped, out constructor);
             if (constructor != null)
