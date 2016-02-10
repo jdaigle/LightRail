@@ -8,6 +8,12 @@ namespace LightRail.Amqp.Protocol
 {
     public abstract class BaseProtocolTests
     {
+        static BaseProtocolTests()
+        {
+            Trace.EnabledTraceLevel = TraceLevel.Warn;
+            Trace.OnTraceEvent += Trace.ConsoleTraceEventHandler;
+        }
+
         protected static readonly byte[] defaultAcceptedProtocol = new byte[] { 0x41, 0x4D, 0x51, 0x50, 0x00, 0x01, 0x00, 0x00 }; // AMQP01000
 
         private TestContainer container;

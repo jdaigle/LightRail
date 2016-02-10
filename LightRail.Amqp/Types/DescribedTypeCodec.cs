@@ -56,55 +56,33 @@ namespace LightRail.Amqp.Types
         public static readonly Descriptor Declared = new Descriptor(0x0000000000000033, "amqp:declared:list");
         public static readonly Descriptor TransactionalState = new Descriptor(0x0000000000000034, "amqp:transactional-state:list");
 
-        public static void EncodeValue(ByteBuffer buffer, DescribedType instance)
-        {
-            Action<ByteBuffer, DescribedType> encoder;
-            if (!knownEncoders.TryGetValue(instance.Descriptor.Code, out encoder))
-            {
-                throw new AmqpException(ErrorCode.InternalError, $"Missing Encoder For Known Described Type {instance.Descriptor.ToString()}");
-            }
-            encoder(buffer, instance);
-        }
-
-        public static void DecodeValue(ByteBuffer buffer, DescribedType instance)
-        {
-            Action<ByteBuffer, DescribedType> decoder;
-            if (!knownDecoders.TryGetValue(instance.Descriptor.Code, out decoder))
-            {
-                throw new AmqpException(ErrorCode.InternalError, $"Missing Decoder For Known Described Type {instance.Descriptor.ToString()}");
-            }
-            decoder(buffer, instance);
-        }
-
         static DescribedTypeCodec()
         {
             var describedTypes = typeof(DescribedTypeCodec).Assembly.GetTypes()
                 .Where(x => x.IsSealed && typeof(DescribedType).IsAssignableFrom(x))
                 .ToList();
+
             var descriptors = typeof(DescribedTypeCodec).GetFields(BindingFlags.Public | BindingFlags.Static)
                 .Where(x => x.FieldType == typeof(Descriptor))
                 .Select(x => x.GetValue(null) as Descriptor);
+
             foreach (var descriptor in descriptors)
             {
+                knownDescribedTypeDescriptors.Add(descriptor.Code, descriptor);
+
                 var className = descriptor.Name.Substring(5, descriptor.Name.LastIndexOf(':') - 5).Replace("-", "");
                 var describedType = describedTypes.FirstOrDefault(x => string.Equals(x.Name, className, StringComparison.InvariantCultureIgnoreCase));
-
-                knownDescribedTypeDescriptors.Add(descriptor.Code, descriptor);
                 if (describedType != null)
                 {
                     var ctor = CompilerConstructor(descriptor, describedType);
                     if (ctor != null)
                         knownDescribedTypeConstructors.Add(descriptor.Code, ctor);
-                    knownEncoders.Add(descriptor.Code, CompileEncoder(descriptor, describedType));
-                    knownDecoders.Add(descriptor.Code, CompileDecoder(descriptor, describedType));
                 }
             }
         }
 
         private static readonly Dictionary<ulong, Descriptor> knownDescribedTypeDescriptors = new Dictionary<ulong, Descriptor>();
         private static readonly Dictionary<ulong, Func<object>> knownDescribedTypeConstructors = new Dictionary<ulong, Func<object>>();
-        private static readonly Dictionary<ulong, Action<ByteBuffer, DescribedType>> knownEncoders = new Dictionary<ulong, Action<ByteBuffer, DescribedType>>();
-        private static readonly Dictionary<ulong, Action<ByteBuffer, DescribedType>> knownDecoders = new Dictionary<ulong, Action<ByteBuffer, DescribedType>>();
 
         private static Func<object> CompilerConstructor(Descriptor descriptor, Type describedType)
         {
@@ -118,22 +96,6 @@ namespace LightRail.Amqp.Types
             return null;
         }
 
-        private static Action<ByteBuffer, DescribedType> CompileDecoder(Descriptor descriptor, Type describedType)
-        {
-            if (typeof(DescribedList).IsAssignableFrom(describedType))
-                return DescribedListCodec.CompileDecoder(descriptor, describedType);
-            else
-                return (buffer, instance) => instance.Decode(buffer);
-        }
-
-        private static Action<ByteBuffer, DescribedType> CompileEncoder(Descriptor descriptor, Type describedType)
-        {
-            if (typeof(DescribedList).IsAssignableFrom(describedType))
-                return DescribedListCodec.CompileEncoder(descriptor, describedType);
-            else
-                return (buffer, instance) => instance.Encode(buffer);
-        }
-
         internal static bool IsKnownDescribedType(Descriptor descriptor)
         {
             return knownDescribedTypeDescriptors.ContainsKey(descriptor.Code);
@@ -144,36 +106,9 @@ namespace LightRail.Amqp.Types
             return knownDescribedTypeDescriptors.TryGetValue(code, out descriptor);
         }
 
-        internal static object DecodeDescribedType(ByteBuffer buffer, ulong code)
+        internal static bool TryGetKnownDescribedConstructor(ulong code, out Func<object> ctor)
         {
-            var descriptor = knownDescribedTypeDescriptors[code];
-            Func<object> ctor;
-            if (knownDescribedTypeConstructors.TryGetValue(descriptor.Code, out ctor))
-            {
-                var instance = ctor() as DescribedType;
-                instance.Decode(buffer);
-                return instance;
-            }
-            else
-            {
-                throw new AmqpException(ErrorCode.DecodeError, $"Missing Constructor For Known Described Type {descriptor.ToString()}");
-            }
-        }
-
-        internal static ulong ReadDescriptorCode(ByteBuffer buffer)
-        {
-            var descriptorFormatCode = AmqpCodec.DecodeFormatCode(buffer);
-            if (descriptorFormatCode == FormatCode.ULong ||
-                descriptorFormatCode == FormatCode.SmallULong)
-            {
-                return Encoder.ReadULong(buffer, descriptorFormatCode);
-            }
-            if (descriptorFormatCode == FormatCode.Symbol8 ||
-                descriptorFormatCode == FormatCode.Symbol32)
-            {
-                throw new NotImplementedException("Have Not Yet Implemented Symbol Descriptor Decoding");
-            }
-            throw new AmqpException(ErrorCode.FramingError, $"Invalid Descriptor Format Code{descriptorFormatCode.ToHex()}");
+            return knownDescribedTypeConstructors.TryGetValue(code, out ctor);
         }
     }
 }

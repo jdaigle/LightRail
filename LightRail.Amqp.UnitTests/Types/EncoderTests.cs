@@ -457,7 +457,7 @@ namespace LightRail.Amqp.Types
                 Assert.AreEqual(value, decodeValue, message);
             }
 
-            Trace.WriteLine($"Test Passed For Type={typeof(T).FullName}");
+            System.Diagnostics.Trace.WriteLine($"Test Passed For Type={typeof(T).FullName}");
         }
 
         static void RunArrayTest<T>(byte[] workBuffer, Func<int, T> generator, int count)

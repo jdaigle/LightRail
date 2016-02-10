@@ -91,7 +91,6 @@
     <Compile Include="Framing\Open.cs" />
     <Compile Include="Framing\Error.cs" />
     <Compile Include="Types\DescribedMap.cs" />
-    <Compile Include="Types\DescribedListCodec.cs" />
     <Compile Include="Messaging\ApplicationProperties.cs" />
     <Compile Include="Messaging\Footer.cs" />
     <Compile Include="Messaging\MessagingDescriptors.cs" />

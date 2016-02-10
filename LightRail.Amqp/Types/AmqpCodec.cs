@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 using LightRail.Amqp.Framing;
 
 namespace LightRail.Amqp.Types
@@ -113,12 +115,14 @@ namespace LightRail.Amqp.Types
                     return ((PrimativeTypeCodec<T>)codec).Decode(buffer, formatCode);
                 }
                 else
+                {
                     throw InvalidFormatCodeException(formatCode, buffer.ReadOffset);
+                }
             }
         }
 
         /// <summary>
-        /// Reads a DescribedType object from the buffer.
+        /// Reads a Descriptor and DescribedType object from the buffer.
         /// </summary>
         /// <param name="buffer"></param>
         public static object DecodeDescribedType(ByteBuffer buffer, byte formatCode)
@@ -129,12 +133,32 @@ namespace LightRail.Amqp.Types
             var descriptor = DecodeDescriptor(buffer);
             if (DescribedTypeCodec.IsKnownDescribedType(descriptor))
             {
-                return DescribedTypeCodec.DecodeDescribedType(buffer, descriptor.Code);
+                return DecodeKnownDescribedType(buffer, descriptor);
             }
             object value = DecodeBoxedObject(buffer); // TODO: performance. boxing
             // TODO: performance. Can we compile and cache a lambda expression instead of using reflection?
             var describedType = typeof(DescribedValue<>).MakeGenericType(value.GetType());
             return Activator.CreateInstance(describedType, descriptor, value);
+        }
+
+        /// <summary>
+        /// Reads a known DescribedType object from the buffer given the already read descriptor.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="descriptor"></param>
+        public static object DecodeKnownDescribedType(ByteBuffer buffer, Descriptor descriptor)
+        {
+            Func<object> ctor;
+            if (DescribedTypeCodec.TryGetKnownDescribedConstructor(descriptor.Code, out ctor))
+            {
+                var instance = ctor() as DescribedType;
+                instance.Decode(buffer);
+                return instance;
+            }
+            else
+            {
+                throw new AmqpException(ErrorCode.DecodeError, $"Missing Constructor For Known Described Type {descriptor.ToString()}");
+            }
         }
 
         /// <summary>
@@ -160,6 +184,17 @@ namespace LightRail.Amqp.Types
                 return new Descriptor(symbol);
             }
             throw new AmqpException(ErrorCode.FramingError, $"Invalid Descriptor Format Code{descriptorFormatCode.ToHex()}");
+        }
+
+        /// <summary>
+        /// Returns the static method used to decode the specified type.
+        /// </summary>
+        /// <param name="type"></param>
+        internal static MethodInfo GetDecodeMethod(Type type)
+        {
+            if (typeof(DescribedType).IsAssignableFrom(type))
+                return typeof(AmqpCodec).GetMethod("DecodeDescribedType");
+            return null;
         }
 
         public static void EncodeFrame(ByteBuffer buffer, AmqpFrame frame, ushort channelNumber)
@@ -229,7 +264,9 @@ namespace LightRail.Amqp.Types
                 System.Diagnostics.Debug.Fail("Cannot Call WriteObject<t> with base object. Call WriteBoxedObject() instead.");
             }
 #endif
-            if (value == null)
+
+            if (EqualityComparer<T>.Default.Equals(value, default(T)) &&
+                typeof(T).IsClass)
             {
                 Encoder.WriteNull(buffer);
                 return;

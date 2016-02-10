@@ -57,42 +57,33 @@ namespace LightRail.Amqp.Messaging
                 if (formatCode != FormatCode.Described)
                     throw new AmqpException(ErrorCode.FramingError, $"Expected Format Code = {FormatCode.Described.ToHex()} but was {formatCode.ToHex()}");
 
-                var descriptorCode = DescribedTypeCodec.ReadDescriptorCode(buffer);
+                var descriptor = AmqpCodec.DecodeDescriptor(buffer);
 
-                if (descriptorCode == DescribedTypeCodec.Header.Code)
+                if (descriptor == DescribedTypeCodec.Header)
                 {
-                    message.Header = (Header)DescribedTypeCodec.DecodeDescribedType(buffer, descriptorCode);
+                    message.Header = (Header)AmqpCodec.DecodeKnownDescribedType(buffer, descriptor);
                     continue;
                 }
 
-                if (descriptorCode == DescribedTypeCodec.DeliveryAnnotations.Code)
+                if (descriptor == DescribedTypeCodec.DeliveryAnnotations)
                 {
-                    message.DeliveryAnnotations = (DeliveryAnnotations)DescribedTypeCodec.DecodeDescribedType(buffer, descriptorCode);
+                    message.DeliveryAnnotations = (DeliveryAnnotations)AmqpCodec.DecodeKnownDescribedType(buffer, descriptor);
                     continue;
                 }
 
-                if (descriptorCode == DescribedTypeCodec.MessageAnnotations.Code)
+                if (descriptor == DescribedTypeCodec.MessageAnnotations)
                 {
-                    message.MessageAnnotations = (MessageAnnotations)DescribedTypeCodec.DecodeDescribedType(buffer, descriptorCode);
+                    message.MessageAnnotations = (MessageAnnotations)AmqpCodec.DecodeKnownDescribedType(buffer, descriptor);
                     continue;
                 }
 
-                if (descriptorCode == DescribedTypeCodec.Footer.Code)
+                if (descriptor == DescribedTypeCodec.Footer)
                 {
-                    message.Footer = (Footer)DescribedTypeCodec.DecodeDescribedType(buffer, descriptorCode);
+                    message.Footer = (Footer)AmqpCodec.DecodeKnownDescribedType(buffer, descriptor);
                     continue;
                 }
 
-                if (descriptorCode == DescribedTypeCodec.Properties.Code)
-                {
-                    if (bareMessageStartOffset < 0)
-                        bareMessageStartOffset = offOfDescribedList; // the first described list in the bare message
-                    SkipDescribedList(buffer);
-                    bareMessageEndOffset = buffer.ReadOffset;
-                    continue;
-                }
-
-                if (descriptorCode == DescribedTypeCodec.ApplicationProperties.Code)
+                if (descriptor == DescribedTypeCodec.Properties)
                 {
                     if (bareMessageStartOffset < 0)
                         bareMessageStartOffset = offOfDescribedList; // the first described list in the bare message
@@ -101,7 +92,16 @@ namespace LightRail.Amqp.Messaging
                     continue;
                 }
 
-                if (descriptorCode == DescribedTypeCodec.Data.Code)
+                if (descriptor == DescribedTypeCodec.ApplicationProperties)
+                {
+                    if (bareMessageStartOffset < 0)
+                        bareMessageStartOffset = offOfDescribedList; // the first described list in the bare message
+                    SkipDescribedList(buffer);
+                    bareMessageEndOffset = buffer.ReadOffset;
+                    continue;
+                }
+
+                if (descriptor == DescribedTypeCodec.Data)
                 {
                     if (bareMessageStartOffset < 0)
                         bareMessageStartOffset = offOfDescribedList; // the first described list in the bare message
@@ -109,7 +109,7 @@ namespace LightRail.Amqp.Messaging
                     continue;
                 }
 
-                if (descriptorCode == DescribedTypeCodec.AmqpValue.Code)
+                if (descriptor == DescribedTypeCodec.AmqpValue)
                 {
                     if (bareMessageStartOffset < 0)
                         bareMessageStartOffset = offOfDescribedList; // the first described list in the bare message
@@ -117,7 +117,7 @@ namespace LightRail.Amqp.Messaging
                     //continue;
                 }
 
-                if (descriptorCode == DescribedTypeCodec.AmqpSequence.Code)
+                if (descriptor == DescribedTypeCodec.AmqpSequence)
                 {
                     if (bareMessageStartOffset < 0)
                         bareMessageStartOffset = offOfDescribedList; // the first described list in the bare message

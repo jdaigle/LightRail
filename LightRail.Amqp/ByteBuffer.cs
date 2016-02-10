@@ -191,6 +191,17 @@ namespace LightRail.Amqp
         }
 
         /// <summary>
+        /// Adjusts the write offset of the buffer.
+        /// </summary>
+        /// <param name="writeOffset">The write offset to set.</param>
+        public void AdjustWriteOffset(int writeOffset)
+        {
+            if (writeOffset > endOffset)
+                throw new ArgumentOutOfRangeException(nameof(writeOffset), "Invalid Offset. Must be before end of buffer.");
+            WriteOffset = writeOffset;
+        }
+
+        /// <summary>
         /// Throws an exception if "LengthAvailableToRead < size"
         /// </summary>
         public void ValidateRead(int size)

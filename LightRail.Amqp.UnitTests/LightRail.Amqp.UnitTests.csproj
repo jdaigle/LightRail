@@ -52,11 +52,16 @@
     <Compile Include="Protocol\VersionNegotiationTests.cs" />
     <Compile Include="Types\EncoderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Types\LambdaExpressionTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LightRail.Amqp\LightRail.Amqp.csproj">
       <Project>{79a2c462-b169-4f3a-9eaf-068803c7d7f0}</Project>
       <Name>LightRail.Amqp</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LightRail.Common\LightRail.Common.csproj">
+      <Project>{0674cfb2-ad00-4fd9-907e-9df17041defc}</Project>
+      <Name>LightRail.Common</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
