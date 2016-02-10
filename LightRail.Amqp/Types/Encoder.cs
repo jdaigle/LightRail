@@ -923,6 +923,51 @@ namespace LightRail.Amqp.Types
         }
 
         /// <summary>
+        /// Reads an strongly typed array from the buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer to read.</param>
+        /// <param name="arrayFormatCode">The format code of the array.</param>
+        public static T[] ReadStronglyTypedArray<T>(ByteBuffer buffer, byte arrayFormatCode)
+        {
+            if (arrayFormatCode == FormatCode.Null)
+            {
+                return null;
+            }
+
+            int size;
+            int count;
+            if (arrayFormatCode == FormatCode.Array8)
+            {
+                size = AmqpBitConverter.ReadUByte(buffer);
+                count = AmqpBitConverter.ReadUByte(buffer);
+            }
+            else if (arrayFormatCode == FormatCode.Array32)
+            {
+                size = (int)AmqpBitConverter.ReadUInt(buffer);
+                count = (int)AmqpBitConverter.ReadUInt(buffer);
+            }
+            else
+            {
+                throw InvalidFormatCodeException(arrayFormatCode, buffer.ReadOffset);
+            }
+
+            var arrayElementFormatCode = AmqpCodec.DecodeFormatCode(buffer);
+            var arrayElementDecoder = Encoder.GetTypeCodec(arrayElementFormatCode) as PrimativeTypeCodec<T>;
+
+            // TODO: handle described types?
+            if (arrayElementDecoder == null)
+                throw InvalidFormatCodeException(arrayFormatCode, buffer.ReadOffset);
+
+            var array = new T[count];
+            for (int i = 0; i < count; i++)
+            {
+                array[i] = arrayElementDecoder.Decode(buffer, arrayElementFormatCode);
+            }
+
+            return array;
+        }
+
+        /// <summary>
         /// Reads an array value from a buffer.
         /// </summary>
         /// <param name="buffer">The buffer to read.</param>
@@ -953,7 +998,6 @@ namespace LightRail.Amqp.Types
 
             formatCode = AmqpCodec.DecodeFormatCode(buffer);
 
-            // TODO: generic arrays
             var codec = GetTypeCodec(formatCode);
             if (codec == null)
             {

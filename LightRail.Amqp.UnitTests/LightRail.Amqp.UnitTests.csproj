@@ -50,6 +50,7 @@
     <Compile Include="Protocol\EmptyAMQPFrameTests.cs" />
     <Compile Include="Protocol\InterceptingSocket.cs" />
     <Compile Include="Protocol\VersionNegotiationTests.cs" />
+    <Compile Include="Types\DescribedListCodecTests.cs" />
     <Compile Include="Types\EncoderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Types\LambdaExpressionTests.cs" />

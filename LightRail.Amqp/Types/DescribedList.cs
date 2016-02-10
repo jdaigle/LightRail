@@ -162,13 +162,37 @@ namespace LightRail.Amqp.Types
             // AmqpCodec.DecodeObject<[PropertyTypeForDecode]>(buffer, formatCode)
             var method = typeof(AmqpCodec).GetMethod("DecodeObject", new Type[] { typeof(ByteBuffer), typeof(byte) });
             var genericMethod = method.MakeGenericMethod(propertyTypeForDecode);
-            var readIntMethod = Expression.Call(genericMethod, bufferParameter, formatCodeParameter);
+            var decodeMethod = Expression.Call(genericMethod, bufferParameter, formatCodeParameter);
+
+            if (propertyInfo.PropertyType.IsArray)
+            {
+                // special handling of arrays
+                // 1) we need to be able to decode single value into an array object
+                // 2) we need to be able to get the correct decoder for an array
+                // DescribedList.DecodeArrayWrapper<[PropertyTypeForDecode]>(buffer, formatCode)
+                method = typeof(DescribedList).GetMethod("DecodeArrayWrapper", BindingFlags.NonPublic | BindingFlags.Static);
+                genericMethod = method.MakeGenericMethod(propertyTypeForDecode, propertyInfo.PropertyType.GetElementType());
+                decodeMethod = Expression.Call(genericMethod, bufferParameter, formatCodeParameter);
+            }
 
             // ((T)instance).[PropertyName] = ([PropertyType])AmqpCodec.DecodeObject<[PropertyType]>(buffer, formatCode);
-            var assignment = Expression.Assign(propertyExpression, Expression.Convert(readIntMethod, propertyInfo.PropertyType));
+            var assignment = Expression.Assign(propertyExpression, Expression.Convert(decodeMethod, propertyInfo.PropertyType));
 
             // compile
             return Expression.Lambda<Action<object, ByteBuffer, byte>>(assignment, instanceParameter, bufferParameter, formatCodeParameter).Compile();
+        }
+
+        private static bool FormatCodeIsArrayType(byte formatCode)
+        {
+            return formatCode == FormatCode.Array32 || formatCode == FormatCode.Array8;
+        }
+
+        private static object DecodeArrayWrapper<TArray, TArrayElement>(ByteBuffer buffer, byte formatCode)
+        {
+            if (FormatCodeIsArrayType(formatCode))
+                return Encoder.ReadStronglyTypedArray<TArrayElement>(buffer, formatCode);
+            else
+                return new TArrayElement[] { AmqpCodec.DecodeObject<TArrayElement>(buffer, formatCode) };
         }
 
         private static void CompilePropertyEncoderDelegates(Type describedListType)
@@ -225,7 +249,7 @@ namespace LightRail.Amqp.Types
                 // cannot accept nullable types, so this will make it easier just to quickly check.
                 var expressionPropertyForComparison = Expression.MakeMemberAccess(instanceCast, propertyInfo);
                 var propertyValueIsNull = Expression.Equal(expressionPropertyForComparison, Expression.Constant(null));
-                var encodeNullMethod = Expression.Call(typeof(DescribedList).GetMethod("EncodeNull"), bufferParameter);
+                var encodeNullMethod = Expression.Call(typeof(DescribedList).GetMethod("EncodeNull", BindingFlags.NonPublic | BindingFlags.Static), bufferParameter);
                 lambdaExpressionBody = Expression.Condition(propertyValueIsNull, encodeNullMethod, encodeMethod);
             }
 
@@ -233,7 +257,7 @@ namespace LightRail.Amqp.Types
             return Expression.Lambda<Func<object, ByteBuffer, bool>>(lambdaExpressionBody, instanceParameter, bufferParameter).Compile();
         }
 
-        public static bool EncodeNull(ByteBuffer buffer)
+        private static bool EncodeNull(ByteBuffer buffer)
         {
             Encoder.WriteNull(buffer);
             return true;
