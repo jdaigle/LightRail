@@ -27,6 +27,7 @@ namespace LightRail.Client.Pipeline
             if (requiresTargetParameter)
             {
                 parameters[0] = serviceLocator.Resolve(handler.TargetType) ?? Activator.CreateInstance(handler.TargetType);
+                // TODO performance.cache a lambda expression to construct instead of Activator.CreateInstance
             }
             var pStart = (requiresTargetParameter ? 1 : 0);
             for (int i = 0; i < handler.ParameterTypes.Count; i++)
