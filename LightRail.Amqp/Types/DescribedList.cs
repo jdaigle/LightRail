@@ -212,7 +212,7 @@ namespace LightRail.Amqp.Types
 
             var testIfPropertyValueIsNull = propertyIsNullable || propertyInfo.PropertyType.IsClass;
 
-            var encodeObjectMethod = typeof(DescribedList).GetMethod("EncodeObject");
+            var encodeObjectMethod = typeof(DescribedList).GetMethod("EncodeObjectWrapper", BindingFlags.NonPublic | BindingFlags.Static);
             var genericEncodeObjectMethod = encodeObjectMethod.MakeGenericMethod(propertyTypeForEncode);
 
             // AmqpCodec.EncodeObject<[PropertyTypeForDecode]>(buffer, ((T)instance).[PropertyName], false)
@@ -239,7 +239,7 @@ namespace LightRail.Amqp.Types
             return true;
         }
 
-        public static bool EncodeObject<T>(ByteBuffer buffer, T value, bool arrayEncoding)
+        private static bool EncodeObjectWrapper<T>(ByteBuffer buffer, T value, bool arrayEncoding)
         {
             AmqpCodec.EncodeObject(buffer, value, arrayEncoding);
             if (EqualityComparer<T>.Default.Equals(value, default(T)) &&

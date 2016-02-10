@@ -119,6 +119,6 @@ namespace LightRail.Amqp.Framing
         /// A registry of commonly defined connection properties and their meanings is maintained [AMQPCONNPROP].
         /// </summary>
         [AmqpDescribedListIndex(9)]
-        public Symbol[] Properties { get; set; }
+        public Fields Properties { get; set; }
     }
 }

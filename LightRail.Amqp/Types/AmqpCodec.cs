@@ -298,7 +298,7 @@ namespace LightRail.Amqp.Types
         private static AmqpException InvalidFormatCodeException(byte formatCode, int offset)
         {
             return new AmqpException(ErrorCode.DecodeError,
-                $"The format code '{formatCode}' at frame buffer offset '{offset}' is invalid.");
+                $"The format code '{formatCode.ToHex()}' at frame buffer offset '{offset}' is invalid.");
         }
 
         private static AmqpException TypeNotSupportedException(Type type)

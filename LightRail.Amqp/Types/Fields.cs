@@ -31,7 +31,7 @@ namespace LightRail.Amqp.Types
     {
         protected override void CheckKeyType(Type keyType)
         {
-            Map.ValidateKeyType(typeof(string), keyType);
+            Map.ValidateKeyType(typeof(Symbol), keyType);
         }
     }
 }
