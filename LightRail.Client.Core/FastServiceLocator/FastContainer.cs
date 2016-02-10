@@ -97,44 +97,6 @@ namespace LightRail.Client.FastServiceLocator
             return null;
         }
 
-        private static object _FillPropertiesTargetCacheLock = new object();
-        private static IDictionary<Type, IList<PropertyInfo>> FillPropertiesTargetPublicProperties = new Dictionary<Type, IList<PropertyInfo>>();
-
-        private static IList<PropertyInfo> GetPropertiesForTarget(Type targetType)
-        {
-            if (FillPropertiesTargetPublicProperties.ContainsKey(targetType))
-            {
-                return FillPropertiesTargetPublicProperties[targetType];
-            }
-
-            lock (_FillPropertiesTargetCacheLock)
-            {
-                if (FillPropertiesTargetPublicProperties.ContainsKey(targetType))
-                {
-                    return FillPropertiesTargetPublicProperties[targetType];
-                }
-
-                var publicProperties = targetType.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy).Where(x => x.GetSetMethod() != null).ToList();
-                FillPropertiesTargetPublicProperties[targetType] = publicProperties;
-                return publicProperties;
-            }
-        }
-
-        public virtual void FillProperties(object target)
-        {
-            var properties = GetPropertiesForTarget(target.GetType());
-            foreach (var prop in properties)
-            {
-                if (this.registrations.ContainsKey(prop.PropertyType))
-                {
-                    if (prop.GetValue(target, null) == null)
-                    {
-                        prop.SetValue(target, this.Resolve(prop.PropertyType), null);
-                    }
-                }
-            }
-        }
-
         public virtual FastContainer Clone()
         {
             AssertNotDisposed();
