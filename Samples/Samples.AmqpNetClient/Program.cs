@@ -33,6 +33,8 @@ namespace Samples.AmqpNetClient
             session = new Session(connection);
             session.Closed = OnClosed;
 
+            //System.Threading.Thread.Sleep(2000);
+
             Console.WriteLine("Attaching Link to Send");
             var linkName = Guid.NewGuid().ToString();
             senderLink = new SenderLink(session, linkName, "TestQueue1");
@@ -40,7 +42,7 @@ namespace Samples.AmqpNetClient
 
             for (int i = 0; i < 100; i++)
             {
-                senderLink.Send(CreateMessage());
+                senderLink.Send(CreateMessage(), 5000);
             }
 
             senderLink.Close();
@@ -50,7 +52,7 @@ namespace Samples.AmqpNetClient
             receiverLink = new ReceiverLink(session, linkName, "TestQueue1");
             receiverLink.Closed = OnClosed;
 
-            var message = receiverLink.Receive(2000);
+            var message = receiverLink.Receive(20000);
             int receiveCount = 0;
             while(message != null)
             {
