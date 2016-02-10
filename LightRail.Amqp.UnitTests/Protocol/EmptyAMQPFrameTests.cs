@@ -1,5 +1,4 @@
 ﻿using System.Threading;
-using LightRail.Amqp.Framing;
 using LightRail.Amqp.Types;
 using NUnit.Framework;
 
