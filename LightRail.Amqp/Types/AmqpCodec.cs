@@ -131,14 +131,14 @@ namespace LightRail.Amqp.Types
                 throw new ArgumentException(nameof(formatCode), "Format code must be described (0x00)");
 
             var descriptor = DecodeDescriptor(buffer);
+
             if (DescribedTypeCodec.IsKnownDescribedType(descriptor))
             {
                 return DecodeKnownDescribedType(buffer, descriptor);
             }
+
             object value = DecodeBoxedObject(buffer); // TODO: performance. boxing
-            // TODO: performance. Can we compile and cache a lambda expression instead of using reflection?
-            var describedType = typeof(DescribedValue<>).MakeGenericType(value.GetType());
-            return Activator.CreateInstance(describedType, descriptor, value);
+            return DescribedTypeCodec.GetDescribedTypeConstructor(value.GetType())(descriptor, value);
         }
 
         /// <summary>

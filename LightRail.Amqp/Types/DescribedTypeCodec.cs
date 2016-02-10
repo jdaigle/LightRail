@@ -110,5 +110,21 @@ namespace LightRail.Amqp.Types
         {
             return knownDescribedTypeConstructors.TryGetValue(code, out ctor);
         }
+
+        private static readonly Dictionary<Type, Func<Descriptor, object, object>> cachedDescribedTypeConstructors = new Dictionary<Type, Func<Descriptor, object, object>>();
+
+        internal static Func<Descriptor, object, object> GetDescribedTypeConstructor(Type valueType)
+        {
+            if (!cachedDescribedTypeConstructors.ContainsKey(valueType))
+            {
+                var describedType = typeof(DescribedValue<>).MakeGenericType(valueType);
+                var ctor = describedType.GetConstructor(new Type[] { typeof(Descriptor), valueType });
+                var descriptorParameter = Expression.Parameter(typeof(Descriptor));
+                var valueObjectParameter = Expression.Parameter(typeof(object));
+                var newExp = Expression.New(ctor, descriptorParameter, Expression.Convert(valueObjectParameter, valueType));
+                cachedDescribedTypeConstructors[valueType] = Expression.Lambda<Func<Descriptor, object, object>>(newExp, descriptorParameter, valueObjectParameter).Compile();
+            }
+            return cachedDescribedTypeConstructors[valueType];
+        }
     }
 }
