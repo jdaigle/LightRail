@@ -21,3 +21,22 @@
    non-blocking, non-locking. Ideally wait-free, but that's harder to do.
 
 # Message Broker Queueing Architecture
+
+1. Each message queue is implemented a concurrent, lock-free, non-blocking queue.
+   The implementation makes heavy use of synchronization primatives including
+   such as "compare-and-swap".
+2. The queue implementation is an unbounded linked list. Items are enqueued at
+   the Tail.
+3. The "ConcurrentQueue" class implements a producer/consumer pattern. It supports
+   multiple "producers" which enqueue new items. "Consumers" are registered with
+   the queue.
+4. Consumers are notified of messages in an event loop. Whenever an item is
+   enqueued a RegisteredWaitHandle is signaled to start a thread with a callback.
+   The callback method is protected from concurrent executions with an atomic flag.
+   The event loop loops over each consumer and *synchronously* attempts delivery
+   of exactly one item. If nothing is queued and/or there are no consumers then the 
+   loop exits immediately.
+5. Note that all consumers of a queue aquire messages *synchronously*. The aquired
+   message should pass through the AmqpConnection state machine and the transfer
+   is written to a buffer. The consumers' handler must not block! Since we're
+   encoding a transfer, it's enqueue/buffered for writing to the underlying socket.

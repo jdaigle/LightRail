@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Threading;
 using LightRail.Server.Network;
-using LightRail.Server.Queuing;
 
 namespace LightRail.Server
 {
@@ -11,9 +9,6 @@ namespace LightRail.Server
         {
             Trace.EnabledTraceLevel = TraceLevel.Debug;
             Trace.OnTraceEvent += NLogTraceHandler;
-
-            //Thread.CurrentThread.Priority = ThreadPriority.Highest;
-            //Process.GetCurrentProcess().ProcessorAffinity = new IntPtr(2);
 
             new TcpListener().Start();
 

@@ -79,17 +79,7 @@ namespace LightRail.Server.Queuing
                 if (next != null)
                 {
                     // message acquired and ready to be delivered
-                    Task.Factory.StartNew(() =>
-                    {
-                        try
-                        {
-                            deliveryMessageDelegate(next);
-                        }
-                        catch (Exception ex)
-                        {
-                            trace.Error(ex, "Exception caught deliveryMessageDelegate()");
-                        }
-                    }); // TODO, a better way to async this?
+                    deliveryMessageDelegate(next);
                 }
             }
         }
