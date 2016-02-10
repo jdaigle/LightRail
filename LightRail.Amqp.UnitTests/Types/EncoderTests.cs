@@ -376,38 +376,6 @@ namespace LightRail.Amqp.Types
             runTest((Symbol)"null", null, workBuffer);
         }
 
-        //[Test]
-        //public void AmqpCodecFramingTypeTest()
-        //{
-        //    Type codec = typeof(Encoder).Assembly.GetType("Amqp.Framing.Codec", true);
-        //    var decode = codec.GetMethod("Decode", BindingFlags.Public | BindingFlags.Static);
-        //    Random random = new Random();
-
-        //    foreach (var type in codec.Assembly.GetTypes())
-        //    {
-        //        if (!typeof(RestrictedDescribed).IsAssignableFrom(type) ||
-        //            type.IsAbstract)
-        //        {
-        //            continue;
-        //        }
-
-        //        if (type.GetConstructor(new Type[0]) == null)
-        //        {
-        //            continue;
-        //        }
-
-        //        System.Diagnostics.Trace.WriteLine("testing " + type.FullName);
-
-        //        object obj = CreateRestrictedDescribed(type, random);
-
-        //        ByteBuffer buffer = new ByteBuffer(1024, true);
-        //        ((RestrictedDescribed)obj).Encode(buffer);
-
-        //        object obj2 = decode.Invoke(null, new object[] { buffer });
-        //        ValidateRestrictedDescribed(obj, obj2);
-        //    }
-        //}
-
         static void RunDescribedValueTest<T>(object descriptor, T value, byte[] workBuffer)
         {
             var dv = new DescribedValue<T>(new Descriptor(descriptor), value);
