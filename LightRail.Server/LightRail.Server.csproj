@@ -61,6 +61,7 @@
     <Compile Include="QueuedMessage.cs" />
     <Compile Include="LinkedListQueueNode.cs" />
     <Compile Include="QueueManager.cs" />
+    <Compile Include="Queuing\ConcurrentLinkedQueue.cs" />
     <Compile Include="Queuing\ConcurrentQueue.cs" />
     <Compile Include="Queuing\ConcurrentQueueEntryList.cs" />
     <Compile Include="Queuing\QueueEntry.cs" />
