@@ -63,9 +63,9 @@ namespace LightRail.Server.Queuing
         /// 
         /// Returns true if the compare & swap succeeded, false other.
         /// </summary>
-        public bool TrySetNext(QueueEntry entry, QueueEntry previous)
+        public bool CompareAndSwapNext(QueueEntry n_next, QueueEntry p_next)
         {
-            return Interlocked.CompareExchange(ref next, entry, previous) == previous;
+            return Interlocked.CompareExchange(ref next, n_next, p_next) == p_next;
         }
 
         /// <summary>

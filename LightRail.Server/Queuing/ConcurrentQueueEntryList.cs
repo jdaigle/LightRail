@@ -3,6 +3,12 @@ using System.Threading;
 
 namespace LightRail.Server.Queuing
 {
+    /// <summary>
+    /// An implementation based on "Implemented Lock-Free Queues" by John D. Valois    /// http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.53.8674&rep=rep1&type=pdf
+    /// 
+    /// Other references:
+    /// https://www.research.ibm.com/people/m/michael/podc-1996.pdf
+    /// </summary>
     public class ConcurrentQueueEntryList
     {
         private static TraceSource trace = TraceSource.FromClass();
@@ -16,8 +22,8 @@ namespace LightRail.Server.Queuing
         }
 
         /// <summary>
-        /// The head of the queue is always a fixed object. It's "Next"
-        /// property is the first item in the queue.
+        /// The head of the queue is a sentinel. It's "Next"
+        /// property is the first item in the queue or NULL.
         /// </summary>
         private volatile QueueEntry head;
         /// <summary>
@@ -33,28 +39,30 @@ namespace LightRail.Server.Queuing
 
         public QueueEntry Enqueue(object item)
         {
-            var entry = new QueueEntry(item, DateTime.UtcNow, uint.MaxValue, 0, QueueEntryStateEnum.ARCHIVED);
+            var n = new QueueEntry(item, DateTime.UtcNow, uint.MaxValue, 0, QueueEntryStateEnum.ARCHIVED);
             while (true)
             {
-                var prevTail = this.tail;
-                var prevTailNext = prevTail.Next;
-                if (prevTail == this.tail)
+                // p = previous node
+                var p = tail;
+                var p_next = p.Next;
+                if (ReferenceEquals(p, tail)) //  Are tail and next consistent?
                 {
-                    if (prevTailNext == null)
+                    if (p_next == null) // Was Tail pointing to the last node?
                     {
-                        entry.SeqNum = prevTail.SeqNum + 1;
-                        if (prevTail.TrySetNext(entry, null)) // compare and swap, returns if successful
+                        n.SeqNum = p.SeqNum + 1;
+                        if (p.CompareAndSwapNext(n, p_next)) // compare and swap, returns if successful
                         {
-                            // it shouldn't be possible for two threads to get here at the same time
-                            Interlocked.CompareExchange(ref this.tail, entry, this.tail); // compare and swap
-                            return entry;
+                            // Enqueue is done. Try to swing Tail to the inserted node
+                            if (Interlocked.CompareExchange(ref tail, n, p) != p)
+                                System.Diagnostics.Debug.Fail("CAS(tail, p, n) failed!");
+                            return n; // exit loop
                         }
                     }
                     else
                     {
-                        // the tail has been updated before we had a chance. so compare and swap
-                        // if it fails... that's okay
-                        Interlocked.CompareExchange(ref this.tail, prevTailNext, prevTail);
+                        // Tail was not pointing to the last node
+                        // Try to swing Tail to the next node
+                        Interlocked.CompareExchange(ref tail, p_next, p);
                     }
                 }
             }
