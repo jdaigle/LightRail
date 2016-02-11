@@ -86,6 +86,7 @@
     <Compile Include="Protocol\SessionStateEnum.cs" />
     <Compile Include="Protocol\ConnectionStateEnumExtensions.cs" />
     <Compile Include="Protocol\TestContainer.cs" />
+    <Compile Include="RFCSeqNum.cs" />
     <Compile Include="Types\AmqpCodec.cs" />
     <Compile Include="Types\AmqpDescribedListIndexAttribute.cs" />
     <Compile Include="Framing\Open.cs" />

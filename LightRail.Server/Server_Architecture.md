@@ -20,6 +20,48 @@
    That means I/O operations should be queued. And all shared state should be 
    non-blocking, non-locking. Ideally wait-free, but that's harder to do.
 
+### AMQP Session and Message Transfer Notes
+
+* Session flow control is window based, effectively controls the number of unsettled
+  messages transfers held in a buffer (across all links attached a session).
+* Link flow control is credit-based, used to implement various messaging patterns
+  (async, sync, drain, etc.).
+
+### AMQP Session Flow
+
+The specification is super unclear about Session flow control. But at the end
+of the day Session flow control is about ensuring that the infrastructure is not
+overburdended with unsettled deliveries.
+
+The session has an "incoming-window" which is the number of transfers the session
+can received. This is decremented on each received transfer. But when is it
+incremented or reset? When we settle it? What about multi-transfer deliveries?
+In theory, when it reaches zero, we shouldn't handle any more transfers. When
+set or reset, we should send a flow.
+
+The session maintains a "remote-incoming-window" which is the number of transfers
+the session expects the *remote* session to be able to handle. This is decremented
+on sent transfer. When it reaches zero, we must stop transfers. It's recalculated
+when we receive a flow. The flow contains the remote's incoming-window, and it's
+last observed transfer-id (our outgoing-transfer-id). The algorithm substracts
+from the the remote's incoming window any outstanding transfers on our end.
+
+In theory the session also tracks a seperate "outgoing-window". While it seems that
+many implementations simply synchronize this with "remote-incoming-window", it
+seems possible to have an indepedent state which controls how many transfers we can
+send independent of what they can receive. Obviously in practice, this must necessarily
+be less than or equal to the "remote-incoming-window".
+
+Finally the "remote-outgoing-window". It's not clear what value this has other
+than from the spec: "When this window shrinks, it is an indication of
+outstanding transfers. Settling outstanding transfers can cause the window to grow."
+
+ What about multi-transfer deliveries?
+
+### Message Unsettled Delivery State (for Link Recovery)
+* TODO:
+* **I think that for version 1 we won't support suspending and resuming links.**
+
 # Message Broker Queueing Architecture
 
 1. Each message queue is implemented a concurrent, lock-free, non-blocking queue.
@@ -40,3 +82,8 @@
    message should pass through the AmqpConnection state machine and the transfer
    is written to a buffer. The consumers' handler must not block! Since we're
    encoding a transfer, it's enqueue/buffered for writing to the underlying socket.
+
+# Random Thoughts
+
+I can send product specific properties: 
+[03:47.365] RECV (ch=0) open(container-id:cf2bbc72-0962-48a0-bebe-83cc9b4ec181,max-frame-size:32768,channel-max:3,properties:[qpid.instance_name:Broker,product:qpid,version:0.26,qpid.build:1563358])

@@ -30,36 +30,39 @@ namespace LightRail.Amqp.Protocol
 
         public const uint DefaultMaxHandle = 256;
         public const uint DefaultWindowSize = 1024;
-        public const uint InitialOutgoingId = 1;
+        public static readonly RFCSeqNum InitialOutgoingId = 1;
 
         /// <summary>
         /// The maximum handle that can be given to a new link.
         /// </summary>
-        private uint sessionMaxHandle;
+        private volatile uint sessionMaxHandle;
 
         /// <summary>
         /// The expected transfer-id of the next incoming transfer frame.
         /// </summary>
-        private uint nextIncomingId;
+        private RFCSeqNum nextIncomingId;
         /// <summary>
         /// The max number of incoming transfer frames that the endpoint can currently receive.
+        /// 
+        /// Decremented on each received transfer. TODO: But when it is incremented or reset?!?!
         /// 
         /// This identifies a current max incoming transfer-id that can be computed by substracting
         /// one from the sum of nextIncomingId and incomingWindow.
         /// </summary>
-        private uint incomingWindow;
+        private volatile uint incomingWindow;
 
         /// <summary>
         /// The transfer-id assigned to the next transfer frame.
         /// </summary>
-        private uint nextOutgoingId;
+        private RFCSeqNum nextOutgoingId;
         /// <summary>
-        /// The max number of outgoing transfer frames that the endpoint can currently send.
+        /// The max number of outgoing transfer frames that the endpoint can currently send. This is
+        /// kept in sync with remoteIncomingWindow.
         /// 
         /// This identifies a current max outgoing transfer-id that can be computed by substracting
         /// one from the sum of nextOutgoingId and outgoingWindow.
         /// </summary>
-        private uint outgoingWindow;
+        private volatile uint outgoingWindow;
 
         /// <summary>
         /// The remote-incoming-window reflects the maximum number of outgoing transfers that can
@@ -67,7 +70,7 @@ namespace LightRail.Amqp.Protocol
         /// decremented after every transfer frame is sent, and recomputed when informed of the
         /// remote session endpoint state.
         /// </summary>
-        private uint remoteIncomingWindow;
+        private volatile uint remoteIncomingWindow;
 
         /// <summary>
         /// The remote-outgoing-window reflects the maximum number of incoming transfers that MAY
@@ -76,7 +79,7 @@ namespace LightRail.Amqp.Protocol
         /// of the remote session endpoint state. When this window shrinks, it is an indication
         /// of outstanding transfers. Settling outstanding transfers can cause the window to grow.
         /// </summary>
-        private uint remoteOutgoingWindow;
+        private volatile uint remoteOutgoingWindow;
 
         private BoundedList<AmqpLink> localLinks = new BoundedList<AmqpLink>(2, DefaultMaxHandle);
         private BoundedList<AmqpLink> remoteLinks = new BoundedList<AmqpLink>(2, DefaultMaxHandle);
@@ -125,6 +128,7 @@ namespace LightRail.Amqp.Protocol
         public void SendFlow(Flow flow)
         {
             incomingWindow = DefaultWindowSize; // reset window
+
             flow.NextIncomingId = nextIncomingId;
             flow.NextOutgoingId = nextOutgoingId;
             flow.IncomingWindow = incomingWindow;
@@ -149,11 +153,9 @@ namespace LightRail.Amqp.Protocol
             nextOutgoingId = InitialOutgoingId; // our next id
             incomingWindow = DefaultWindowSize; // our incoming window
 
-            outgoingWindow = begin.IncomingWindow; // their incoming window
             nextIncomingId = begin.NextOutgoingId; // their next id
-
-            remoteOutgoingWindow = begin.OutgoingWindow;
-            remoteIncomingWindow = InitialOutgoingId + begin.IncomingWindow - nextOutgoingId;
+            outgoingWindow = remoteIncomingWindow = begin.IncomingWindow; // their incoming window (and now our outgoing window)
+            remoteOutgoingWindow = begin.OutgoingWindow; // their advertized outgoing window
 
             sessionMaxHandle = Math.Min(DefaultMaxHandle, begin.HandleMax ?? DefaultMaxHandle);
 
@@ -210,12 +212,15 @@ namespace LightRail.Amqp.Protocol
                 return;
 
             nextIncomingId = flow.NextOutgoingId; // their next id
-            remoteOutgoingWindow = flow.OutgoingWindow; // their window
+            remoteOutgoingWindow = flow.OutgoingWindow; // their advertised outgoing window
 
+            // recalculate the remote session's advertised incoming-window based on the difference
+            // between the advertized next-incoming-id and our actual next-outgoing-id
+            // our outgoing-window is synchronized with the remote-incoming-window
             if (flow.NextIncomingId.HasValue)
-                remoteIncomingWindow = flow.NextIncomingId.Value + flow.IncomingWindow - nextOutgoingId;
+                outgoingWindow = remoteIncomingWindow = flow.IncomingWindow + flow.NextIncomingId.Value - (uint)nextOutgoingId;
             else
-                remoteIncomingWindow = InitialOutgoingId + flow.IncomingWindow - nextOutgoingId;
+                outgoingWindow = remoteIncomingWindow = flow.IncomingWindow + InitialOutgoingId - (uint)nextOutgoingId;
 
             if (outgoingWindow > 0)
             {
@@ -238,7 +243,7 @@ namespace LightRail.Amqp.Protocol
         private void InterceptAttachFrame(Attach attach)
         {
             if (!State.CanReceiveFrames())
-                throw new AmqpException(ErrorCode.IllegalState, $"Received Flow frame but session state is {State.ToString()}.");
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Attach frame but session state is {State.ToString()}.");
             if (State == SessionStateEnum.DISCARDING)
                 return;
 
@@ -295,15 +300,28 @@ namespace LightRail.Amqp.Protocol
         private void InterceptTransferFrame(Transfer transfer, ByteBuffer buffer)
         {
             if (!State.CanReceiveFrames())
-                throw new AmqpException(ErrorCode.IllegalState, $"Received Flow frame but session state is {State.ToString()}.");
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Transfer frame but session state is {State.ToString()}.");
             if (State == SessionStateEnum.DISCARDING)
                 return;
 
+            if (incomingWindow == 0)
+            {
+                // received a transfer frame when our incoming window is at zero
+                throw new AmqpException(ErrorCode.WindowViolation, "incoming-window is 0");
+            }
+
             nextIncomingId++;
             if (transfer.DeliveryId.HasValue)
+            {
                 nextIncomingId = transfer.DeliveryId.Value + 1;
+            }
+
             remoteOutgoingWindow--;
             incomingWindow--; // TODO: do we want to handle flow control?
+            if (incomingWindow == 0)
+            {
+                // TODO: ... do we just reset the window like AMQPlite?
+            }
 
             var link = GetRemoteLink(transfer.Handle);
 
@@ -313,7 +331,7 @@ namespace LightRail.Amqp.Protocol
         private void InterceptDispositionFrame(Disposition disposition)
         {
             if (!State.CanReceiveFrames())
-                throw new AmqpException(ErrorCode.IllegalState, $"Received Flow frame but session state is {State.ToString()}.");
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Disposition frame but session state is {State.ToString()}.");
             if (State == SessionStateEnum.DISCARDING)
                 return;
 
@@ -323,7 +341,7 @@ namespace LightRail.Amqp.Protocol
         private void InterceptDetachFrame(Detach detach)
         {
             if (!State.CanReceiveFrames())
-                throw new AmqpException(ErrorCode.IllegalState, $"Received Flow frame but session state is {State.ToString()}.");
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Detach frame but session state is {State.ToString()}.");
             if (State == SessionStateEnum.DISCARDING)
                 return;
 
