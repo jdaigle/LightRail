@@ -31,7 +31,7 @@ namespace LightRail.Amqp
                 if (value > MaximumCapacity)
                     throw new ArgumentOutOfRangeException(nameof(value), "Capacity must be less than MaximumCapacity");
                 var newItems = new T[value];
-                Buffer.BlockCopy(items, 0, newItems, 0, items.Length);
+                Array.Copy(items, 0, newItems, 0, items.Length);
                 items = newItems;
             }
         }
