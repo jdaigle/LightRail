@@ -9,6 +9,11 @@ namespace LightRail.Amqp.Types
     {
         public static AmqpFrame DecodeFrame(ByteBuffer buffer, out ushort channelNumber)
         {
+#if DEBUG
+            byte[] debugFrameBuffer = new byte[buffer.LengthAvailableToRead];
+            Buffer.BlockCopy(buffer.Buffer, buffer.ReadOffset, debugFrameBuffer, 0, buffer.LengthAvailableToRead);
+#endif
+
             int frameStartOffset = buffer.ReadOffset;
 
             // frame header
@@ -38,8 +43,18 @@ namespace LightRail.Amqp.Types
             if (formatCode != FormatCode.Described)
                 throw new AmqpException(ErrorCode.FramingError, $"Expected Format Code = {FormatCode.Described.ToHex()} but was {formatCode.ToHex()}");
 
-            // decode
-            return (AmqpFrame)DecodeDescribedType(buffer, formatCode);
+            try
+            {
+                // decode
+                return (AmqpFrame)DecodeDescribedType(buffer, formatCode);
+            }
+            catch (Exception)
+            {
+#if DEBUG
+                TraceSource.FromClass().Debug(Environment.NewLine + debugFrameBuffer.ToHex());
+#endif
+                throw;
+            }
         }
 
         public static byte DecodeFormatCode(ByteBuffer buffer)
