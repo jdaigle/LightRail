@@ -25,7 +25,7 @@ namespace LightRail.Amqp.Types
             Descriptor = descriptor;
         }
 
-        public void Encode(ByteBuffer buffer)
+        public void Encode(ByteBuffer buffer, bool arrayEncoding = false)
         {
             AmqpBitConverter.WriteUByte(buffer, FormatCode.Described);
             if (!string.IsNullOrWhiteSpace(Descriptor.Name) || Descriptor.Code != 0)
@@ -36,7 +36,7 @@ namespace LightRail.Amqp.Types
             {
                 Encoder.WriteSymbol(buffer, Descriptor.Name, true);
             }
-            EncodeValue(buffer);
+            EncodeValue(buffer, arrayEncoding);
         }
 
         public void Decode(ByteBuffer buffer)
@@ -44,7 +44,7 @@ namespace LightRail.Amqp.Types
             DecodeValue(buffer);
         }
 
-        protected abstract void EncodeValue(ByteBuffer buffer);
+        protected abstract void EncodeValue(ByteBuffer buffer, bool arrayEncoding);
         protected abstract void DecodeValue(ByteBuffer buffer);
     }
 }

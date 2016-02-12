@@ -22,7 +22,7 @@ namespace LightRail.Amqp.Types
         {
         }
 
-        protected override void EncodeValue(ByteBuffer buffer)
+        protected override void EncodeValue(ByteBuffer buffer, bool arrayEncoding)
         {
             int pos = buffer.WriteOffset;
 
@@ -39,7 +39,7 @@ namespace LightRail.Amqp.Types
             for (int i = 0; i < propertyCount; i++)
             {
                 var encoderFunc = GetEncoderDelegate(thisType, i);
-                var valueWasNull = encoderFunc(this, buffer);
+                var valueWasNull = encoderFunc(this, buffer, arrayEncoding); // returns true if the value == null, false otherwise
                 if (!valueWasNull || i == 0)
                 {
                     lastNotNullIndex = i;
@@ -99,17 +99,20 @@ namespace LightRail.Amqp.Types
             }
         }
 
-        private static Dictionary<Type, Dictionary<int, Action<object, ByteBuffer, byte>>> cachedDecoderDelegates = new Dictionary<Type, Dictionary<int, Action<object, ByteBuffer, byte>>>();
-        private static Dictionary<Type, Dictionary<int, Func<object, ByteBuffer, bool>>> cachedEncoderDelegates = new Dictionary<Type, Dictionary<int, Func<object, ByteBuffer, bool>>>();
+        private static Dictionary<Type, Dictionary<int, DecodeProperty>> cachedDecoderDelegates = new Dictionary<Type, Dictionary<int, DecodeProperty>>();
+        private static Dictionary<Type, Dictionary<int, EncodeProperty>> cachedEncoderDelegates = new Dictionary<Type, Dictionary<int, EncodeProperty>>();
 
-        private static Action<object, ByteBuffer, byte> GetDecoderDelegate(Type describedListType, int index)
+        delegate void DecodeProperty(object instance, ByteBuffer buffer, byte formatCode);
+        delegate bool EncodeProperty(object instance, ByteBuffer buffer, bool arrayEncoding);
+
+        private static DecodeProperty GetDecoderDelegate(Type describedListType, int index)
         {
             if (!cachedDecoderDelegates.ContainsKey(describedListType))
                 CompilePropertyDecoderDelegates(describedListType);
             return cachedDecoderDelegates[describedListType][index];
         }
 
-        private static Func<object, ByteBuffer, bool> GetEncoderDelegate(Type describedListType, int index)
+        private static EncodeProperty GetEncoderDelegate(Type describedListType, int index)
         {
             if (!cachedEncoderDelegates.ContainsKey(describedListType))
                 CompilePropertyEncoderDelegates(describedListType);
@@ -125,7 +128,7 @@ namespace LightRail.Amqp.Types
 
         private static void CompilePropertyDecoderDelegates(Type describedListType)
         {
-            var decoders = new Dictionary<int, Action<object, ByteBuffer, byte>>();
+            var decoders = new Dictionary<int, DecodeProperty>();
 
             var properties = describedListType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(x => x.CanWrite)
@@ -140,7 +143,7 @@ namespace LightRail.Amqp.Types
             cachedDecoderDelegates[describedListType] = decoders;
         }
 
-        private static Action<object, ByteBuffer, byte> CompilePropertyDecoderDelegate(Type instanceType, PropertyInfo propertyInfo)
+        private static DecodeProperty CompilePropertyDecoderDelegate(Type instanceType, PropertyInfo propertyInfo)
         {
             // delegate parameters
             var instanceParameter = Expression.Parameter(typeof(object), "instance");
@@ -179,7 +182,7 @@ namespace LightRail.Amqp.Types
             var assignment = Expression.Assign(propertyExpression, Expression.Convert(decodeMethod, propertyInfo.PropertyType));
 
             // compile
-            return Expression.Lambda<Action<object, ByteBuffer, byte>>(assignment, instanceParameter, bufferParameter, formatCodeParameter).Compile();
+            return Expression.Lambda<DecodeProperty>(assignment, instanceParameter, bufferParameter, formatCodeParameter).Compile();
         }
 
         private static bool FormatCodeIsArrayType(byte formatCode)
@@ -197,7 +200,7 @@ namespace LightRail.Amqp.Types
 
         private static void CompilePropertyEncoderDelegates(Type describedListType)
         {
-            var decoders = new Dictionary<int, Func<object, ByteBuffer, bool>>();
+            var decoders = new Dictionary<int, EncodeProperty>();
 
             var properties = describedListType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(x => x.CanWrite)
@@ -212,11 +215,12 @@ namespace LightRail.Amqp.Types
             cachedEncoderDelegates[describedListType] = decoders;
         }
 
-        private static Func<object, ByteBuffer, bool> CompilePropertyEncoderDelegate(Type instanceType, PropertyInfo propertyInfo)
+        private static EncodeProperty CompilePropertyEncoderDelegate(Type instanceType, PropertyInfo propertyInfo)
         {
             // delegate parameters
             var instanceParameter = Expression.Parameter(typeof(object), "instance");
             var bufferParameter = Expression.Parameter(typeof(ByteBuffer), "buffer");
+            var arrayEncodingParameter = Expression.Parameter(typeof(bool), "arrayEncoding");
 
             // (T)instance
             var instanceCast = Expression.Convert(instanceParameter, instanceType);
@@ -240,7 +244,7 @@ namespace LightRail.Amqp.Types
             var genericEncodeObjectMethod = encodeObjectMethod.MakeGenericMethod(propertyTypeForEncode);
 
             // AmqpCodec.EncodeObject<[PropertyTypeForDecode]>(buffer, ((T)instance).[PropertyName], false)
-            var encodeMethod = Expression.Call(genericEncodeObjectMethod, bufferParameter, propertyExpression, Expression.Constant(true));
+            var encodeMethod = Expression.Call(genericEncodeObjectMethod, bufferParameter, propertyExpression, arrayEncodingParameter);
             Expression lambdaExpressionBody = encodeMethod;
 
             if (testIfPropertyValueIsNull)
@@ -254,7 +258,7 @@ namespace LightRail.Amqp.Types
             }
 
             // compile
-            return Expression.Lambda<Func<object, ByteBuffer, bool>>(lambdaExpressionBody, instanceParameter, bufferParameter).Compile();
+            return Expression.Lambda<EncodeProperty>(lambdaExpressionBody, instanceParameter, bufferParameter, arrayEncodingParameter).Compile();
         }
 
         private static bool EncodeNull(ByteBuffer buffer)

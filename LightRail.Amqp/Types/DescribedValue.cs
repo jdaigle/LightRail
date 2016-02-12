@@ -10,9 +10,9 @@
 
         public T Value { get; private set; }
 
-        protected override void EncodeValue(ByteBuffer buffer)
+        protected override void EncodeValue(ByteBuffer buffer, bool arrayEncoding)
         {
-            Encoder.GetTypeCodec<T>().Encode(buffer, Value, false);
+            Encoder.GetTypeCodec<T>().Encode(buffer, Value, arrayEncoding);
         }
 
         protected override void DecodeValue(ByteBuffer buffer)

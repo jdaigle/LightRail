@@ -460,14 +460,14 @@ namespace LightRail.Amqp.Types
                     if (i == 0)
                     {
                         // TODO: strongly typed arrays
-                        AmqpCodec.EncodeBoxedObject(buffer, item, false);
+                        AmqpCodec.EncodeBoxedObject(buffer, item, true);
                     }
                     else
                     {
                         int lastPos = buffer.WriteOffset - 1;
                         byte lastByte = buffer.Buffer[lastPos];
                         buffer.ShrinkWrite(1);
-                        AmqpCodec.EncodeBoxedObject(buffer, item, false);
+                        AmqpCodec.EncodeBoxedObject(buffer, item, true);
                         buffer.Buffer[lastPos] = lastByte;
                     }
                 }

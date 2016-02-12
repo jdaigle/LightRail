@@ -10,9 +10,9 @@
         private Map map = new Map();
         public Map Map { get { return this.map; } }
 
-        protected override void EncodeValue(ByteBuffer buffer)
+        protected override void EncodeValue(ByteBuffer buffer, bool arrayEncoding)
         {
-            Encoder.WriteMap(buffer, Map, true);
+            Encoder.WriteMap(buffer, Map, arrayEncoding);
         }
 
         protected override void DecodeValue(ByteBuffer buffer)

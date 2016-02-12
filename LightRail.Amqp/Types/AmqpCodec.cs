@@ -251,7 +251,7 @@ namespace LightRail.Amqp.Types
 
             if (value is DescribedType)
             {
-                (value as DescribedType).Encode(buffer);
+                (value as DescribedType).Encode(buffer, arrayEncoding);
                 return;
             }
 
@@ -296,7 +296,7 @@ namespace LightRail.Amqp.Types
 
             if (value is DescribedType)
             {
-                (value as DescribedType).Encode(buffer);
+                (value as DescribedType).Encode(buffer, arrayEncoding);
                 return;
             }
 
