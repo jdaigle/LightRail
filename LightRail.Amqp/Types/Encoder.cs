@@ -419,7 +419,7 @@ namespace LightRail.Amqp.Types
                     buffer.Buffer[pos] = FormatCode.List8;
                     buffer.Buffer[pos + 1] = (byte)(size + 1);
                     buffer.Buffer[pos + 2] = (byte)listLength;
-                    Array.Copy(buffer.Buffer, pos + 9, buffer.Buffer, pos + 3, size);
+                    Buffer.BlockCopy(buffer.Buffer, pos + 9, buffer.Buffer, pos + 3, size);
                     buffer.ShrinkWrite(6);
                 }
                 else
@@ -479,7 +479,7 @@ namespace LightRail.Amqp.Types
                     buffer.Buffer[pos] = FormatCode.Array8;
                     buffer.Buffer[pos + 1] = (byte)(size + 1);
                     buffer.Buffer[pos + 2] = (byte)count;
-                    Array.Copy(buffer.Buffer, pos + 9, buffer.Buffer, pos + 3, size);
+                    Buffer.BlockCopy(buffer.Buffer, pos + 9, buffer.Buffer, pos + 3, size);
                     buffer.ShrinkWrite(6);
                 }
                 else
@@ -524,7 +524,7 @@ namespace LightRail.Amqp.Types
                     buffer.Buffer[pos] = FormatCode.Map8;
                     buffer.Buffer[pos + 1] = (byte)(size + 1);
                     buffer.Buffer[pos + 2] = (byte)count;
-                    Array.Copy(buffer.Buffer, pos + 9, buffer.Buffer, pos + 3, size);
+                    Buffer.BlockCopy(buffer.Buffer, pos + 9, buffer.Buffer, pos + 3, size);
                     buffer.ShrinkWrite(6);
                 }
                 else
@@ -835,7 +835,7 @@ namespace LightRail.Amqp.Types
 
             buffer.ValidateRead(count);
             byte[] value = new byte[count];
-            Array.Copy(buffer.Buffer, buffer.ReadOffset, value, 0, count);
+            Buffer.BlockCopy(buffer.Buffer, buffer.ReadOffset, value, 0, count);
             buffer.CompleteRead(count);
 
             return value;

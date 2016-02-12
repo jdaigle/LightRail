@@ -185,11 +185,11 @@ namespace LightRail.Amqp
                 d[7] = buffer.Buffer[pos++];
                 d[6] = buffer.Buffer[pos++];
 
-                Array.Copy(buffer.Buffer, pos, d, 8, 8);
+                Buffer.BlockCopy(buffer.Buffer, pos, d, 8, 8);
             }
             else
             {
-                Array.Copy(buffer.Buffer, buffer.ReadOffset, d, 0, FixedWidth.Uuid);
+                Buffer.BlockCopy(buffer.Buffer, buffer.ReadOffset, d, 0, FixedWidth.Uuid);
             }
 
             buffer.CompleteRead(FixedWidth.Uuid);
@@ -206,7 +206,7 @@ namespace LightRail.Amqp
         public static void ReadBytes(ByteBuffer buffer, byte[] data, int offset, int count)
         {
             buffer.ValidateRead(count);
-            Array.Copy(buffer.Buffer, buffer.ReadOffset, data, offset, count);
+            Buffer.BlockCopy(buffer.Buffer, buffer.ReadOffset, data, offset, count);
             buffer.CompleteRead(count);
         }
 
@@ -358,11 +358,11 @@ namespace LightRail.Amqp
                 buffer.Buffer[pos++] = p[7];
                 buffer.Buffer[pos++] = p[6];
 
-                Array.Copy(p, 8, buffer.Buffer, pos, 8);
+                Buffer.BlockCopy(p, 8, buffer.Buffer, pos, 8);
             }
             else
             {
-                Array.Copy(p, buffer.Buffer, FixedWidth.Uuid);
+                Buffer.BlockCopy(p, 0, buffer.Buffer, buffer.WriteOffset, FixedWidth.Uuid);
             }
 
             buffer.AppendWrite(FixedWidth.Uuid);
@@ -378,7 +378,7 @@ namespace LightRail.Amqp
         public static void WriteBytes(ByteBuffer buffer, byte[] data, int offset, int count)
         {
             buffer.ValidateWrite(count);
-            Array.Copy(data, offset, buffer.Buffer, buffer.WriteOffset, count);
+            Buffer.BlockCopy(data, offset, buffer.Buffer, buffer.WriteOffset, count);
             buffer.AppendWrite(count);
         }
     }

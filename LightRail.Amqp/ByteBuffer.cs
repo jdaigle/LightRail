@@ -246,7 +246,7 @@ namespace LightRail.Amqp
             newBuffer = new byte[requestedNewBufferSize];
             newBufferStartOffset = 0;
             newBufferSize = requestedNewBufferSize;
-            Array.Copy(oldBuffer, oldBufferStartOffset, newBuffer, 0, dataSizeToCopy);
+            System.Buffer.BlockCopy(oldBuffer, oldBufferStartOffset, newBuffer, 0, dataSizeToCopy);
         }
 
         [Conditional("DEBUG")]

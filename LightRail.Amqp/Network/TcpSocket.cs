@@ -77,7 +77,7 @@ namespace LightRail.Amqp.Network
             sendState.byteBuffer.ResetReadWrite();
             sendState.sendCompleteCallback = sendCompleteCallback;
 
-            Array.Copy(buffer, offset, sendState.byteBuffer.Buffer, sendState.byteBuffer.WriteOffset, count);
+            Buffer.BlockCopy(buffer, offset, sendState.byteBuffer.Buffer, sendState.byteBuffer.WriteOffset, count);
             sendState.byteBuffer.AppendWrite(count);
 
             sendState.countToWrite = count;
