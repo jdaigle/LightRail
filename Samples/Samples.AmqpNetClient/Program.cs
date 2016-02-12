@@ -26,7 +26,12 @@ namespace Samples.AmqpNetClient
             };
 
             Console.WriteLine("Opening Connection");
-            connection = new Connection(amqpAddress);
+            connection = new Connection(amqpAddress, null, new Open()
+            {
+                ContainerId = Guid.NewGuid().ToString(),
+                ChannelMax = 64,
+                MaxFrameSize = 200,
+            }, null);
             connection.Closed = OnClosed;
 
             Console.WriteLine("Beginning Session");
@@ -40,7 +45,7 @@ namespace Samples.AmqpNetClient
             senderLink = new SenderLink(session, linkName, "TestQueue1");
             senderLink.Closed = OnClosed;
 
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 1; i++)
             {
                 senderLink.Send(CreateMessage(), 5000);
             }
@@ -80,7 +85,7 @@ namespace Samples.AmqpNetClient
             message.Properties.MessageId = Guid.NewGuid().ToString();
             message.MessageAnnotations = new MessageAnnotations();
             message.MessageAnnotations.Map["Test.Header"] = Guid.NewGuid().ToString();
-            message.BodySection = new Data() { Binary = Encoding.UTF8.GetBytes("msg " + Guid.NewGuid().ToString()) };
+            message.BodySection = new Data() { Binary = Encoding.UTF8.GetBytes("BIG msg " + Guid.NewGuid().ToString() + Guid.NewGuid().ToString() + Guid.NewGuid().ToString() + Guid.NewGuid().ToString() + Guid.NewGuid().ToString() + Guid.NewGuid().ToString() + Guid.NewGuid().ToString() + Guid.NewGuid().ToString() + Guid.NewGuid().ToString() + Guid.NewGuid().ToString() + Guid.NewGuid().ToString() + Guid.NewGuid().ToString()) };
             return message;
         }
 

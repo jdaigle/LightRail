@@ -51,7 +51,7 @@ namespace LightRail.Server
 
         public void OnDelivery(AmqpLink link, Delivery delivery)
         {
-            var message = AnnotatedMessage.Decode(delivery.MessageBuffer);
+            var message = AnnotatedMessage.Decode(delivery.PayloadBuffer);
             var queue = linkNameToQueue[link.Name];
             queue.Enqueue(message);
 

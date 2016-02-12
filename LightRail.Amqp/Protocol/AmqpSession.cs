@@ -310,27 +310,6 @@ namespace LightRail.Amqp.Protocol
                 throw new AmqpException(ErrorCode.WindowViolation, "incoming-window is 0");
             }
 
-            if (transfer.More)
-            {
-                // TODO: cannot yet accept multi-framed transfers
-                SendFrame(new Disposition()
-                {
-                    Role = true, // receiver
-                    First = transfer.DeliveryId.Value,
-                    Last = transfer.DeliveryId.Value,
-                    Settled = true,
-                    State = new Rejected()
-                    {
-                        Error = new Error()
-                        {
-                            Condition = ErrorCode.NotImplemented,
-                            Description = "Multi-framed transfers are not implemented.",
-                        },
-                    },
-                });
-                return;
-            }
-
             nextIncomingId++;
             if (transfer.DeliveryId.HasValue)
             {
@@ -355,7 +334,7 @@ namespace LightRail.Amqp.Protocol
                 var disposition = new Disposition()
                 {
                     Role = role,
-                    First = delivery.DeliveryId.Value,
+                    First = delivery.DeliveryId,
                     Settled = settled,
                     State = state,
                 };
@@ -387,20 +366,13 @@ namespace LightRail.Amqp.Protocol
             GetRemoteLink(detach.Handle).HandleLinkFrame(detach);
         }
 
-        public void UnmapLocalLink(AmqpLink link, bool destoryLink)
+        public void UnmapLink(AmqpLink link, bool destoryLink)
         {
-            trace.Debug("Detaching Local Link Handle {0}", link.LocalHandle);
-            if (destoryLink)
-                trace.Debug("Destroying Local Link Handle {0}", link.LocalHandle);
+            trace.Debug("Detached Link: LOC({0}) <-> RMT({1})", link.LocalHandle, link.RemoteHandle);
             localLinks[link.LocalHandle] = null;
-        }
-
-        public void UnmapRemoteLink(AmqpLink link, bool destoryLink)
-        {
-            trace.Debug("Detaching Remove Link Handle {0}", link.RemoteHandle);
-            if (destoryLink)
-                trace.Debug("Destroying Remove Link Handle {0}", link.RemoteHandle);
             remoteLinks[link.RemoteHandle] = null;
+            if (destoryLink)
+                trace.Debug("Destroyed Link: LOC({0}) <-> RMT({1})", link.LocalHandle, link.RemoteHandle);
         }
 
         public void EndSession(Error error)

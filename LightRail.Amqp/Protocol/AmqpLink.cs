@@ -98,6 +98,8 @@ namespace LightRail.Amqp.Protocol
         /// </summary>
         private ConcurrentLinkedList<Delivery> unsettledMap = new ConcurrentLinkedList<Delivery>();
 
+        private Delivery continuationDelivery;
+
         public void HandleLinkFrame(AmqpFrame frame, ByteBuffer buffer = null)
         {
             lock (stateSyncRoot)
@@ -120,8 +122,7 @@ namespace LightRail.Amqp.Protocol
                 catch (AmqpException amqpException)
                 {
                     trace.Error(amqpException);
-                    throw;
-                    //DetachLink(amqpException.Error);
+                    DetachLink(amqpException.Error, destoryLink: true);
                 }
                 catch (Exception fatalException)
                 {
@@ -131,8 +132,7 @@ namespace LightRail.Amqp.Protocol
                         Condition = ErrorCode.InternalError,
                         Description = "Ending Session due to fatal exception: " + fatalException.Message,
                     };
-                    throw;
-                    //DetachLink(error);
+                    DetachLink(error, destoryLink: true);
                 }
             }
         }
@@ -185,9 +185,9 @@ namespace LightRail.Amqp.Protocol
         private void HandleFlowFrame(Flow flow)
         {
             if (State != LinkStateEnum.ATTACHED && State != LinkStateEnum.DETACH_SENT && State != LinkStateEnum.DESTROYED)
-                throw new AmqpException(ErrorCode.IllegalState, $"Received Detach frame but link state is {State.ToString()}.");
+                throw new AmqpException(ErrorCode.IllegalState, $"Received Flow frame but link state is {State.ToString()}.");
             if (State == LinkStateEnum.DESTROYED)
-                throw new AmqpException(ErrorCode.IllegalState, $"Received Detach frame but link state is {State.ToString()}."); // TODO end session
+                throw new AmqpException(ErrorCode.ErrantLink, $"Received Flow frame but link state is {State.ToString()}."); // TODO end session
             if (State == LinkStateEnum.DETACH_SENT)
                 return; // ignore
 
@@ -253,15 +253,44 @@ namespace LightRail.Amqp.Protocol
             if (!IsReceiverLink)
                 throw new AmqpException(ErrorCode.NotAllowed, "A Sender Link cannot receive Transfers.");
 
-            var delivery = new Delivery();
-            delivery.Role = true; // receiver
-            delivery.DeliveryId = transfer.DeliveryId;
-            delivery.DeliveryTag = transfer.DeliveryTag;
-            delivery.Settled = transfer.Settled;
-            delivery.State = transfer.State;
-            byte[] messsageBuffer = new byte[buffer.LengthAvailableToRead];
-            Buffer.BlockCopy(buffer.Buffer, buffer.ReadOffset, messsageBuffer, 0, buffer.LengthAvailableToRead);
-            delivery.MessageBuffer = new ByteBuffer(messsageBuffer);
+            Delivery delivery;
+            if (continuationDelivery == null)
+            {
+                // new transfer
+                delivery = new Delivery();
+                delivery.Role = true; // receiver
+                delivery.DeliveryId = transfer.DeliveryId.Value;
+                delivery.DeliveryTag = transfer.DeliveryTag;
+                delivery.Settled = transfer.Settled;
+                delivery.State = transfer.State;
+                delivery.PayloadBuffer = new ByteBuffer(buffer.LengthAvailableToRead, true);
+            }
+            else
+            {
+                // continuation
+                if (transfer.DeliveryId.HasValue && transfer.DeliveryId.Value != continuationDelivery.DeliveryId)
+                    throw new AmqpException(ErrorCode.NotAllowed, "Expecting Continuation Transfer but got a new Transfer.");
+                if (transfer.DeliveryTag != null && !transfer.DeliveryTag.SequenceEqual(continuationDelivery.DeliveryTag))
+                    throw new AmqpException(ErrorCode.NotAllowed, "Expecting Continuation Transfer but got a new Transfer.");
+                delivery = continuationDelivery;
+            }
+
+            if (transfer.Aborted)
+            {
+                continuationDelivery = null;
+                return; // ignore message
+            }
+
+            // copy and append the buffer (message payload) to the cached PayloadBuffer
+            AmqpBitConverter.WriteBytes(delivery.PayloadBuffer, buffer.Buffer, buffer.ReadOffset, buffer.LengthAvailableToRead);
+
+            if (transfer.More)
+            {
+                continuationDelivery = delivery;
+                return; // expecting more payload
+            }
+
+            // assume transferred complete payload at this point
 
             if (!delivery.Settled)
             {
@@ -292,30 +321,33 @@ namespace LightRail.Amqp.Protocol
             if (State == LinkStateEnum.ATTACHED)
                 State = LinkStateEnum.DETACH_RECEIVED;
 
-            DetachLink(detach.Closed);
+            DetachLink(null, destoryLink: detach.Closed);
         }
 
-        public void DetachLink(bool destoryLink)
+        public void DetachLink(Error error, bool destoryLink)
         {
-            if (State == LinkStateEnum.ATTACHED || State == LinkStateEnum.DETACH_RECEIVED)
+            if (State == LinkStateEnum.ATTACHED || State == LinkStateEnum.DETACH_RECEIVED || (State == LinkStateEnum.DETACH_SENT && destoryLink))
             {
                 Session.SendFrame(new Detach()
                 {
                     Handle = LocalHandle,
+                    Error = error,
                     Closed = destoryLink,
                 });
-
                 if (State == LinkStateEnum.ATTACHED)
                 {
                     State = LinkStateEnum.DETACH_SENT;
-                    Session.UnmapLocalLink(this, destoryLink);
                 }
-                if (State == LinkStateEnum.DETACH_RECEIVED)
+                else if (State == LinkStateEnum.DETACH_RECEIVED)
                 {
                     State = LinkStateEnum.DETACHED;
-                    Session.UnmapRemoteLink(this, destoryLink);
+                    Session.UnmapLink(this, destoryLink);
                 }
-
+                else if (State == LinkStateEnum.DETACH_SENT && destoryLink)
+                {
+                    State = LinkStateEnum.DESTROYED;
+                    Session.UnmapLink(this, destoryLink);
+                }
             }
         }
 
