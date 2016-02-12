@@ -45,6 +45,7 @@
     <Compile Include="Client\AmqpClient.cs" />
     <Compile Include="Client\ClientContainer.cs" />
     <Compile Include="Client\AsyncClientSocket.cs" />
+    <Compile Include="ConcurrentLinkedList.cs" />
     <Compile Include="Framing\DeliveryState.cs" />
     <Compile Include="IBufferPool.cs" />
     <Compile Include="Messaging\AnnotatedMessage.cs" />
@@ -79,6 +80,7 @@
     <Compile Include="Protocol\AmqpLink.cs" />
     <Compile Include="Protocol\AmqpSession.cs" />
     <Compile Include="Protocol\AmqpSettings.cs" />
+    <Compile Include="Protocol\Delivery.cs" />
     <Compile Include="Protocol\LinkReceiverSettlementModeEnum.cs" />
     <Compile Include="Protocol\LinkSenderSettlementModeEnum.cs" />
     <Compile Include="Protocol\LinkStateEnum.cs" />

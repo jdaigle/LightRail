@@ -2,8 +2,6 @@
  * This is a port of ConcurrentLinkedQueue from JSR-166. Original public domain
  * license is below.
  * 
- * With modifications necessary to efficiently implement a message broker.
- * 
  * http://gee.cs.oswego.edu/dl/concurrency-interest/
  * http://gee.cs.oswego.edu/cgi-bin/viewcvs.cgi/jsr166/src/main/java/util/concurrent/ConcurrentLinkedQueue.java?view=markup
  * https://gist.github.com/jdaigle/90f5a7e255d17de736e9
@@ -14,9 +12,10 @@
  * at http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+using System;
 using System.Threading;
 
-namespace LightRail.Server.Queuing
+namespace LightRail.Amqp
 {
     /// <summary>
     /// An unbounded thread-safe queue based on linked nodes.
@@ -27,10 +26,9 @@ namespace LightRail.Server.Queuing
     /// queue the shortest time. New elements
     /// are inserted at the tail of the queue, and the queue retrieval
     /// operations obtain elements at the head of the queue.
-    /// A ConcurrentLinkedQueue is an appropriate choice when
+    /// 
+    /// A ConcurrentLinkedList is an appropriate choice when
     /// many threads will share access to a common collection.
-    /// Like most other concurrent collection implementations, this class
-    /// does not permit the use of null elements.
     ///
     /// <p>This implementation employs an efficient <em>non-blocking</em>
     /// algorithm based on one described in
@@ -38,7 +36,7 @@ namespace LightRail.Server.Queuing
     /// Simple, Fast, and Practical Non-Blocking and Blocking Concurrent Queue
     /// Algorithms</a> by Maged M. Michael and Michael L. Scott.
     /// </summary>
-    public sealed class ConcurrentLinkedQueue<T> where T : class
+    public sealed class ConcurrentLinkedList<T> where T : ConcurrentLinkedList<T>.Node, new()
     {
         /*
          * This is a modification of the Michael & Scott algorithm,
@@ -123,7 +121,7 @@ namespace LightRail.Server.Queuing
         /// - it is permitted for tail to lag behind head, that is, for tail
         /// to not be reachable from head!
         /// </summary>
-        private volatile Node head;
+        private volatile T head;
         /// <summary>
         /// A node from which the last node on list (that is, the unique
         /// node with node.next == null) can be reached in O(1) time.
@@ -136,40 +134,39 @@ namespace LightRail.Server.Queuing
         /// to not be reachable from head!
         /// - tail.next may or may not be self-pointing to tail.
         /// </summary>
-        private volatile Node tail;
+        private volatile T tail;
 
-        public ConcurrentLinkedQueue()
+        public ConcurrentLinkedList()
         {
-            head = tail = new Node(null);
+            head = tail = new T();
+            head.removed = 1;
         }
 
         /// <summary>
-        /// Inserts the specified element at the tail of this queue.
-        /// As the queue is unbounded, this method will never fail.
+        /// Inserts the specified node at the tail of this list.
+        /// As the list is unbounded, this method will never fail.
         /// </summary>
-        public Node Offer(T item)
+        public bool Add(T newNode)
         {
-            var newNode = new Node(item);
-
-            for (Node t = tail, p = t; ;)
+            for (T t = tail, p = t; ;)
             {
-                Node q = p.next;
+                T q = p.next;
                 if (q == null)
                 {
                     // p is last node
                     if (casNext(p, null, newNode))
                     {
                         // Successful CAS is the linearization point
-                        // for item to become an element of this queue,
+                        // for node to become an element of this list,
                         // and for n to become "live".
 
-                        if (p != t)              // skip the CAS until the tail has lagged (this is an optimization only)
-                            casTail(t, newNode); // Failure is OK.
-                        return newNode; // exit loop
+                        if (!ReferenceEquals(p, t)) // skip the CAS until the tail has lagged (this is an optimization only)
+                            casTail(t, newNode);    // Failure is OK.
+                        return true; // exit loop
                     }
                     // Lost CAS race to another thread; re-read next
                 }
-                else if (p == q)
+                else if (ReferenceEquals(p, q))
                 {
                     // We have fallen off list.  If tail is unchanged, it
                     // will also be off-list, in which case we need to
@@ -186,31 +183,29 @@ namespace LightRail.Server.Queuing
         }
 
         /// <summary>
-        /// Removes and returns the first live element on the list, or null if none.
+        /// Removes and returns the first live node on the list, or null if none.
         /// </summary>
-        public T poll()
+        public T Pop()
         {
             restartFromHead:
             for (;;)
             {
-                for (Node h = head, p = h, q; ;)
+                for (T h = head, p = h, q; ;)
                 {
-                    T item = p.item;
-
-                    if (item != null && casItem(p, item, null))
+                    if (p.removed == 0 && casRemoved(p, 0, 1))
                     {
                         // Successful CAS is the linearization point
-                        // for item to be removed from this queue.
-                        if (p != h) // hop two nodes at a time
+                        // for node to be removed from this list.
+                        if (!ReferenceEquals(p, h)) // hop two nodes at a time
                             UpdateHead(h, ((q = p.next) != null) ? q : p);
-                        return item;
+                        return p;
                     }
                     else if ((q = p.next) == null)
                     {
                         UpdateHead(h, p);
                         return null;
                     }
-                    else if (p == q)
+                    else if (ReferenceEquals(p, q))
                         goto restartFromHead;
                     else
                         p = q;
@@ -222,20 +217,19 @@ namespace LightRail.Server.Queuing
         /// Returns the first live element on the list, or null if none, without
         /// removing the element.
         /// </summary>
-        public T Peek()
+        public T First()
         {
             restartFromHead:
             for (;;)
             {
-                for (Node h = head, p = h, q; ;)
+                for (T h = head, p = h, q; ;)
                 {
-                    T item = p.item;
-                    if (item != null || (q = p.next) == null)
+                    if (p.removed == 0 || (q = p.next) == null)
                     {
                         UpdateHead(h, p);
-                        return item;
+                        return p.removed == 0 ? p : null;
                     }
-                    else if (p == q)
+                    else if (ReferenceEquals(p, q))
                         goto restartFromHead;
                     else
                         p = q;
@@ -244,36 +238,7 @@ namespace LightRail.Server.Queuing
         }
 
         /// <summary>
-        /// Returns the first live (non-deleted) node on list, or null if none.
-        /// This is yet another variant of poll/peek; here returning the
-        /// first node, not element. We could make peek() a wrapper around
-        /// first(), but that would cost an extra volatile read of item,
-        /// and the need to add a retry loop to deal with the possibility
-        /// of losing a race to a concurrent poll().
-        /// </summary>
-        public Node First()
-        {
-            restartFromHead:
-            for (;;)
-            {
-                for (Node h = head, p = h, q; ;)
-                {
-                    bool hasItem = (p.item != null);
-                    if (hasItem || (q = p.next) == null)
-                    {
-                        UpdateHead(h, p);
-                        return hasItem ? p : null;
-                    }
-                    else if (p == q)
-                        goto restartFromHead;
-                    else
-                        p = q;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Returns true if this queue contains no elements.
+        /// Returns true if this list contains no elements.
         /// </summary>
         public bool IsEmpty()
         {
@@ -281,51 +246,72 @@ namespace LightRail.Server.Queuing
         }
 
         /// <summary>
-        /// Removes a single instance of the specified element from this queue,
-        /// if it is present. More formally, removes an element T such
-        /// that o.equals(e), if this queue contains one or more such
-        /// elements.
+        /// Removes a single instance of a node matching the specified predicate
+        /// from this list.
         /// 
-        /// Returns true if this queue contained the specified element
-        /// (or equivalently, if this queue changed as a result of the call).
+        /// Returns true if this list contained a matching node
+        /// (or equivalently, if this list changed as a result of the call).
         /// </summary>
-        /// <param name="o">element to be removed from this queue, if present</param>
-        /// <returns>true if this queue changed as a result of the call</returns>
-        public bool Remove(T o)
+        public bool Remove(Func<T, bool> where)
         {
-            if (o != null)
+            T next, pred = null;
+            for (T p = First(); p != null; pred = p, p = next)
             {
-                Node next, pred = null;
-                for (Node p = First(); p != null; pred = p, p = next)
+                bool removed = false;
+                if (p.removed == 0)
                 {
-                    bool removed = false;
-                    T item = p.item;
-                    if (item != null)
+                    if (where(p) == false)
                     {
-                        if (!o.Equals(item))
-                        {
-                            next = Succ(p);
-                            continue;
-                        }
-                        removed = casItem(p, item, null);
+                        next = Succ(p);
+                        continue;
                     }
-                    next = Succ(p);
-                    if (pred != null && next != null) // unlink
-                        casNext(pred, p, next);
-                    if (removed)
-                        return true;
+                    removed = casRemoved(p, 0, 1);
                 }
+                next = Succ(p);
+                if (pred != null && next != null) // unlink
+                    casNext(pred, p, next);
+                if (removed)
+                    return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// Finds the first node in the list, started at the head,
+        /// that matches specified predicate expression.
+        /// Or null if none is found.
+        /// </summary>
+        public T Find(Func<T, bool> where)
+        {
+            T next, pred = null;
+            for (T p = First(); p != null; pred = p, p = next)
+            {
+                T found = null;
+                if (p.removed == 0)
+                {
+                    if (where(p) == false)
+                    {
+                        next = Succ(p);
+                        continue;
+                    }
+                    found = p;
+                }
+                next = Succ(p);
+                if (pred != null && next != null) // unlink
+                    casNext(pred, p, next);
+                if (found != null)
+                    return found;
+            }
+            return null;
         }
 
         /// <summary>
         /// Tries to CAS head to p. If successful, repoint old head to itself
         /// as sentinel for succ().
         /// </summary>
-        private void UpdateHead(Node h, Node p)
+        private void UpdateHead(T h, T p)
         {
-            if (h != p && casHead(h, p))
+            if (!ReferenceEquals(h, p) && casHead(h, p))
                 Interlocked.Exchange(ref h.next, h);
         }
 
@@ -334,27 +320,22 @@ namespace LightRail.Server.Queuing
         /// linked to self, which will only be true if traversing with a
         /// stale pointer that is now off the list.
         /// </summary>
-        private Node Succ(Node p)
+        private T Succ(T p)
         {
-            Node next = p.next;
-            return (p == next) ? head : next;
+            T next = p.next;
+            return ReferenceEquals(p, next) ? head : next;
         }
 
-        private bool casHead(Node cmp, Node val) => Interlocked.CompareExchange(ref head, val, cmp) == cmp;
-        private bool casTail(Node cmp, Node val) => Interlocked.CompareExchange(ref tail, val, cmp) == cmp;
+        private bool casHead(T cmp, T val) => Interlocked.CompareExchange(ref head, val, cmp) == cmp;
+        private bool casTail(T cmp, T val) => Interlocked.CompareExchange(ref tail, val, cmp) == cmp;
 
-        private static bool casItem(Node node, T cmp, T val) => Interlocked.CompareExchange(ref node.item, val, cmp) == cmp;
-        private static bool casNext(Node node, Node cmp, Node val) => Interlocked.CompareExchange(ref node.next, val, cmp) == cmp;
+        private static bool casRemoved(T node, byte cmp, byte val) => Interlocked.CompareExchange(ref node.removed, val, cmp) == cmp;
+        private static bool casNext(T node, T cmp, T val) => Interlocked.CompareExchange(ref node.next, val, cmp) == cmp;
 
-        public sealed class Node
+        public abstract class Node
         {
-            public Node(T item)
-            {
-                this.item = item;
-            }
-
-            public volatile T item;
-            public volatile Node next;
+            internal volatile int removed = 0;
+            internal volatile T next;
         }
     }
 }

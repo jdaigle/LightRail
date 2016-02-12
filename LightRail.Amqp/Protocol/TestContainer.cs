@@ -21,7 +21,7 @@ namespace LightRail.Amqp.Protocol
             return true;
         }
 
-        public void OnTransferReceived(AmqpLink link, Transfer transfer, ByteBuffer buffer)
+        public void OnDelivery(AmqpLink link, Delivery delivery)
         {
         }
     }

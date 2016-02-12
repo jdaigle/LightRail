@@ -27,8 +27,7 @@ namespace LightRail.Amqp
         /// Called whenever a link receives a Transfer with a Message.
         /// </summary>
         /// <param name="link">The link on which the transfer was received.</param>
-        /// <param name="transfer">The transfer frame.</param>
-        /// <param name="buffer">A buffer containing the transferred message.</param>
-        void OnTransferReceived(AmqpLink link, Transfer transfer, ByteBuffer buffer);
+        /// <param name="delivery">The received delivery.</param>
+        void OnDelivery(AmqpLink link, Delivery delivery);
     }
 }

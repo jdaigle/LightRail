@@ -62,7 +62,7 @@ namespace LightRail.Amqp.Framing
         /// Communicates the state of all the deliveries referenced by this disposition.
         /// </summary>
         [AmqpDescribedListIndex(4)]
-        public Outcome State { get; set; }
+        public DeliveryState State { get; set; }
 
         /// <summary>
         /// If true, then the issuer is hinting that there is no need for the peer to urgently communicate the

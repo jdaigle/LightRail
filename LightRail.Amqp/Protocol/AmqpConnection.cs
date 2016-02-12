@@ -167,7 +167,7 @@ namespace LightRail.Amqp.Protocol
                         return true;
                     }
                     if (Trace.IsDebugEnabled)
-                        trace.Debug("Received Frame: {0}", frame.ToString());
+                        trace.Debug("RCVD CH({0}) {1}", remoteChannelNumber.ToString(), frame.ToString());
                     HandleConnectionFrame(frame, remoteChannelNumber, buffer);
                     return true;
                 }
@@ -449,7 +449,7 @@ namespace LightRail.Amqp.Protocol
             var buffer = new ByteBuffer((int)MaxFrameSize, false);
             AmqpCodec.EncodeFrame(buffer, frame, channelNumber);
             if (Trace.IsDebugEnabled)
-                trace.Debug("Sending Frame: {0}", frame.ToString());
+                trace.Debug("SEND CH({0}) {1}", channelNumber.ToString(), frame.ToString());
             socket.Write(buffer);
         }
 

@@ -71,7 +71,7 @@ namespace LightRail.Amqp.Client
         {
         }
 
-        public void OnTransferReceived(AmqpLink link, Transfer transfer, ByteBuffer buffer)
+        public void OnDelivery(AmqpLink link, Delivery delivery)
         {
         }
 

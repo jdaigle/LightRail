@@ -84,6 +84,8 @@ namespace LightRail.Amqp.Protocol
         private BoundedList<AmqpLink> localLinks = new BoundedList<AmqpLink>(2, DefaultMaxHandle);
         private BoundedList<AmqpLink> remoteLinks = new BoundedList<AmqpLink>(2, DefaultMaxHandle);
 
+        private ConcurrentLinkedList<Delivery> incomingDeliveries = new ConcurrentLinkedList<Delivery>();
+
         internal void HandleSessionFrame(AmqpFrame frame, ByteBuffer buffer = null)
         {
             lock (stateSyncRoot)
@@ -310,6 +312,27 @@ namespace LightRail.Amqp.Protocol
                 throw new AmqpException(ErrorCode.WindowViolation, "incoming-window is 0");
             }
 
+            if (transfer.More)
+            {
+                // TODO: cannot yet accept multi-framed transfers
+                SendFrame(new Disposition()
+                {
+                    Role = true, // receiver
+                    First = transfer.DeliveryId.Value,
+                    Last = transfer.DeliveryId.Value,
+                    Settled = true,
+                    State = new Rejected()
+                    {
+                        Error = new Error()
+                        {
+                            Condition = ErrorCode.NotImplemented,
+                            Description = "Multi-framed transfers are not implemented.",
+                        },
+                    },
+                });
+                return;
+            }
+
             nextIncomingId++;
             if (transfer.DeliveryId.HasValue)
             {
@@ -325,7 +348,45 @@ namespace LightRail.Amqp.Protocol
 
             var link = GetRemoteLink(transfer.Handle);
 
-            link.HandleLinkFrame(transfer, buffer);
+            var delivery = new Delivery();
+            delivery.Role = true; // receiver
+            delivery.DeliveryId = transfer.DeliveryId;
+            delivery.DeliveryTag = transfer.DeliveryTag;
+            delivery.Settled = transfer.Settled;
+            delivery.State = transfer.State;
+            byte[] messsageBuffer = new byte[buffer.LengthAvailableToRead];
+            Buffer.BlockCopy(buffer.Buffer, buffer.ReadOffset, messsageBuffer, 0, buffer.LengthAvailableToRead);
+            delivery.MessageBuffer = new ByteBuffer(messsageBuffer);
+
+            if (!delivery.Settled)
+            {
+                incomingDeliveries.Add(delivery);
+            }
+
+            link.HandleLinkFrame(transfer, delivery);
+        }
+
+        public void SendDeliveryDisposition(bool role, Delivery delivery, DeliveryState state, bool settled)
+        {
+            var deliveryList = role ? this.incomingDeliveries : null;
+            var currentDelivery = deliveryList.Find(x => ReferenceEquals(x, delivery));
+            if (currentDelivery != null)
+            {
+                if (settled)
+                {
+                    deliveryList.Remove(x => ReferenceEquals(x, delivery));
+                }
+                currentDelivery.Settled = settled;
+                currentDelivery.State = state;
+                var disposition = new Disposition()
+                {
+                    Role = role,
+                    First = currentDelivery.DeliveryId.Value,
+                    Settled = settled,
+                    State = state,
+                };
+                this.SendFrame(disposition);
+            }
         }
 
         private void InterceptDispositionFrame(Disposition disposition)

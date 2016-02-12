@@ -279,8 +279,6 @@ namespace LightRail.Amqp.Types
 
 #if DEBUG
 
-        private static int indentLevel = 0;
-
         public override string ToString()
         {
             var properties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -290,27 +288,25 @@ namespace LightRail.Amqp.Types
                 .ToList();
 
             var buffer = new System.Text.StringBuilder();
-            // buffer.Append("\n");
-            // for (int i = 0; i < indentLevel; i++)
-            //     buffer.Append("\t");
-            buffer.Append(Descriptor.ToString());
-            indentLevel++;
+            buffer.Append(GetType().Name.ToString());
+            buffer.Append("(");
+            bool addComma = false;
             foreach (var p in properties)
             {
                 if (p.GetValue(this) == null)
                     continue;
-                buffer.Append("\n");
-                for (int i = 0; i < indentLevel; i++)
-                    buffer.Append("\t");
                 var value = p.GetValue(this);
                 if (value is byte[])
-                    value = $"byte[{(value as byte[]).Length}]" + System.Convert.ToBase64String(value as byte[]);
+                    value = $"byte[{(value as byte[]).Length}]" + Convert.ToBase64String(value as byte[]);
                 if (value is Symbol[])
                     value = string.Join(",", (object[])value);
-                buffer.AppendFormat("{0}: {1}", p.Name, value);
+                if (addComma)
+                    buffer.Append(",");
+                buffer.AppendFormat("{0}:{1}", p.Name, value.ToString());
+                addComma = true;
             }
-            indentLevel--;
-            return buffer.ToString(); ;
+            buffer.Append(")");
+            return buffer.ToString().ToLowerInvariant();
         }
 #endif
     }

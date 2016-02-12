@@ -49,19 +49,13 @@ namespace LightRail.Server
             return true;
         }
 
-        public void OnTransferReceived(AmqpLink link, Transfer transfer, ByteBuffer buffer)
+        public void OnDelivery(AmqpLink link, Delivery delivery)
         {
-            var message = AnnotatedMessage.Decode(buffer);
+            var message = AnnotatedMessage.Decode(delivery.MessageBuffer);
             var queue = linkNameToQueue[link.Name];
             queue.Enqueue(message);
 
-            link.SendDisposition(new Disposition()
-            {
-                Role = true,
-                First = transfer.DeliveryId.Value,
-                Settled = true,
-                State = new Accepted(),
-            });
+            link.SendDeliveryDisposition(delivery, new Accepted(), true);
 
             if (link.DeliveryCount % 100 == 0)
                 link.SetLinkCredit(1000);

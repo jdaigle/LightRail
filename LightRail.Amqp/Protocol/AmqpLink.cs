@@ -87,7 +87,7 @@ namespace LightRail.Amqp.Protocol
         /// </summary>
         private bool drainFlag;
 
-        public void HandleLinkFrame(AmqpFrame frame, ByteBuffer buffer = null)
+        public void HandleLinkFrame(AmqpFrame frame, Delivery delivery = null)
         {
             lock (stateSyncRoot)
             {
@@ -98,7 +98,7 @@ namespace LightRail.Amqp.Protocol
                     else if (frame is Flow)
                         HandleFlowFrame(frame as Flow);
                     else if (frame is Transfer)
-                        HandleTransferFrame(frame as Transfer, buffer);
+                        HandleTransferFrame(frame as Transfer, delivery);
                     else if (frame is Disposition)
                         HandleDispositionFrame(frame as Disposition);
                     else if (frame is Detach)
@@ -232,7 +232,7 @@ namespace LightRail.Amqp.Protocol
             });
         }
 
-        private void HandleTransferFrame(Transfer transfer, ByteBuffer buffer)
+        private void HandleTransferFrame(Transfer transfer, Delivery delivery)
         {
             if (State != LinkStateEnum.ATTACHED)
                 throw new AmqpException(ErrorCode.IllegalState, $"Received Transfer frame but link state is {State.ToString()}.");
@@ -242,7 +242,7 @@ namespace LightRail.Amqp.Protocol
             LinkCredit--;
             DeliveryCount++;
 
-            Session.Connection.Container.OnTransferReceived(this, transfer, buffer);
+            Session.Connection.Container.OnDelivery(this, delivery);
         }
 
         private void HandleDispositionFrame(Disposition disposition)
@@ -290,9 +290,9 @@ namespace LightRail.Amqp.Protocol
             }
         }
 
-        public void SendDisposition(Disposition disposition)
+        public void SendDeliveryDisposition(Delivery delivery, DeliveryState state, bool settled)
         {
-            Session.SendFrame(disposition);
+            Session.SendDeliveryDisposition(this.IsReceiverLink, delivery, state, settled);
         }
     }
 }
