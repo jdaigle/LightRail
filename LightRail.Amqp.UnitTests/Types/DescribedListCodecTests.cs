@@ -146,5 +146,20 @@ namespace LightRail.Amqp.Types
 
             CollectionAssert.AreEqual(value.DesiredCapabilities, decodedValue.DesiredCapabilities);
         }
+
+        [Test]
+        public void Can_Encode_And_Decode_Binary_Fields()
+        {
+            var buffer = new ByteBuffer(1024, false);
+
+            var value = new Transfer();
+            value.DeliveryTag = new byte[] { (byte)randNum.Next(0, 10), (byte)randNum.Next(0, 10), (byte)randNum.Next(0, 10), (byte)randNum.Next(0, 10) };
+
+            AmqpCodec.EncodeObject(buffer, value);
+
+            var decodedValue = AmqpCodec.DecodeObject<Transfer>(buffer);
+
+            CollectionAssert.AreEqual(value.DeliveryTag, decodedValue.DeliveryTag);
+        }
     }
 }

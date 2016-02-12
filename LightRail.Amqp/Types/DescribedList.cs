@@ -164,9 +164,9 @@ namespace LightRail.Amqp.Types
             var genericMethod = method.MakeGenericMethod(propertyTypeForDecode);
             var decodeMethod = Expression.Call(genericMethod, bufferParameter, formatCodeParameter);
 
-            if (propertyInfo.PropertyType.IsArray)
+            if (propertyInfo.PropertyType.IsArray && propertyInfo.PropertyType.GetElementType() != typeof(byte))
             {
-                // special handling of arrays
+                // special handling of arrays (excluding byte[] which is actually a binary)
                 // 1) we need to be able to decode single value into an array object
                 // 2) we need to be able to get the correct decoder for an array
                 // DescribedList.DecodeArrayWrapper<[PropertyTypeForDecode]>(buffer, formatCode)
