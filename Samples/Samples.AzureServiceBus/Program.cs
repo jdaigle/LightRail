@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using LightRail.Client;
-using LightRail.Client.Amqp;
+using Microsoft.ServiceBus.Messaging;
 
 namespace Samples.AzureServiceBus
 {
@@ -10,51 +10,56 @@ namespace Samples.AzureServiceBus
     {
         public static void Main(string[] args)
         {
-            var busControl = ServiceBus.Factory.CreateFromAmqp(cfg =>
+            var factory = MessagingFactory.Create("sb://localhost:5672", new MessagingFactorySettings
             {
-                cfg.AmqpAddressFromUri("amqps://SenderListener:Euwi1XOtdRCn0A1DvmgnwJSjlIMvyeHUjY61I4GkuOI=@jdaigle-test-amqp.servicebus.windows.net");
-
-                cfg.ReceiveFrom("event_queue", e =>
+                TransportType = TransportType.Amqp,
+                AmqpTransportSettings = new Microsoft.ServiceBus.Messaging.Amqp.AmqpTransportSettings()
                 {
-                    e.MaxConcurrency = 5;
-                    //  e.ScanForHandlersFromAssembly(typeof(Program).Assembly);
-
-                    //e.Handle<SampleCommandMessage>(async (message, context) =>
-                    //{
-                    //    Console.WriteLine($"Lambda: {nameof(SampleCommandMessage)}.Data=[{message.Data}]");
-                    //    await Task.Delay(0);
-                    //});
-
-                    //  e.Handle<SampleCommandMessage>(SimpleMessageHandler.HandleSpecial);
-                    //  e.Handle<SampleCommandMessage>(SimpleMessageHandler.HandleSpecial2);
-
-                    e.Handle<SampleCommandMessage>((message, context) =>
-                    {
-                        Console.WriteLine("MESSAGE RECEIVED!" + message.Data);
-                    });
-                });
-
-                cfg.ReceiveFrom("event_queue/$DeadLetterQueue", e =>
-                {
-                    e.MaxConcurrency = 1;
-                });
+                    UseSslStreamSecurity = false
+                }
             });
-            // starts any receive threads
-            busControl.Start();
 
-            for (int i = 0; i < 10; i++)
+            Thread.Sleep(1000);
+            var sender = factory.CreateMessageSender("event_queue");
+            for (int i = 0; i < 15; i++)
             {
-                //Thread.Sleep(2000);
-                busControl.Send(new SampleCommandMessage()
+                sender.Send(new BrokeredMessage(new SampleCommandMessage()
                 {
-                    Data = DateTime.UtcNow.ToString(),
-                }, "event_queue");
+                    Data = i + " " + DateTime.UtcNow.ToString(),
+                }));
+                Thread.Sleep(50);
             }
 
-            Console.WriteLine("Press Any Key To Exit.");
-            Console.ReadKey();
+            sender.Close();
+            Thread.Sleep(2000);
 
-            busControl.Stop(TimeSpan.FromSeconds(30));
+            var client = factory.CreateQueueClient("event_queue", ReceiveMode.PeekLock);
+            client.PrefetchCount = 6;
+            client.OnMessage(m =>
+            {
+                m.Abandon();
+            }, new OnMessageOptions() { MaxConcurrentCalls = 7 });
+            Thread.Sleep(2000);
+            if ("".Length == 0)
+                return;
+
+            for (int i = 0; i < 15; i++)
+            {
+                client.Send(new BrokeredMessage(new SampleCommandMessage()
+                {
+                    Data = i + " " + DateTime.UtcNow.ToString(),
+                }));
+                Thread.Sleep(50);
+            }
+            Thread.Sleep(2000);
+
+            var msg = client.Receive(TimeSpan.FromSeconds(2));
+            Thread.Sleep(2000);
+
+            client.Close();
+            Thread.Sleep(2000);
+
+            factory.Close();
         }
     }
 
