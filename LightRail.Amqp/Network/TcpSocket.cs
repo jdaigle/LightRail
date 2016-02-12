@@ -168,6 +168,14 @@ receiveAsyncLoopAgain:
                 return; // no more receiving
             }
 
+            // If no data was received, close the connection. This is a NORMAL
+            // situation that shows when the client has finished sending data.
+            if (receiveEventArgs.BytesTransferred == 0)
+            {
+                Close();
+                return; // no more receiving
+            }
+
             var receiveState = receiveEventArgs.UserToken as ReceiveAsyncState;
 
             int receivedCount = args.BytesTransferred;
