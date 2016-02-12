@@ -32,7 +32,7 @@ namespace LightRail.Amqp.Types
             AmqpBitConverter.WriteUInt(buffer, 0);
 
             var propertyCount = GetEncodablePropertyCount(GetType());
-            int lastNotNullIndex = 0;
+            int lastNotNullIndex = -1;
             int lastNotNullBufferWriteOffset = buffer.WriteOffset;
 
             var thisType = GetType();

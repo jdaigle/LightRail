@@ -161,5 +161,27 @@ namespace LightRail.Amqp.Types
 
             CollectionAssert.AreEqual(value.DeliveryTag, decodedValue.DeliveryTag);
         }
+
+        [Test]
+        public void Can_Encode_and_Decode_Skipping_Null_Values()
+        {
+            var buffer = new ByteBuffer(1024, false);
+
+            var value = new Disposition();
+            value.First = (uint)randNum.Next();
+            value.Settled = randNum.Next(1, 101) % 2 == 0 ? true : false;
+            value.Role = randNum.Next(1, 101) % 2 == 0 ? true : false;
+            value.State = randNum.Next(1, 101) % 2 == 0 ? (DeliveryState)new Accepted() : (DeliveryState)new Rejected();
+
+            AmqpCodec.EncodeObject(buffer, value);
+
+            var decodedValue = AmqpCodec.DecodeObject<Disposition>(buffer);
+
+            Assert.AreEqual(value.First, decodedValue.First);
+            Assert.AreEqual(value.Last, decodedValue.Last);
+            Assert.AreEqual(value.Settled, decodedValue.Settled);
+            Assert.AreEqual(value.Role, decodedValue.Role);
+            Assert.AreEqual(value.State.Descriptor, decodedValue.State.Descriptor);
+        }
     }
 }
