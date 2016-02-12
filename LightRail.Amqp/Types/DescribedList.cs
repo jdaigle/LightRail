@@ -234,8 +234,8 @@ namespace LightRail.Amqp.Types
             if (propertyIsNullable)
             {
                 propertyTypeForEncode = Nullable.GetUnderlyingType(propertyInfo.PropertyType);
-                // (PropertyTypeForDecode)((T)instance).[PropertyName]
-                propertyExpression = Expression.Convert(propertyExpression, propertyTypeForEncode);
+                // ((T)instance).[PropertyName].Value
+                propertyExpression = Expression.MakeMemberAccess(propertyExpression, propertyInfo.PropertyType.GetProperty("Value"));
             }
 
             var testIfPropertyValueIsNull = propertyIsNullable || propertyInfo.PropertyType.IsClass;
