@@ -147,10 +147,24 @@ namespace LightRail.Amqp
         {
             for (uint i = 0; i < Length; i++)
             {
-                if (items[i] == null)
+                if (Equals(items[i], nullItem))
                     return i;
             }
             return null;
+        }
+
+        /// <summary>
+        /// Returns either the first index with a null item, or adds a new
+        /// index, growing as necessary.
+        /// </summary>
+        public uint GetFirstNullIndexOrAdd()
+        {
+            for (uint i = 0; i < Length; i++)
+            {
+                if (Equals(items[i], nullItem))
+                    return i;
+            }
+            return Add(nullItem);
         }
     }
 }

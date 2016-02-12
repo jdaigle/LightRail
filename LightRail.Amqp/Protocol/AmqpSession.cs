@@ -264,16 +264,14 @@ namespace LightRail.Amqp.Protocol
             }
 
             // must be a new inbound attach
-            var nextLocalHandle = localLinks.IndexOfFirstNullItem() ?? localLinks.Length; // reuse existing handle, or just grab the next one
+            var nextLocalHandle = localLinks.GetFirstNullIndexOrAdd(); // reuse existing handle, or just grab the next one
             var isLocalLinkReceiver = !attach.IsReceiver;
             var newLink = new AmqpLink(this, attach.Name, nextLocalHandle, isLocalLinkReceiver, false, attach.Handle);
 
             if (!Connection.Container.CanAttachLink(newLink, attach))
                 throw new AmqpException(ErrorCode.PreconditionFailed, "Cannot Attach Link");
 
-            var index = localLinks.Add(newLink);
-            if (index != nextLocalHandle)
-                throw new AmqpException(ErrorCode.InternalError, "Possible Race Condition Adding New Local Link");
+            var index = localLinks[nextLocalHandle] = newLink;
             AttachRemoteLink(attach, newLink);
             newLink.HandleLinkFrame(attach);
         }
