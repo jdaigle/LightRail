@@ -128,6 +128,6 @@ namespace LightRail.Amqp.Framing
         /// When the handle field is not set, this field MUST NOT be set.
         /// </summary>
         [AmqpDescribedListIndex(10)]
-        public Fields Properties { get; set; }
+        public Map Properties { get; set; }
     }
 }

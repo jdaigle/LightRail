@@ -35,7 +35,7 @@ namespace LightRail.Amqp.Framing
         /// Map carrying information about the error condition.
         /// </summary>
         [AmqpDescribedListIndex(2)]
-        public Fields Info { get; set; }
+        public Map Info { get; set; }
 
         public override string ToString()
         {

@@ -288,7 +288,7 @@ namespace LightRail.Amqp.Types
                 .ToList();
 
             var buffer = new System.Text.StringBuilder();
-            buffer.Append(GetType().Name.ToString());
+            buffer.Append(GetType().Name.ToString().ToLowerInvariant());
             buffer.Append("(");
             bool addComma = false;
             foreach (var p in properties)
@@ -302,11 +302,11 @@ namespace LightRail.Amqp.Types
                     value = string.Join(",", (object[])value);
                 if (addComma)
                     buffer.Append(",");
-                buffer.AppendFormat("{0}:{1}", p.Name, value.ToString());
+                buffer.AppendFormat("{0}:{1}", p.Name.ToLowerInvariant(), value.ToString());
                 addComma = true;
             }
             buffer.Append(")");
-            return buffer.ToString().ToLowerInvariant();
+            return buffer.ToString();
         }
 #endif
     }

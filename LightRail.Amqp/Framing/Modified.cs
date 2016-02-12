@@ -11,6 +11,6 @@ namespace LightRail.Amqp.Framing
         [AmqpDescribedListIndex(1)]
         public bool UndeliverableHere { get; set; }
         [AmqpDescribedListIndex(2)]
-        public Fields MessageAnnotations { get; set; }
+        public Map MessageAnnotations { get; set; }
     }
 }

@@ -95,7 +95,7 @@ namespace LightRail.Amqp.Framing
         /// is maintained [AMQPNODEPROP].
         /// </summary>
         [AmqpDescribedListIndex(5)]
-        public Fields DynamicNodeProperties { get; set; }
+        public Map DynamicNodeProperties { get; set; }
 
         /// <summary>
         /// This field MUST be set by the sending end of the link if the endpoint supports more than one

@@ -81,6 +81,6 @@ namespace LightRail.Amqp.Framing
         /// [AMQPSESSPROP].
         /// </summary>
         [AmqpDescribedListIndex(7)]
-        public Fields Properties { get; set; }
+        public Map Properties { get; set; }
     }
 }

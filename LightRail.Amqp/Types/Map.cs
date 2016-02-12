@@ -66,5 +66,26 @@ namespace LightRail.Amqp.Types
         protected virtual void CheckKeyType(Type keyType)
         {
         }
+
+#if DEBUG
+        public override string ToString()
+        {
+            var buffer = new System.Text.StringBuilder();
+            buffer.Append("{");
+            bool addComma = false;
+            foreach (var k in Keys)
+            {
+                if (GetValue(k) == null)
+                    continue;
+                var value = GetValue(k);
+                if (addComma)
+                    buffer.Append(",");
+                buffer.AppendFormat("{0}:{1}", k.ToString(), value.ToString());
+                addComma = true;
+            }
+            buffer.Append("}");
+            return buffer.ToString();
+        }
+#endif
     }
 }

@@ -180,6 +180,6 @@ namespace LightRail.Amqp.Framing
         /// A registry of commonly defined link properties and their meanings is maintained[AMQPLINKPROP].
         /// </summary>
         [AmqpDescribedListIndex(13)]
-        public Fields Properties { get; set; }
+        public Map Properties { get; set; }
     }
 }
