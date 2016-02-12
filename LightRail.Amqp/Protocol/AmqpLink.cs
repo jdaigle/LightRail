@@ -76,6 +76,10 @@ namespace LightRail.Amqp.Protocol
         /// </summary>
         public uint LinkCredit { get; private set; }
         /// <summary>
+        /// The modulus operand for calculating when to send a Flow frame.
+        /// </summary>
+        private uint ReflowModulus;
+        /// <summary>
         /// Indicates how the sender SHOULD behave when insufficient messages are
         /// available to consume the current link-creditt. If set, the sender will (after sending all available
         /// messages) advance the delivery-count as much as possible, consuming all link-credit, and
@@ -87,7 +91,14 @@ namespace LightRail.Amqp.Protocol
         /// </summary>
         private bool drainFlag;
 
-        public void HandleLinkFrame(AmqpFrame frame, Delivery delivery = null)
+        /// <summary>
+        /// A "map" (actually a linked list for implementation purposes) of all
+        /// unsettled deliveries either sent or received (depending on the role)
+        /// by this link.
+        /// </summary>
+        private ConcurrentLinkedList<Delivery> unsettledMap = new ConcurrentLinkedList<Delivery>();
+
+        public void HandleLinkFrame(AmqpFrame frame, ByteBuffer buffer = null)
         {
             lock (stateSyncRoot)
             {
@@ -98,7 +109,7 @@ namespace LightRail.Amqp.Protocol
                     else if (frame is Flow)
                         HandleFlowFrame(frame as Flow);
                     else if (frame is Transfer)
-                        HandleTransferFrame(frame as Transfer, delivery);
+                        HandleTransferFrame(frame as Transfer, buffer);
                     else if (frame is Disposition)
                         HandleDispositionFrame(frame as Disposition);
                     else if (frame is Detach)
@@ -202,15 +213,7 @@ namespace LightRail.Amqp.Protocol
 
             if (flow.Echo)
             {
-                Session.SendFlow(new Flow()
-                {
-                    Handle = LocalHandle,
-                    DeliveryCount = this.DeliveryCount,
-                    LinkCredit = this.LinkCredit,
-                    Available = 0,
-                    Drain = false,
-                    Echo = drainFlag,
-                });
+                SendFlow(drain: false, echo: false);
             }
         }
 
@@ -220,24 +223,50 @@ namespace LightRail.Amqp.Protocol
                 throw new InvalidOperationException("Cannot set link-credit on a sender link");
 
             LinkCredit = Math.Max(value, 0);
+            if (LinkCredit >= 50)
+                ReflowModulus = (uint)Math.Ceiling((double)LinkCredit * .1d); // flow frame after 10% of LinkCredit has been delivered
+            else
+                ReflowModulus = (uint)Math.Ceiling((double)LinkCredit * .5d); // flow frame after 50% of LinkCredit has been delivered
 
+            SendFlow(drain: false, echo: false);
+        }
+
+        private void SendFlow(bool drain, bool echo)
+        {
             Session.SendFlow(new Flow()
             {
                 Handle = LocalHandle,
                 DeliveryCount = this.DeliveryCount,
                 LinkCredit = this.LinkCredit,
                 Available = 0,
-                Drain = false,
-                Echo = drainFlag,
+                Drain = drain,
+                Echo = echo,
             });
         }
 
-        private void HandleTransferFrame(Transfer transfer, Delivery delivery)
+        private void HandleTransferFrame(Transfer transfer, ByteBuffer buffer)
         {
             if (State != LinkStateEnum.ATTACHED)
                 throw new AmqpException(ErrorCode.IllegalState, $"Received Transfer frame but link state is {State.ToString()}.");
             if (LinkCredit <= 0)
                 throw new AmqpException(ErrorCode.TransferLimitExceeded, "The link credit has dropped to 0. Wait for messages to finishing processing.");
+            if (!IsReceiverLink)
+                throw new AmqpException(ErrorCode.NotAllowed, "A Sender Link cannot receive Transfers.");
+
+            var delivery = new Delivery();
+            delivery.Role = true; // receiver
+            delivery.DeliveryId = transfer.DeliveryId;
+            delivery.DeliveryTag = transfer.DeliveryTag;
+            delivery.Settled = transfer.Settled;
+            delivery.State = transfer.State;
+            byte[] messsageBuffer = new byte[buffer.LengthAvailableToRead];
+            Buffer.BlockCopy(buffer.Buffer, buffer.ReadOffset, messsageBuffer, 0, buffer.LengthAvailableToRead);
+            delivery.MessageBuffer = new ByteBuffer(messsageBuffer);
+
+            if (!delivery.Settled)
+            {
+                unsettledMap.Add(delivery);
+            }
 
             LinkCredit--;
             DeliveryCount++;
@@ -292,7 +321,23 @@ namespace LightRail.Amqp.Protocol
 
         public void SendDeliveryDisposition(Delivery delivery, DeliveryState state, bool settled)
         {
-            Session.SendDeliveryDisposition(this.IsReceiverLink, delivery, state, settled);
+            var unsettledDelivery = unsettledMap.Find(d => ReferenceEquals(d, delivery));
+            if (unsettledDelivery != null)
+            {
+                unsettledDelivery.State = state;
+                unsettledDelivery.Settled = settled;
+                if (settled)
+                {
+                    unsettledMap.Remove(d => ReferenceEquals(d, unsettledDelivery));
+                    if (IsReceiverLink)
+                    {
+                        LinkCredit++;
+                        if (DeliveryCount % ReflowModulus == 0)
+                            SendFlow(drain: false, echo: false);
+                    }
+                }
+                Session.SendDeliveryDisposition(this.IsReceiverLink, delivery, state, settled);
+            }
         }
     }
 }

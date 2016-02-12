@@ -29,7 +29,7 @@ namespace LightRail.Amqp.Protocol
         public AmqpConnection Connection { get; }
 
         public const uint DefaultMaxHandle = 256;
-        public const uint DefaultWindowSize = 1024;
+        public const uint DefaultWindowSize = 1024 * 5;
         public static readonly RFCSeqNum InitialOutgoingId = 1;
 
         /// <summary>
@@ -83,8 +83,6 @@ namespace LightRail.Amqp.Protocol
 
         private BoundedList<AmqpLink> localLinks = new BoundedList<AmqpLink>(2, DefaultMaxHandle);
         private BoundedList<AmqpLink> remoteLinks = new BoundedList<AmqpLink>(2, DefaultMaxHandle);
-
-        private ConcurrentLinkedList<Delivery> incomingDeliveries = new ConcurrentLinkedList<Delivery>();
 
         internal void HandleSessionFrame(AmqpFrame frame, ByteBuffer buffer = null)
         {
@@ -347,44 +345,24 @@ namespace LightRail.Amqp.Protocol
             }
 
             var link = GetRemoteLink(transfer.Handle);
-
-            var delivery = new Delivery();
-            delivery.Role = true; // receiver
-            delivery.DeliveryId = transfer.DeliveryId;
-            delivery.DeliveryTag = transfer.DeliveryTag;
-            delivery.Settled = transfer.Settled;
-            delivery.State = transfer.State;
-            byte[] messsageBuffer = new byte[buffer.LengthAvailableToRead];
-            Buffer.BlockCopy(buffer.Buffer, buffer.ReadOffset, messsageBuffer, 0, buffer.LengthAvailableToRead);
-            delivery.MessageBuffer = new ByteBuffer(messsageBuffer);
-
-            if (!delivery.Settled)
-            {
-                incomingDeliveries.Add(delivery);
-            }
-
-            link.HandleLinkFrame(transfer, delivery);
+            link.HandleLinkFrame(transfer, buffer);
         }
 
         public void SendDeliveryDisposition(bool role, Delivery delivery, DeliveryState state, bool settled)
         {
-            var deliveryList = role ? this.incomingDeliveries : null;
-            var currentDelivery = deliveryList.Find(x => ReferenceEquals(x, delivery));
-            if (currentDelivery != null)
+            if (delivery != null)
             {
-                if (settled)
-                {
-                    deliveryList.Remove(x => ReferenceEquals(x, delivery));
-                }
-                currentDelivery.Settled = settled;
-                currentDelivery.State = state;
                 var disposition = new Disposition()
                 {
                     Role = role,
-                    First = currentDelivery.DeliveryId.Value,
+                    First = delivery.DeliveryId.Value,
                     Settled = settled,
                     State = state,
                 };
+                if (settled)
+                {
+                    incomingWindow++;
+                }
                 this.SendFrame(disposition);
             }
         }

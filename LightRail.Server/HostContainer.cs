@@ -30,7 +30,7 @@ namespace LightRail.Server
         {
             if (link.IsReceiverLink)
             {
-                link.SetLinkCredit(1000);
+                link.SetLinkCredit(25);
                 linkNameToQueue.Add(link.Name, queues[link.TargetAddress.ToLowerInvariant()]);
             }
         }
@@ -56,9 +56,6 @@ namespace LightRail.Server
             queue.Enqueue(message);
 
             link.SendDeliveryDisposition(delivery, new Accepted(), true);
-
-            if (link.DeliveryCount % 100 == 0)
-                link.SetLinkCredit(1000);
         }
     }
 }
