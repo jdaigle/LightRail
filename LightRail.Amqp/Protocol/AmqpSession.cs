@@ -203,7 +203,7 @@ namespace LightRail.Amqp.Protocol
             if (State == SessionStateEnum.MAPPED)
                 State = SessionStateEnum.END_RCVD;
 
-            EndSession(null);
+            EndSession(error: null); // don't pass the error: that's only if the error occured in our session
         }
 
         private void InterceptFlowFrame(Flow flow)
@@ -427,7 +427,9 @@ namespace LightRail.Amqp.Protocol
 
         public void EndSession(Error error)
         {
-            if (State == SessionStateEnum.MAPPED || State == SessionStateEnum.END_RCVD)
+            if (State == SessionStateEnum.MAPPED
+                || State == SessionStateEnum.END_RCVD
+                || State == SessionStateEnum.DISCARDING)
             {
                 Connection.SendFrame(new End()
                 {
@@ -435,9 +437,15 @@ namespace LightRail.Amqp.Protocol
                 }, ChannelNumber);
 
                 if (State == SessionStateEnum.MAPPED)
+                {
                     State = SessionStateEnum.END_SENT;
-                if (State == SessionStateEnum.END_RCVD)
+                    if (error != null)
+                        State = SessionStateEnum.DISCARDING;
+                }
+                else if (State == SessionStateEnum.END_RCVD || State == SessionStateEnum.DISCARDING)
+                {
                     UnmapSession();
+                }
 
                 return;
             }
