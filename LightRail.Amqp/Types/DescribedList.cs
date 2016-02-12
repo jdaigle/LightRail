@@ -174,12 +174,23 @@ namespace LightRail.Amqp.Types
                 // 2) we need to be able to get the correct decoder for an array
                 // DescribedList.DecodeArrayWrapper<[PropertyTypeForDecode]>(buffer, formatCode)
                 method = typeof(DescribedList).GetMethod("DecodeArrayWrapper", BindingFlags.NonPublic | BindingFlags.Static);
-                genericMethod = method.MakeGenericMethod(propertyTypeForDecode, propertyInfo.PropertyType.GetElementType());
+                genericMethod = method.MakeGenericMethod(propertyInfo.PropertyType.GetElementType());
                 decodeMethod = Expression.Call(genericMethod, bufferParameter, formatCodeParameter);
             }
 
-            // ((T)instance).[PropertyName] = ([PropertyType])AmqpCodec.DecodeObject<[PropertyType]>(buffer, formatCode);
-            var assignment = Expression.Assign(propertyExpression, Expression.Convert(decodeMethod, propertyInfo.PropertyType));
+            Expression assignment;
+            if (propertyIsNullable)
+            {
+                // in case property is nullable, need to cast
+                // ((T)instance).[PropertyName] = ([NullablePropertyType])AmqpCodec.DecodeObject<[PropertyType]>(buffer, formatCode);
+                assignment = Expression.Assign(propertyExpression, Expression.Convert(decodeMethod, propertyInfo.PropertyType));
+            }
+            else
+            {
+                // no cast necessary, in theory
+                // ((T)instance).[PropertyName] = AmqpCodec.DecodeObject<[PropertyType]>(buffer, formatCode);
+                assignment = Expression.Assign(propertyExpression, decodeMethod);
+            }
 
             // compile
             return Expression.Lambda<DecodeProperty>(assignment, instanceParameter, bufferParameter, formatCodeParameter).Compile();
@@ -190,7 +201,7 @@ namespace LightRail.Amqp.Types
             return formatCode == FormatCode.Array32 || formatCode == FormatCode.Array8;
         }
 
-        private static object DecodeArrayWrapper<TArray, TArrayElement>(ByteBuffer buffer, byte formatCode)
+        private static TArrayElement[] DecodeArrayWrapper<TArrayElement>(ByteBuffer buffer, byte formatCode)
         {
             if (FormatCodeIsArrayType(formatCode))
                 return Encoder.ReadStronglyTypedArray<TArrayElement>(buffer, formatCode);
