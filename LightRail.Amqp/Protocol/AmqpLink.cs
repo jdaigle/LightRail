@@ -297,6 +297,7 @@ namespace LightRail.Amqp.Protocol
             }
 
             // assume transferred complete payload at this point
+            continuationDelivery = null;
 
             if (!delivery.Settled)
             {
