@@ -84,6 +84,13 @@ namespace LightRail.Amqp.Protocol
         private BoundedList<AmqpLink> localLinks = new BoundedList<AmqpLink>(2, DefaultMaxHandle);
         private BoundedList<AmqpLink> remoteLinks = new BoundedList<AmqpLink>(2, DefaultMaxHandle);
 
+        /// <summary>
+        /// A "map" (actually a linked list for implementation purposes) of all
+        /// unsettled deliveries received (incoming deliveries only)
+        /// by a linked attached to this session.
+        /// </summary>
+        private ConcurrentLinkedList<Delivery> incomingUnsettledMap = new ConcurrentLinkedList<Delivery>();
+
         internal void HandleSessionFrame(AmqpFrame frame, ByteBuffer buffer = null)
         {
             lock (stateSyncRoot)
@@ -229,7 +236,10 @@ namespace LightRail.Amqp.Protocol
 
             if (flow.Handle != null)
             {
-                GetRemoteLink(flow.Handle.Value).HandleLinkFrame(flow);
+                var link = GetRemoteLink(flow.Handle.Value);
+                if (link.State == LinkStateEnum.DESTROYED)
+                    throw new AmqpException(ErrorCode.ErrantLink, "If any input (other than a detach) related to the endpoint either via the input handle or delivery-ids be received, the session MUST be terminated with an errant-link session-error.");
+                link.HandleLinkFrame(flow);
             }
             else if (flow.Echo)
             {
@@ -322,7 +332,14 @@ namespace LightRail.Amqp.Protocol
             }
 
             var link = GetRemoteLink(transfer.Handle);
+            if (link.State == LinkStateEnum.DESTROYED)
+                throw new AmqpException(ErrorCode.ErrantLink, "If any input (other than a detach) related to the endpoint either via the input handle or delivery-ids be received, the session MUST be terminated with an errant-link session-error.");
             link.HandleLinkFrame(transfer, buffer);
+        }
+
+        internal void NotifyUnsettledIncomingDelivery(AmqpLink link, Delivery delivery)
+        {
+            incomingUnsettledMap.Add(delivery);
         }
 
         public void SendDeliveryDisposition(bool role, Delivery delivery, DeliveryState state, bool settled)
@@ -351,7 +368,33 @@ namespace LightRail.Amqp.Protocol
             if (State == SessionStateEnum.DISCARDING)
                 return;
 
-            throw new NotImplementedException();
+            if (disposition.Role == true)
+            {
+                // from the RECEIVER
+                throw new NotImplementedException();
+            }
+            else
+            {
+                // from the SENDER
+                // We typically get a Disposition when the Receiver Link (our side)
+                // sends back an unsettled Disposition in a terminal state.
+                if (!disposition.Last.HasValue)
+                    disposition.Last = disposition.First;
+                for (uint deliveryHandle = disposition.First; deliveryHandle <= disposition.Last; deliveryHandle++)
+                {
+                    var delivery = incomingUnsettledMap.Find(d => d.DeliveryId == deliveryHandle);
+                    delivery.Settled = disposition.Settled;
+                    delivery.State = disposition.State;
+
+                    var link = delivery.Link;
+                    if (link.State == LinkStateEnum.DESTROYED)
+                        throw new AmqpException(ErrorCode.ErrantLink, "If any input (other than a detach) related to the endpoint either via the input handle or delivery-ids be received, the session MUST be terminated with an errant-link session-error.");
+                    link.NotifyOfDisposition(delivery, disposition);
+
+                    if (disposition.Settled)
+                        incomingUnsettledMap.Remove(delivery);
+                }
+            }
         }
 
         private void InterceptDetachFrame(Detach detach)

@@ -84,6 +84,7 @@
     <Compile Include="Protocol\LinkReceiverSettlementModeEnum.cs" />
     <Compile Include="Protocol\LinkSenderSettlementModeEnum.cs" />
     <Compile Include="Protocol\LinkStateEnum.cs" />
+    <Compile Include="Protocol\LinkStateEnumExtensions.cs" />
     <Compile Include="Protocol\SessionStateEnumExtensions.cs" />
     <Compile Include="Protocol\SessionStateEnum.cs" />
     <Compile Include="Protocol\ConnectionStateEnumExtensions.cs" />

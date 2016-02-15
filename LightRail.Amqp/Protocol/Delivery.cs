@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using LightRail.Amqp.Framing;
 
 namespace LightRail.Amqp.Protocol
@@ -12,8 +8,9 @@ namespace LightRail.Amqp.Protocol
         public uint DeliveryId { get; internal set; }
         public byte[] DeliveryTag { get; internal set; }
         public ByteBuffer PayloadBuffer { get; internal set; }
-        public bool Role { get; internal set; }
+        public AmqpLink Link { get; internal set; }
         public bool Settled { get; internal set; }
         public DeliveryState State { get; internal set; }
+        public LinkReceiverSettlementModeEnum ReceiverSettlementMode { get; internal set; }
     }
 }

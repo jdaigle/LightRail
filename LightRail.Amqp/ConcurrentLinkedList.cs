@@ -277,6 +277,17 @@ namespace LightRail.Amqp
         }
 
         /// <summary>
+        /// Attempts to first the specified node from the list.
+        /// 
+        /// Returns true if this list contained a matching node
+        /// (or equivalently, if this list changed as a result of the call).
+        /// </summary>
+        public bool Remove(T node)
+        {
+            return Remove(x => ReferenceEquals(x, node));
+        }
+
+        /// <summary>
         /// Finds the first node in the list, started at the head,
         /// that matches specified predicate expression.
         /// Or null if none is found.

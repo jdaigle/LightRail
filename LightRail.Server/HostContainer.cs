@@ -55,7 +55,7 @@ namespace LightRail.Server
             var queue = linkNameToQueue[link.Name];
             queue.Enqueue(message);
 
-            link.SendDeliveryDisposition(delivery, new Accepted(), true);
+            link.SetDeliveryTerminalState(delivery, new Accepted());
         }
     }
 }

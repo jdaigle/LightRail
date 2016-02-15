@@ -112,8 +112,6 @@ namespace LightRail.Amqp.Protocol
                         HandleFlowFrame(frame as Flow);
                     else if (frame is Transfer)
                         HandleTransferFrame(frame as Transfer, buffer);
-                    else if (frame is Disposition)
-                        HandleDispositionFrame(frame as Disposition);
                     else if (frame is Detach)
                         HandleDetachFrame(frame as Detach);
                     else
@@ -258,12 +256,20 @@ namespace LightRail.Amqp.Protocol
             {
                 // new transfer
                 delivery = new Delivery();
-                delivery.Role = true; // receiver
+                delivery.Link = this;
                 delivery.DeliveryId = transfer.DeliveryId.Value;
                 delivery.DeliveryTag = transfer.DeliveryTag;
                 delivery.Settled = transfer.Settled;
                 delivery.State = transfer.State;
                 delivery.PayloadBuffer = new ByteBuffer(buffer.LengthAvailableToRead, true);
+                delivery.ReceiverSettlementMode = receiverSettlementMode;
+                if (transfer.ReceiverSettlementMode.HasValue)
+                {
+                    delivery.ReceiverSettlementMode = (LinkReceiverSettlementModeEnum)transfer.ReceiverSettlementMode.Value;
+                    if (receiverSettlementMode == LinkReceiverSettlementModeEnum.First &&
+                        delivery.ReceiverSettlementMode == LinkReceiverSettlementModeEnum.Second)
+                        throw new AmqpException(ErrorCode.InvalidField, "rcv-settle-mode: If the negotiated link value is first, then it is illegal to set this field to second.");
+                }
             }
             else
             {
@@ -295,6 +301,7 @@ namespace LightRail.Amqp.Protocol
             if (!delivery.Settled)
             {
                 unsettledMap.Add(delivery);
+                Session.NotifyUnsettledIncomingDelivery(this, delivery);
             }
 
             LinkCredit--;
@@ -303,9 +310,29 @@ namespace LightRail.Amqp.Protocol
             Session.Connection.Container.OnDelivery(this, delivery);
         }
 
-        private void HandleDispositionFrame(Disposition disposition)
+        internal void NotifyOfDisposition(Delivery delivery, Disposition disposition)
         {
-            throw new NotImplementedException();
+            try
+            {
+                // TODO: notify application of change in application state
+                if (delivery.Settled)
+                    unsettledMap.Remove(delivery);
+            }
+            catch (AmqpException amqpException)
+            {
+                trace.Error(amqpException);
+                DetachLink(amqpException.Error, destoryLink: true);
+            }
+            catch (Exception fatalException)
+            {
+                trace.Fatal(fatalException, "Ending Session due to fatal exception.");
+                var error = new Error()
+                {
+                    Condition = ErrorCode.InternalError,
+                    Description = "Ending Session due to fatal exception: " + fatalException.Message,
+                };
+                DetachLink(error, destoryLink: true);
+            }
         }
 
         private void HandleDetachFrame(Detach detach)
@@ -351,14 +378,14 @@ namespace LightRail.Amqp.Protocol
             }
         }
 
-        public void SendDeliveryDisposition(Delivery delivery, DeliveryState state, bool settled)
+        public void SetDeliveryTerminalState(Delivery delivery, DeliveryState state)
         {
             var unsettledDelivery = unsettledMap.Find(d => ReferenceEquals(d, delivery));
             if (unsettledDelivery != null)
             {
                 unsettledDelivery.State = state;
-                unsettledDelivery.Settled = settled;
-                if (settled)
+                unsettledDelivery.Settled = delivery.ReceiverSettlementMode == LinkReceiverSettlementModeEnum.First;
+                if (unsettledDelivery.Settled)
                 {
                     unsettledMap.Remove(d => ReferenceEquals(d, unsettledDelivery));
                     if (IsReceiverLink)
@@ -368,7 +395,7 @@ namespace LightRail.Amqp.Protocol
                             SendFlow(drain: false, echo: false);
                     }
                 }
-                Session.SendDeliveryDisposition(this.IsReceiverLink, delivery, state, settled);
+                Session.SendDeliveryDisposition(this.IsReceiverLink, delivery, state, unsettledDelivery.Settled);
             }
         }
     }
