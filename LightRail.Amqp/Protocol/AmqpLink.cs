@@ -301,7 +301,6 @@ namespace LightRail.Amqp.Protocol
 
             if (!delivery.Settled)
             {
-                unsettledMap.Add(delivery);
                 Session.NotifyUnsettledIncomingDelivery(this, delivery);
             }
 
@@ -316,8 +315,6 @@ namespace LightRail.Amqp.Protocol
             try
             {
                 // TODO: notify application of change in application state
-                if (delivery.Settled)
-                    unsettledMap.Remove(delivery);
             }
             catch (AmqpException amqpException)
             {
@@ -381,23 +378,18 @@ namespace LightRail.Amqp.Protocol
 
         public void SetDeliveryTerminalState(Delivery delivery, DeliveryState state)
         {
-            var unsettledDelivery = unsettledMap.Find(d => ReferenceEquals(d, delivery));
-            if (unsettledDelivery != null)
+            delivery.State = state;
+            delivery.Settled = delivery.ReceiverSettlementMode == LinkReceiverSettlementModeEnum.First;
+            if (delivery.Settled)
             {
-                unsettledDelivery.State = state;
-                unsettledDelivery.Settled = delivery.ReceiverSettlementMode == LinkReceiverSettlementModeEnum.First;
-                if (unsettledDelivery.Settled)
+                if (IsReceiverLink)
                 {
-                    unsettledMap.Remove(d => ReferenceEquals(d, unsettledDelivery));
-                    if (IsReceiverLink)
-                    {
-                        LinkCredit++;
-                        if (DeliveryCount % ReflowModulus == 0)
-                            SendFlow(drain: false, echo: false);
-                    }
+                    LinkCredit++;
+                    if (DeliveryCount % ReflowModulus == 0)
+                        SendFlow(drain: false, echo: false);
                 }
-                Session.SendDeliveryDisposition(this.IsReceiverLink, delivery, state, unsettledDelivery.Settled);
             }
+            Session.SendDeliveryDisposition(this.IsReceiverLink, delivery, state, delivery.Settled);
         }
     }
 }
