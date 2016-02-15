@@ -191,7 +191,7 @@ namespace LightRail.Amqp.Protocol
             }
         }
 
-        public void OnIoException(Exception ex)
+        public void NotifyIoException(Exception ex)
         {
             if (State != ConnectionStateEnum.END)
             {
@@ -416,7 +416,7 @@ namespace LightRail.Amqp.Protocol
             session.HandleSessionFrame(frame, buffer);
         }
 
-        internal void OnSessionUnmapped(AmqpSession session)
+        internal void NotifySessionUnmapped(AmqpSession session)
         {
             trace.Debug("Session {0} Unmapped", session.ChannelNumber);
             localSessionMap[session.ChannelNumber] = null;
@@ -476,7 +476,7 @@ namespace LightRail.Amqp.Protocol
                 for (ushort i = 0; i < localSessionMap.Length; i++)
                 {
                     if (localSessionMap[i] != null)
-                        localSessionMap[i].OnConnectionClosed(error);
+                        localSessionMap[i].NotifyConnectionClosed(error);
                 }
             }
 

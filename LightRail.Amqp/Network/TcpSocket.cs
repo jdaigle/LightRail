@@ -105,7 +105,7 @@ sendAsyncLoopAgain:
             if (args.SocketError != SocketError.Success)
             {
                 var exception = new SocketException((int)args.SocketError);
-                amqpConnection.OnIoException(exception);
+                amqpConnection.NotifyIoException(exception);
                 return; // no more sending
             }
 
@@ -164,7 +164,7 @@ receiveAsyncLoopAgain:
             if (args.SocketError != SocketError.Success)
             {
                 var exception = new SocketException((int)args.SocketError);
-                amqpConnection.OnIoException(exception);
+                amqpConnection.NotifyIoException(exception);
                 return; // no more receiving
             }
 

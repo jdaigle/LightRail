@@ -453,10 +453,10 @@ namespace LightRail.Amqp.Protocol
         {
             // TODO: detach links
             State = SessionStateEnum.UNMAPPED;
-            Connection.OnSessionUnmapped(this);
+            Connection.NotifySessionUnmapped(this);
         }
 
-        internal void OnConnectionClosed(Error error)
+        internal void NotifyConnectionClosed(Error error)
         {
             trace.Debug("Session {0} ended due to connection closed", ChannelNumber);
             UnmapSession();
