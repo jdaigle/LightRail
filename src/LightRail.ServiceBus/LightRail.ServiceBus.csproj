@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{90AB6110-EE9C-4021-8458-F14545BB4C9C}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>LightRail.ServiceBus</RootNamespace>
+    <AssemblyName>LightRail.ServiceBus</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Amqp.Net, Version=1.1.6.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\AMQPNetLite.1.1.6\lib\net45\Amqp.Net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Jil, Version=2.13.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Jil.2.13.0\lib\net45\Jil.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Sigil, Version=4.5.0.0, Culture=neutral, PublicKeyToken=2d06c3494341c8ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Sigil.4.5.0\lib\net45\Sigil.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.XML" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\CommonAssemblyInfo.cs">
+      <Link>Properties\CommonAssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="Amqp\AmqpConfiguratorExtensions.cs" />
+    <Compile Include="Amqp\AmqpTransportReceiver.cs" />
+    <Compile Include="Amqp\AmqpTransportSender.cs" />
+    <Compile Include="Amqp\Config\AmqpMessageReceiverConfiguration.cs" />
+    <Compile Include="Amqp\Config\AmqpServiceBusConfiguration.cs" />
+    <Compile Include="Config\BaseMessageReceiverConfiguration.cs" />
+    <Compile Include="Config\BaseServiceBusConfig.cs" />
+    <Compile Include="Config\MessageEndpointMapping.cs" />
+    <Compile Include="Config\ServiceBusFactory.cs" />
+    <Compile Include="Dispatch\IMessageHandlerDispatcher.cs" />
+    <Compile Include="Dispatch\MessageHandlerCollection.cs" />
+    <Compile Include="Dispatch\MessageHandlerMethodDispatcher.cs" />
+    <Compile Include="FastServiceLocator\FastContainer.cs" />
+    <Compile Include="FastServiceLocator\FastContainerRegistration.cs" />
+    <Compile Include="FastServiceLocator\FastServiceLocatorImpl.cs" />
+    <Compile Include="IBus.cs" />
+    <Compile Include="IBusControl.cs" />
+    <Compile Include="IBusEvents.cs" />
+    <Compile Include="IMessageCreator.cs" />
+    <Compile Include="IMessageEncoder.cs" />
+    <Compile Include="IMessageMapper.cs" />
+    <Compile Include="Transport\FastXmlTransportMessageSerializer.cs" />
+    <Compile Include="Transport\IncomingTransportMessage.cs" />
+    <Compile Include="InMemoryQueue\InMemoryQueueConfiguratorExtensions.cs" />
+    <Compile Include="InMemoryQueue\Config\InMemoryQueueMessageReceiverConfiguration.cs" />
+    <Compile Include="InMemoryQueue\Config\InMemoryQueueServiceBusConfiguration.cs" />
+    <Compile Include="Config\IMessageReceiverConfiguration.cs" />
+    <Compile Include="Config\IServiceBusConfig.cs" />
+    <Compile Include="InMemoryQueue\InMemoryQueueTransportReceiver.cs" />
+    <Compile Include="InMemoryQueue\InMemoryQueueTransportSender.cs" />
+    <Compile Include="JsonMessageEncoder.cs" />
+    <Compile Include="Transport\ITransportSender.cs" />
+    <Compile Include="Logging\ConsoleLogFactory.cs" />
+    <Compile Include="Logging\ConsoleLogger.cs" />
+    <Compile Include="Logging\ILogger.cs" />
+    <Compile Include="Logging\ILoggerFactory.cs" />
+    <Compile Include="Logging\LogEntry.cs" />
+    <Compile Include="Logging\LoggerExtensions.cs" />
+    <Compile Include="Logging\LoggingEventType.cs" />
+    <Compile Include="Logging\LogManager.cs" />
+    <Compile Include="Transport\MessageAvailableEventArgs.cs" />
+    <Compile Include="MessageHandlerAttribute.cs" />
+    <Compile Include="MessageProcessedEventArgs.cs" />
+    <Compile Include="Transport\OutgoingTransportMessage.cs" />
+    <Compile Include="PipelineMessageReceiver.cs" />
+    <Compile Include="PipelineServiceBus.cs" />
+    <Compile Include="Pipeline\MessageHandlerDispatchBehavior.cs" />
+    <Compile Include="Pipeline\PipelinedBehavior.cs" />
+    <Compile Include="Transport\PoisonMessageDetectedEventArgs.cs" />
+    <Compile Include="Reflection\ExtensionMethods.cs" />
+    <Compile Include="Reflection\ReflectionMessageMapper.cs" />
+    <Compile Include="ServiceBus.cs" />
+    <Compile Include="IServiceLocator.cs" />
+    <Compile Include="MessageContext.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Transport\ITransportReceiver.cs" />
+    <Compile Include="Transport\TransportMessageFaultManager.cs" />
+    <Compile Include="Util\StringExtensions.cs" />
+    <Compile Include="Util\Guard.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

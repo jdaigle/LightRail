@@ -36,8 +36,11 @@ LightRail requires the .NET 4.5.
 This project utilizes the following open source projects:
 * https://github.com/kevin-montrose/Jil
 * https://github.com/psake/psake
+* http://nlog-project.org/
 * http://logging.apache.org/log4net/
 * http://structuremap.github.io/
+* http://www.nunit.org/
+* https://github.com/unitycontainer/unity
 
 Some core code is derived from [NServiceBus 2.0](https://github.com/Particular/NServiceBus/blob/2.0/)
 which is licensed under [Apache Licence, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0). The relevant code files have headers to indicate the attribution.

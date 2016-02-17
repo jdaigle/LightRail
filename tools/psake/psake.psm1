@@ -20,6 +20,15 @@
 
 #Requires -Version 2.0
 
+if ($PSVersionTable.PSVersion.Major -ge 3)
+{
+    $script:IgnoreError = 'Ignore'
+}
+else
+{
+    $script:IgnoreError = 'SilentlyContinue'
+}
+
 #-- Public Module Functions --#
 
 # .ExternalHelp  psake.psm1-help.xml
@@ -200,9 +209,7 @@ function Task
         [Parameter(Position=7,Mandatory=0)][string[]]$depends = @(),
         [Parameter(Position=8,Mandatory=0)][string[]]$requiredVariables = @(),
         [Parameter(Position=9,Mandatory=0)][string]$description = $null,
-        [Parameter(Position=10,Mandatory=0)][string]$alias = $null,
-        [Parameter(Position=11,Mandatory=0)][string]$maxRetries = 0,
-        [Parameter(Position=12,Mandatory=0)][string]$retryTriggerErrorPattern = $null
+        [Parameter(Position=10,Mandatory=0)][string]$alias = $null
     )
     if ($name -eq 'default') {
         Assert (!$action) ($msgs.error_default_task_cannot_have_action)
@@ -221,8 +228,6 @@ function Task
         Duration = [System.TimeSpan]::Zero
         RequiredVariables = $requiredVariables
         Alias = $alias
-        MaxRetries = $maxRetries
-        RetryTriggerErrorPattern = $retryTriggerErrorPattern
     }
 
     $taskKey = $name.ToLower()
@@ -311,7 +316,8 @@ function Invoke-psake {
         [Parameter(Position = 5, Mandatory = 0)][hashtable] $properties = @{},
         [Parameter(Position = 6, Mandatory = 0)][alias("init")][scriptblock] $initialization = {},
         [Parameter(Position = 7, Mandatory = 0)][switch] $nologo = $false,
-        [Parameter(Position = 8, Mandatory = 0)][switch] $detailedDocs = $false
+        [Parameter(Position = 8, Mandatory = 0)][switch] $detailedDocs = $false,
+        [Parameter(Position = 9, Mandatory = 0)][switch] $notr = $false # disable time report
     )
     try {
         if (-not $nologo) {
@@ -417,7 +423,10 @@ function Invoke-psake {
 
         WriteColoredOutput ("`n" + $msgs.build_success + "`n") -foregroundcolor Green
 
-        WriteTaskTimeSummary $stopwatch.Elapsed
+        $stopwatch.Stop()
+        if (-not $notr) {
+            WriteTaskTimeSummary $stopwatch.Elapsed
+        }
 
         $psake.build_success = $true
     } catch {
@@ -580,10 +589,15 @@ function ConfigureBuildEnvironment {
         '4.0' {
             $versions = @('v4.0.30319')
         }
-        '4.5.1' {
+        {($_ -eq '4.5.0') -or($_ -eq '4.5.1') -or ($_ -eq '4.5.2')} {
             $versions = @('v4.0.30319')
             $buildToolsVersions = @('14.0', '12.0')
         }
+        {($_ -eq '4.6') -or ($_ -eq '4.6.1')} {
+            $versions = @('v4.0.30319')
+            $buildToolsVersions = @('14.0')
+        }
+
         default {
             throw ($msgs.error_unknown_framework -f $versionPart, $framework)
         }
@@ -835,10 +849,10 @@ convertfrom-stringdata @'
 '@
 }
 
-import-localizeddata -bindingvariable msgs -erroraction silentlycontinue
+Import-LocalizedData -BindingVariable msgs -ErrorAction $script:IgnoreError
 
 $script:psake = @{}
-$psake.version = "4.4.1" # contains the current version of psake
+$psake.version = "4.5.0" # contains the current version of psake
 $psake.context = new-object system.collections.stack # holds onto the current state of all variables
 $psake.run_by_psake_build_tester = $false # indicates that build is being run by psake-BuildTester
 $psake.config_default = new-object psobject -property @{

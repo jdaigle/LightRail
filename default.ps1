@@ -1,20 +1,22 @@
-Framework "4.5.1x64"
+Framework "4.6.1"
 
 properties {
+    $baseDir  = resolve-path .
+    $buildDir = "$baseDir\build"
+    $artifactsDir = "$baseDir\artifacts"
+    $toolsDir = "$baseDir\tools"
+    $nugetExePath = "$toolsDir\nuget\nuget.exe"
+    $slnFiles = "$baseDir\src\LightRail.sln"
+    $testAsms = "LightRail.Amqp.UnitTests.dll",
+                "LightRail.ServiceBus.UnitTests.dll"
+    $nunitexec = "tools\NUnit\nunit-console.exe"
 }
-
-$baseDir  = resolve-path .
-$buildDir = "$baseDir\build"
-$toolsDir = "$baseDir\tools"
-$coreSlns = "$baseDir\LightRail.sln"
-$testAsms = "LightRail.Client.UnitTests.dll"
-$nunitexec = "tools\NUnit\nunit-console.exe"
 
 if ($env:APPVEYOR -eq $true) {
     $nunitexec = "C:\Tools\NUnit\bin\nunit-console.exe"
 }
 
-include $toolsDir\psake\buildutils.ps1
+include $PSScriptRoot\tools\psake\buildutils.ps1
 
 task default -depends Build
 
@@ -22,18 +24,25 @@ task Clean {
     if (Test-Path $buildDir) {
         Delete-Directory $buildDir
     }
-    foreach ($slnFile in $coreSlns) {
-        exec { msbuild $slnFile /v:minimal /nologo /p:Configuration=Debug /m /target:Clean }
-        exec { msbuild $slnFile /v:minimal /nologo /p:Configuration=Release /m /target:Clean }
+    if (Test-Path $artifactsDir) {
+        Delete-Directory $artifactsDir
+    }
+    foreach ($slnFile in $slnFiles) {
+        exec { msbuild $slnFile /v:m /nologo /p:Configuration=Debug /m /target:Clean }
+        exec { msbuild $slnFile /v:m /nologo /p:Configuration=Release /m /target:Clean }
     }
 }
 
-task Init -depends Clean {
-    echo "Creating build directory at the follwing path $buildDir"
-    if (Test-Path $buildDir) {
-        Delete-Directory $buildDir;
+task NuGetRestore -Description "Restores NuGet packages for solutions" {
+    foreach ($slnFile in $slnFiles) {
+        exec { &$nugetExePath restore $slnFile -verbosity detailed }
     }
+}
+
+task Init -depends NuGetRestore, Clean {
+    echo "Creating build directory at the follwing path $buildDir"
     Create-Directory($buildDir);
+    Create-Directory($artifactsDir);
 
     $currentDirectory = Resolve-Path .
 
@@ -41,15 +50,15 @@ task Init -depends Clean {
 }
 
 task Compile -depends Init {
-    foreach ($slnFile in $coreSlns) {
-        exec { msbuild $slnFile /v:minimal /nologo /p:Configuration=Release /m /p:AllowedReferenceRelatedFileExtensions=none /p:OutDir="$buildDir\" }
+    foreach ($slnFile in $slnFiles) {
+        exec { msbuild $slnFile /v:n /nologo /p:Configuration=Release /m /p:AllowedReferenceRelatedFileExtensions=none /p:OutDir="$buildDir\" }
     }
 }
 
 task Test -depends Compile {
     foreach ($asm in $testAsms) {
         echo "Path To NUnit: $nunitexec"
-        exec { &$nunitexec $buildDir\$asm /framework=4.0 }
+        exec { &$nunitexec $buildDir\$asm /framework=4.6.1 }
     }
 }
 
