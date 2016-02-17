@@ -98,6 +98,8 @@ namespace LightRail.Amqp.Protocol
         /// </summary>
         private ConcurrentLinkedList<Delivery> unsettledMap = new ConcurrentLinkedList<Delivery>();
 
+        public event EventHandler ReceivedFlow;
+
         private Delivery continuationDelivery;
 
         public void HandleLinkFrame(AmqpFrame frame, ByteBuffer buffer = null)
@@ -207,6 +209,9 @@ namespace LightRail.Amqp.Protocol
                     LinkCredit = flow.LinkCredit.Value;
                 drainFlag = flow.Drain ?? false;
                 // TODO respond to new flow control
+                var receivedFlowCallback = this.ReceivedFlow;
+                if (receivedFlowCallback != null)
+                    receivedFlowCallback(this, EventArgs.Empty);
             }
 
             if (flow.Echo)
@@ -259,7 +264,7 @@ namespace LightRail.Amqp.Protocol
                 delivery.Link = this;
                 delivery.DeliveryId = transfer.DeliveryId.Value;
                 delivery.DeliveryTag = transfer.DeliveryTag;
-                delivery.Settled = transfer.Settled;
+                delivery.Settled = transfer.Settled.IsTrue();
                 delivery.State = transfer.State;
                 delivery.PayloadBuffer = new ByteBuffer(buffer.LengthAvailableToRead, true);
                 delivery.ReceiverSettlementMode = receiverSettlementMode;
@@ -281,7 +286,7 @@ namespace LightRail.Amqp.Protocol
                 delivery = continuationDelivery;
             }
 
-            if (transfer.Aborted)
+            if (transfer.Aborted.IsTrue())
             {
                 continuationDelivery = null;
                 return; // ignore message
@@ -290,7 +295,7 @@ namespace LightRail.Amqp.Protocol
             // copy and append the buffer (message payload) to the cached PayloadBuffer
             AmqpBitConverter.WriteBytes(delivery.PayloadBuffer, buffer.Buffer, buffer.ReadOffset, buffer.LengthAvailableToRead);
 
-            if (transfer.More)
+            if (transfer.More.IsTrue())
             {
                 continuationDelivery = delivery;
                 return; // expecting more payload
@@ -390,6 +395,22 @@ namespace LightRail.Amqp.Protocol
                 }
             }
             Session.SendDeliveryDisposition(this.IsReceiverLink, delivery, state, delivery.Settled);
+        }
+
+        public void SendTransfer(byte[] deliveryTag, ByteBuffer payloadBuffer)
+        {
+            var delivery = new Delivery();
+            delivery.Link = this;
+            delivery.DeliveryTag = deliveryTag;
+            delivery.Settled = senderSettlementMode == LinkSenderSettlementModeEnum.Settled;
+            delivery.State = null;
+            delivery.PayloadBuffer = payloadBuffer;
+            delivery.ReceiverSettlementMode = receiverSettlementMode;
+
+            LinkCredit--;
+            DeliveryCount++;
+
+            Session.SendTransfer(delivery);
         }
     }
 }

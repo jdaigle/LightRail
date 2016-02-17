@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Amqp;
 using Amqp.Framing;
@@ -48,7 +49,7 @@ namespace Samples.AmqpNetClient
             }, null);
             senderLink.Closed = OnClosed;
 
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < 10; i++)
             {
                 senderLink.Send(CreateMessage(), 5000);
             }
@@ -58,11 +59,14 @@ namespace Samples.AmqpNetClient
             linkName = Guid.NewGuid().ToString();
             receiverLink = new ReceiverLink(session, linkName, "TestQueue1");
             receiverLink.Closed = OnClosed;
+            receiverLink.SetCredit(1);
             var message = receiverLink.Receive(20000);
             int receiveCount = 0;
             while(message != null)
             {
                 receiveCount++;
+                //Console.WriteLine(message.Body.GetType());
+                Console.WriteLine(message.BodySection.GetType());
                 Console.WriteLine("Receive #{0}. Message = \"{1}\"", receiveCount.ToString(), Encoding.UTF8.GetString(message.GetBody<byte[]>()));
                 if (receiveCount % 7 == 0)
                     receiverLink.Release(message);
@@ -70,6 +74,7 @@ namespace Samples.AmqpNetClient
                     receiverLink.Reject(message);
                 else
                     receiverLink.Accept(message);
+                Thread.Sleep(10000);
                 message = receiverLink.Receive(20000);
             }
             receiverLink.Close();

@@ -39,7 +39,7 @@ namespace LightRail.Server.Queuing
 
         public QueueEntry Enqueue(object item)
         {
-            var n = new QueueEntry(item, DateTime.UtcNow, uint.MaxValue, 0, QueueEntryStateEnum.ARCHIVED);
+            var n = new QueueEntry(item, DateTime.UtcNow, uint.MaxValue, 0, QueueEntryStateEnum.AVAILABLE);
             while (true)
             {
                 // p = previous node

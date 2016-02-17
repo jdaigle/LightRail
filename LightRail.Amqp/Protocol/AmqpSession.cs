@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using LightRail.Amqp.Framing;
+using LightRail.Amqp.Types;
 
 namespace LightRail.Amqp.Protocol
 {
@@ -86,10 +87,16 @@ namespace LightRail.Amqp.Protocol
 
         /// <summary>
         /// A "map" (actually a linked list for implementation purposes) of all
-        /// unsettled deliveries received (incoming deliveries only)
+        /// unsettled deliveries received (incoming deliveries)
         /// by a linked attached to this session.
         /// </summary>
         private ConcurrentLinkedList<Delivery> incomingUnsettledMap = new ConcurrentLinkedList<Delivery>();
+        /// <summary>
+        /// A "map" (actually a linked list for implementation purposes) of all
+        /// unsettled deliveries sent (outgoing deliveries)
+        /// by a linked attached to this session.
+        /// </summary>
+        private ConcurrentLinkedList<Delivery> outgoingUnsettledMap = new ConcurrentLinkedList<Delivery>();
 
         internal void HandleSessionFrame(AmqpFrame frame, ByteBuffer buffer = null)
         {
@@ -394,6 +401,67 @@ namespace LightRail.Amqp.Protocol
                     if (disposition.Settled)
                         incomingUnsettledMap.Remove(delivery);
                 }
+            }
+        }
+
+        internal void SendTransfer(Delivery delivery)
+        {
+            delivery.DeliveryId = nextOutgoingId++;
+
+            var transfer = new Transfer()
+            {
+                Handle = delivery.Link.LocalHandle,
+                DeliveryId = delivery.DeliveryId,
+                DeliveryTag = delivery.DeliveryTag,
+                MessageFormat = 0,
+                Settled = delivery.Settled,
+                More = false,
+            };
+
+            if (!delivery.Settled)
+            {
+                outgoingUnsettledMap.Add(delivery);
+            }
+
+            while (delivery.PayloadBuffer.LengthAvailableToRead > 0)
+            {
+                var buffer = new ByteBuffer((int)Connection.MaxFrameSize, false);
+                var bufferStartOffset = buffer.WriteOffset;
+                transfer.More = false;
+
+                AmqpCodec.EncodeFrame(buffer, transfer, ChannelNumber); // encode to get space available for payload
+                int frameSize = buffer.LengthAvailableToRead;
+                int payloadBufferSpaceAvailable = (int)Connection.MaxFrameSize - frameSize;
+
+                int payloadSize = delivery.PayloadBuffer.LengthAvailableToRead;
+
+                // payload is too big, need to split into multiple transfers
+                if (payloadSize > payloadBufferSpaceAvailable)
+                {
+                    transfer.More = true;
+                    // payloadBufferSpaceAvailable should not change after encoding again
+                    buffer.ResetReadWrite();
+                    AmqpCodec.EncodeFrame(buffer, transfer, ChannelNumber); // re-encode with correct value. TODO: is there a way to estimate instead of encoding, testing, and reencoding?
+                    frameSize = buffer.LengthAvailableToRead;
+                    payloadSize = payloadBufferSpaceAvailable; // max size
+                }
+
+                // copy payload to buffer to write
+                AmqpBitConverter.WriteBytes(buffer, delivery.PayloadBuffer.Buffer, delivery.PayloadBuffer.ReadOffset, payloadSize);
+                delivery.PayloadBuffer.CompleteRead(payloadSize);
+
+                // rewrite frame size
+                AmqpBitConverter.WriteInt(buffer.Buffer, bufferStartOffset, frameSize + payloadSize);
+
+                if (Trace.IsDebugEnabled)
+                    trace.Debug("SEND CH({0}) {1} Payload {2} Bytes", ChannelNumber.ToString(), transfer.ToString(), payloadSize.ToString());
+                Connection.SendBuffer(buffer);
+
+                // following fields may be null on subsequent transfers
+                transfer.DeliveryId = null;
+                transfer.DeliveryTag = null;
+                transfer.MessageFormat = null;
+                transfer.Settled = null;
             }
         }
 

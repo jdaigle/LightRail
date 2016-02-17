@@ -23,6 +23,7 @@ namespace LightRail.Server
         private readonly QueueLogWriter logWriter;
         private readonly ConcurrentDictionary<string, ConcurrentQueue> queues = new ConcurrentDictionary<string, ConcurrentQueue>();
         private readonly Dictionary<string, ConcurrentQueue> linkNameToQueue = new Dictionary<string, ConcurrentQueue>();
+        private readonly Dictionary<AmqpLink, LinkConsumer> linkToConsumer = new Dictionary<AmqpLink, LinkConsumer>();
 
         public string ContainerId { get; }
 
@@ -31,7 +32,13 @@ namespace LightRail.Server
             if (link.IsReceiverLink)
             {
                 link.SetLinkCredit(25);
-                linkNameToQueue.Add(link.Name, queues[link.TargetAddress.ToLowerInvariant()]);
+                linkNameToQueue[link.Name] = queues[link.TargetAddress.ToLowerInvariant()];
+            }
+            if (link.IsSenderLink)
+            {
+                var queue = queues[link.SourceAddress.ToLowerInvariant()];
+                linkNameToQueue[link.Name] = queue;
+                linkToConsumer[link] = new LinkConsumer(queue, link);
             }
         }
 
@@ -44,7 +51,7 @@ namespace LightRail.Server
             if (!attach.IsReceiver)
                 queueName = attach.Target.Address.ToLowerInvariant();
 
-            queues.GetOrAdd(queueName, x => new ConcurrentQueue(0, logWriter));
+            var queue = queues.GetOrAdd(queueName, x => new ConcurrentQueue(0, logWriter));
 
             return true;
         }

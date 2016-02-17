@@ -15,7 +15,7 @@ namespace LightRail.Amqp.Messaging
         /// The header section carries standard delivery details about the
         /// transfer of a message through the AMQP network.
         /// </summary>
-        public Header Header { get; set; } = new Header();
+        public Header Header { get; set; }
 
         /// <summary>
         /// The delivery-annotations section is used for delivery-specific
@@ -40,6 +40,36 @@ namespace LightRail.Amqp.Messaging
         /// Transport footers for a message.
         /// </summary>
         public Footer Footer { get; set; }
+
+        public static int GetEstimatedMessageSize(AnnotatedMessage message)
+        {
+            var size = 0;
+            if (message.Header != null)
+                size += 64;
+            if (message.DeliveryAnnotations != null)
+                size += 64;
+            if (message.MessageAnnotations != null)
+                size += 64;
+            if (message.BareMessage != null)
+                size += message.BareMessage.Length;
+            if (message.Footer != null)
+                size += 64;
+            return size;
+        }
+
+        public static void Encode(AnnotatedMessage message, ByteBuffer buffer)
+        {
+            if (message.Header != null)
+                message.Header.Encode(buffer);
+            if (message.DeliveryAnnotations != null)
+                message.DeliveryAnnotations.Encode(buffer);
+            if (message.MessageAnnotations != null)
+                message.MessageAnnotations.Encode(buffer);
+            if (message.BareMessage != null && message.BareMessage.Length > 0)
+                AmqpBitConverter.WriteBytes(buffer, message.BareMessage, 0, message.BareMessage.Length);
+            if (message.Footer != null)
+                message.Footer.Encode(buffer);
+        }
 
         public static AnnotatedMessage Decode(ByteBuffer buffer)
         {
@@ -106,6 +136,7 @@ namespace LightRail.Amqp.Messaging
                     if (bareMessageStartOffset < 0)
                         bareMessageStartOffset = offOfDescribedList; // the first described list in the bare message
                     SkipBinaryBuffer(buffer);
+                    bareMessageEndOffset = buffer.ReadOffset;
                     continue;
                 }
 
@@ -129,7 +160,7 @@ namespace LightRail.Amqp.Messaging
             if (bareMessageStartOffset > -1)
             {
                 message.BareMessage = new byte[bareMessageEndOffset - bareMessageStartOffset];
-                Array.Copy(buffer.Buffer, bareMessageEndOffset, message.BareMessage, 0, message.BareMessage.Length);
+                Array.Copy(buffer.Buffer, bareMessageStartOffset, message.BareMessage, 0, message.BareMessage.Length);
             }
 
             return message;

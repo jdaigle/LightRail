@@ -65,6 +65,11 @@ namespace LightRail.Server.Queuing
             messageDeliveryPumpSignal.Set(); // signal to start pump with new consumer
         }
 
+        public void SignalConsumerHasCredit()
+        {
+            messageDeliveryPumpSignal.Set(); // signal to start pump with new consumer
+        }
+
         private void MessageDeliveryPumpLoop()
         {
             if (Interlocked.CompareExchange(ref messageDeliveryPumpLoopIsRunning, 1, 0) != 0)

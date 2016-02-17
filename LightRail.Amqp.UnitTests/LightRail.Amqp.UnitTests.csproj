@@ -51,6 +51,7 @@
     <Compile Include="Protocol\InterceptingSocket.cs" />
     <Compile Include="Protocol\VersionNegotiationTests.cs" />
     <Compile Include="RFCSeqNumTests.cs" />
+    <Compile Include="Types\CaclulateMinimumFrameSize.cs" />
     <Compile Include="Types\DescribedListCodecTests.cs" />
     <Compile Include="Types\EncoderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

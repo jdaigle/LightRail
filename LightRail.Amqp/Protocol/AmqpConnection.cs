@@ -167,7 +167,11 @@ namespace LightRail.Amqp.Protocol
                         return true;
                     }
                     if (Trace.IsDebugEnabled)
-                        trace.Debug("RCVD CH({0}) {1}", remoteChannelNumber.ToString(), frame.ToString());
+                    {
+                        var payloadSize = buffer.LengthAvailableToRead > 0 ? "Payload " + buffer.LengthAvailableToRead.ToString() + " Bytes" : "";
+                        trace.Debug("RCVD CH({0}) {1} {2}", remoteChannelNumber.ToString(), frame.ToString(), payloadSize);
+
+                    }
                     HandleConnectionFrame(frame, remoteChannelNumber, buffer);
                     return true;
                 }
@@ -443,13 +447,18 @@ namespace LightRail.Amqp.Protocol
             CloseConnection(null);
         }
 
-        public void SendFrame(AmqpFrame frame, ushort channelNumber)
+        internal void SendFrame(AmqpFrame frame, ushort channelNumber)
         {
             // TODO: get pinned send buffer from socket to prevent an unneccessary array copy
             var buffer = new ByteBuffer((int)MaxFrameSize, false);
             AmqpCodec.EncodeFrame(buffer, frame, channelNumber);
             if (Trace.IsDebugEnabled)
                 trace.Debug("SEND CH({0}) {1}", channelNumber.ToString(), frame.ToString());
+            socket.Write(buffer);
+        }
+
+        internal void SendBuffer(ByteBuffer buffer)
+        {
             socket.Write(buffer);
         }
 

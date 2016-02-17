@@ -3,21 +3,19 @@ using System.Threading.Tasks;
 
 namespace LightRail.Server.Queuing
 {
-    public class Consumer
+    public abstract class Consumer
     {
         private static TraceSource trace = TraceSource.FromClass();
 
-        public Consumer(ConcurrentQueue queue, Action<QueueEntry> deliveryMessageDelegate)
+        public Consumer(ConcurrentQueue queue)
         {
             this.queue = queue;
-            this.deliveryMessageDelegate = deliveryMessageDelegate;
             this.queue.RegisterConsumer(this);
         }
 
         private readonly object syncRoot = new object();
 
-        private readonly ConcurrentQueue queue;
-        private readonly Action<QueueEntry> deliveryMessageDelegate;
+        protected readonly ConcurrentQueue queue;
         private volatile QueueEntry lastEntry;
 
         public bool WillDeliver(QueueEntry entry)
@@ -54,6 +52,8 @@ namespace LightRail.Server.Queuing
         public void TryDelivery(QueueEntry head)
         {
             // TODO: check link credit to determine if we can deliver
+            if (!HasCreditToDeliver())
+                return;
 
             lock (syncRoot)
             {
@@ -79,9 +79,12 @@ namespace LightRail.Server.Queuing
                 if (next != null)
                 {
                     // message acquired and ready to be delivered
-                    deliveryMessageDelegate(next);
+                    OnMessageAquired(next);
                 }
             }
         }
+
+        protected abstract bool HasCreditToDeliver();
+        protected abstract void OnMessageAquired(QueueEntry next);
     }
 }

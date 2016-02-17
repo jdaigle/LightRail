@@ -53,14 +53,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="HostContainer.cs" />
-    <Compile Include="LinkedListQueue.cs" />
+    <Compile Include="LinkConsumer.cs" />
     <Compile Include="MessageStatus.cs" />
     <Compile Include="Network\TcpListener.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QueuedMessage.cs" />
-    <Compile Include="LinkedListQueueNode.cs" />
-    <Compile Include="QueueManager.cs" />
     <Compile Include="Queuing\ConcurrentQueue.cs" />
     <Compile Include="Queuing\ConcurrentQueueEntryList.cs" />
     <Compile Include="Queuing\QueueEntry.cs" />

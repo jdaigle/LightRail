@@ -57,11 +57,11 @@ namespace LightRail.Amqp.Framing
         /// Indicates the message format.
         /// 
         /// This field MUST be specified for the first transfer of a multi-transfer message and can only be
-        // omitted for continuation transfers.It is an error if the message-format on a continuation transfer
+        // omitted for continuation transfers. It is an error if the message-format on a continuation transfer
         // differs from the message-format on the first transfer of a delivery.
         /// </summary>
         [AmqpDescribedListIndex(3)]
-        public uint MessageFormat { get; set; }
+        public uint? MessageFormat { get; set; }
 
         /// <summary>
         /// If not set on the first (or only) transfer for a (multi-transfer) delivery, then the settled flag MUST be
@@ -78,7 +78,7 @@ namespace LightRail.Amqp.Framing
         /// false (or unset) on every transfer frame for a delivery (unless the delivery is aborted).
         /// </summary>
         [AmqpDescribedListIndex(4)]
-        public bool Settled { get; set; }
+        public bool? Settled { get; set; }
 
         /// <summary>
         /// Indicates that the message has more content.
@@ -88,7 +88,7 @@ namespace LightRail.Amqp.Framing
         /// A sender SHOULD NOT set the more flag to true if it also sets the aborted flag to true.
         /// </summary>
         [AmqpDescribedListIndex(5)]
-        public bool More { get; set; } = false;
+        public bool? More { get; set; } = false;
 
         /// <summary>
         /// If first, this indicates that the receiver MUST settle the delivery once it has arrived without waiting
@@ -144,7 +144,7 @@ namespace LightRail.Amqp.Framing
         /// solely as a vehicle for carrying the terminal state of the delivery at the sender.
         /// </summary>
         [AmqpDescribedListIndex(8)]
-        public bool Resume { get; set; } = false;
+        public bool? Resume { get; set; }
 
         /// <summary>
         /// indicates that the message is aborted
@@ -153,7 +153,7 @@ namespace LightRail.Amqp.Framing
         /// the performative MUST be ignored). An aborted message is implicitly settled.
         /// </summary>
         [AmqpDescribedListIndex(9)]
-        public bool Aborted { get; set; } = false;
+        public bool? Aborted { get; set; }
 
         /// <summary>
         /// batchable hint
@@ -170,6 +170,6 @@ namespace LightRail.Amqp.Framing
         /// and subsequently resumed.
         /// </summary>
         [AmqpDescribedListIndex(10)]
-        public bool Batchable { get; set; } = false;
+        public bool? Batchable { get; set; }
     }
 }
