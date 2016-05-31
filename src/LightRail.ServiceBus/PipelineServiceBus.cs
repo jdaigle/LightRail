@@ -12,7 +12,7 @@ namespace LightRail.ServiceBus
 {
     public class PipelineServiceBus : IBus, IBusControl
     {
-        public PipelineServiceBus(IServiceBusConfig config)
+        public PipelineServiceBus(BaseServiceBusConfig config)
         {
             this.Name = Guid.NewGuid().ToString();
 

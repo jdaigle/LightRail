@@ -15,7 +15,7 @@ namespace LightRail.ServiceBus
 {
     public class PipelineMessageReceiver
     {
-        public PipelineMessageReceiver(PipelineServiceBus bus, IMessageReceiverConfiguration config, IServiceBusConfig serviceBusConfig)
+        public PipelineMessageReceiver(PipelineServiceBus bus, BaseMessageReceiverConfiguration config, BaseServiceBusConfig serviceBusConfig)
         {
             this.Bus = bus;
             this.Name = Guid.NewGuid().ToString();
@@ -83,8 +83,8 @@ namespace LightRail.ServiceBus
 
                     compiledMessageHandlerPipeline(currentMessageContext);
 
-                    var endTimestamp = DateTime.UtcNow;
                     stopwatch.Stop();
+                    var endTimestamp = startTimestamp.AddTicks(stopwatch.ElapsedTicks);
 
                     OnMessageProcessed(new MessageProcessedEventArgs(currentMessageContext, startTimestamp, endTimestamp, stopwatch.Elapsed.TotalMilliseconds));
                 }

@@ -7,17 +7,25 @@ using LightRail.ServiceBus.Transport;
 
 namespace LightRail.ServiceBus.Config
 {
-    public abstract class BaseMessageReceiverConfiguration : IMessageReceiverConfiguration
+    public abstract class BaseMessageReceiverConfiguration
     {
-        protected BaseMessageReceiverConfiguration()
-        {
-            MessageHandlers = new MessageHandlerCollection();
-        }
+        public BaseServiceBusConfig ServiceBusConfig { get; internal set; }
 
-        public IServiceBusConfig ServiceBusConfig { get; set; }
-        public MessageHandlerCollection MessageHandlers { get; }
+        /// <summary>
+        /// A collection of message handlers specific to this message receiver.
+        /// </summary>
+        public MessageHandlerCollection MessageHandlers { get; } = new MessageHandlerCollection();
 
+        /// <summary>
+        /// The maximum number of concurrent threads that will handle received messages.
+        /// Default value is "1".
+        /// </summary>
         public int MaxConcurrency { get; set; } = 1;
+        /// <summary>
+        /// The maximum number of times a received message will be retried by
+        /// this process before declaring the message "poison".
+        /// Default value is "5".
+        /// </summary>
         public int MaxRetries { get; set; } = 5;
 
         public void ScanForHandlersFromAssembly(Assembly assembly)
@@ -25,7 +33,7 @@ namespace LightRail.ServiceBus.Config
             MessageHandlers.ScanAssemblyAndMapMessageHandlers(assembly);
         }
 
-        public void ScanForHandlersFromCurrentAssembly()
+        public void ScanForMessageHandlersFromCurrentAssembly()
         {
             MessageHandlers.ScanAssemblyAndMapMessageHandlers(Assembly.GetCallingAssembly());
         }
@@ -40,6 +48,9 @@ namespace LightRail.ServiceBus.Config
             MessageHandlers.AddMessageHandler(MessageHandlerMethodDispatcher.FromDelegate(messageHandler));
         }
 
+        /// <summary>
+        /// Returns a combined set of message handlers including shared message handlers.
+        /// </summary>
         public MessageHandlerCollection GetCombinedMessageHandlers()
         {
             foreach (var item in ServiceBusConfig.MessageHandlers)
@@ -49,15 +60,20 @@ namespace LightRail.ServiceBus.Config
             return MessageHandlers;
         }
 
+        /// <summary>
+        /// Returns a compiled message pipeline.
+        /// </summary>
         public Action<MessageContext> GetCompiledMessageHandlerPipeline()
         {
             var messageHandlerPipelinedBehaviors = ServiceBusConfig.PipelinedBehaviors.ToList(); // copy the list
-            // ensure MessageHandlerDispatchBehavior is added to the end
             messageHandlerPipelinedBehaviors.RemoveAll(x => x is MessageHandlerDispatchBehavior);
             messageHandlerPipelinedBehaviors.Add(new MessageHandlerDispatchBehavior());
             return PipelinedBehavior.CompileMessageHandlerPipeline(messageHandlerPipelinedBehaviors);
         }
 
+        /// <summary>
+        /// Returns an instance of the configured transport receiver.
+        /// </summary>
         public abstract ITransportReceiver CreateTransportReceiver();
     }
 }

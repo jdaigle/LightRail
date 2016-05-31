@@ -81,8 +81,6 @@
     <Compile Include="InMemoryQueue\InMemoryQueueConfiguratorExtensions.cs" />
     <Compile Include="InMemoryQueue\Config\InMemoryQueueMessageReceiverConfiguration.cs" />
     <Compile Include="InMemoryQueue\Config\InMemoryQueueServiceBusConfiguration.cs" />
-    <Compile Include="Config\IMessageReceiverConfiguration.cs" />
-    <Compile Include="Config\IServiceBusConfig.cs" />
     <Compile Include="InMemoryQueue\InMemoryQueueTransportReceiver.cs" />
     <Compile Include="InMemoryQueue\InMemoryQueueTransportSender.cs" />
     <Compile Include="JsonMessageEncoder.cs" />

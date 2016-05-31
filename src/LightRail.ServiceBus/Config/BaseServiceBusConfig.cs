@@ -8,27 +8,39 @@ using LightRail.ServiceBus.Transport;
 
 namespace LightRail.ServiceBus.Config
 {
-    public abstract class BaseServiceBusConfig : IServiceBusConfig
+    public abstract class BaseServiceBusConfig
     {
-        protected BaseServiceBusConfig()
-        {
-            MessageHandlers = new MessageHandlerCollection();
-            MessageEndpointMappings = new List<MessageEndpointMapping>();
-            PipelinedBehaviors = new List<PipelinedBehavior>();
-            MessageReceivers = new List<IMessageReceiverConfiguration>();
+        /// <summary>
+        /// The collection of message handlers shared by all message receivers.
+        /// </summary>
+        public MessageHandlerCollection MessageHandlers { get; } = new MessageHandlerCollection();
+        /// <summary>
+        /// Enables looking up interfaced mapped to generated concrete types.
+        /// and vice versa.
+        ///  Defaults to a new instance of "LightRail.ServiceBus.Reflection.ReflectionMessageMapper"
+        /// </summary>
+        public IMessageMapper MessageMapper { get; } = new ReflectionMessageMapper();
+        /// <summary>
+        /// A service locator used to resolve message handler dependencies.
+        /// Defaults to a new instance of "LightRail.ServiceBus.FastServiceLocator.FastServiceLocatorImpl"
+        /// </summary>
+        public IServiceLocator ServiceLocator { get; set; } = new FastServiceLocatorImpl(new FastContainer());
 
-            // defaults
-            ServiceLocator = new FastServiceLocatorImpl(new FastContainer());
-            MessageMapper = new ReflectionMessageMapper();
-        }
-
-        public IMessageMapper MessageMapper { get; set; }
-        public IServiceLocator ServiceLocator { get; set; }
-        public MessageHandlerCollection MessageHandlers { get; }
-        public IList<MessageEndpointMapping> MessageEndpointMappings { get; }
-        public IList<PipelinedBehavior> PipelinedBehaviors { get; }
-        public IList<IMessageReceiverConfiguration> MessageReceivers { get; }
-
+        /// <summary>
+        /// A set of static message endpoint mappings for resolving static message routes.
+        /// </summary>
+        public IList<MessageEndpointMapping> MessageEndpointMappings { get; } = new List<MessageEndpointMapping>();
+        /// <summary>
+        /// An ordered list of behaviors that will execute for each message.
+        /// </summary>
+        public IList<PipelinedBehavior> PipelinedBehaviors { get; } = new List<PipelinedBehavior>();
+        /// <summary>
+        /// A set of message receivers configs.
+        /// </summary>
+        public IList<BaseMessageReceiverConfiguration> MessageReceivers { get; } = new List<BaseMessageReceiverConfiguration>();
+        /// <summary>
+        /// Creates an instance of the configured transport sender.
+        /// </summary>
         public abstract ITransportSender CreateTransportSender();
 
         public void AddMessageEndpointMapping<T>(string endpoint)
@@ -57,7 +69,7 @@ namespace LightRail.ServiceBus.Config
         }
 
         public void ReceiveFrom<T>(Action<T> cfg)
-            where T : IMessageReceiverConfiguration, new()
+            where T : BaseMessageReceiverConfiguration, new()
         {
             var _config = new T();
             if (_config is BaseMessageReceiverConfiguration)

@@ -34,7 +34,7 @@ namespace Samples.Extensions.Unity
                 cfg.ReceiveFrom("Unity.DemoQueue", r =>
                 {
                     // Register all handlers in the current assembly
-                    r.ScanForHandlersFromCurrentAssembly();
+                    r.ScanForMessageHandlersFromCurrentAssembly();
                 });
             });
 

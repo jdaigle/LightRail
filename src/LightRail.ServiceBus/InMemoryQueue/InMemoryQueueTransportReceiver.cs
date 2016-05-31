@@ -12,7 +12,7 @@ namespace LightRail.ServiceBus.InMemoryQueue
 {
     public class InMemoryQueueTransportReceiver : ITransportReceiver
     {
-        public InMemoryQueueTransportReceiver(InMemoryQueueMessageReceiverConfiguration config, IServiceBusConfig serviceBusConfig)
+        public InMemoryQueueTransportReceiver(InMemoryQueueMessageReceiverConfiguration config, BaseServiceBusConfig serviceBusConfig)
         {
             QueueName = config.Address;
             MaxRetries = config.MaxRetries;

@@ -30,7 +30,7 @@ namespace Samples.Extensions.StructureMap
                 cfg.ReceiveFrom("StructureMap.DemoQueue", r =>
                 {
                     // Register all handlers in the current assembly
-                    r.ScanForHandlersFromCurrentAssembly();
+                    r.ScanForMessageHandlersFromCurrentAssembly();
                 });
             });
 

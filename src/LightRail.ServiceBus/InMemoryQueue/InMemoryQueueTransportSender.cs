@@ -8,7 +8,7 @@ namespace LightRail.ServiceBus.InMemoryQueue
 {
     public class InMemoryQueueTransportSender : ITransportSender
     {
-        public InMemoryQueueTransportSender(IServiceBusConfig serviceBusConfig)
+        public InMemoryQueueTransportSender(BaseServiceBusConfig serviceBusConfig)
         {
 
         }
