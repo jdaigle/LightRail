@@ -11,7 +11,12 @@ namespace LightRail.ServiceBus
 
         public byte[] Encode(object message)
         {
-            return Encoding.UTF8.GetBytes(JSON.Serialize(message, Options.ISO8601IncludeInheritedUtc));
+            return Encoding.UTF8.GetBytes(EncodeAsString(message));
+        }
+
+        public string EncodeAsString(object message)
+        {
+            return JSON.Serialize(message, Options.ISO8601IncludeInheritedUtc);
         }
 
         public void Encode(object message, TextWriter output)

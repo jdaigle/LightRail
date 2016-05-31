@@ -8,17 +8,20 @@ namespace LightRail.ServiceBus.Transport
 {
     public static class FastXmlTransportMessageSerializer
     {
+        private const string RootElementName = "root";
+        private const string BodyElementName = "body";
+
         public static void Serialize(IDictionary<string, string> headers, string body, Stream outputStream)
         {
             var writer = new XmlTextWriter(outputStream, new UnicodeEncoding(false, false)); // SQL Server is UTF16, little endian, no BOM
 
             writer.Formatting = Formatting.Indented;
-            writer.WriteStartElement("root");
+            writer.WriteStartElement(RootElementName);
             foreach (var item in headers)
             {
                 writer.WriteElementString(item.Key, item.Value);
             }
-            writer.WriteStartElement("body");
+            writer.WriteStartElement(BodyElementName);
             writer.WriteCData(body);
             writer.WriteEndElement(); // </body>
             writer.WriteEndElement(); // </root>
@@ -46,7 +49,7 @@ namespace LightRail.ServiceBus.Transport
                             elementName = reader.Name;
                             reader.Read(); // read the child;
                         }
-                        if (string.Equals(elementName, "body", StringComparison.InvariantCultureIgnoreCase) && reader.NodeType == XmlNodeType.CDATA)
+                        if (string.Equals(elementName, BodyElementName, StringComparison.InvariantCultureIgnoreCase) && reader.NodeType == XmlNodeType.CDATA)
                         {
                             result.Body = reader.Value;
                         }
@@ -62,7 +65,7 @@ namespace LightRail.ServiceBus.Transport
 
         public class FastXmlTransportMessageSerializerResult
         {
-            public Dictionary<string, string> Headers { get; set; } = new Dictionary<string, string>();
+            public Dictionary<string, string> Headers { get; } = new Dictionary<string, string>();
             public string Body { get; internal set; } = "";
         }
     }

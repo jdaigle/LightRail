@@ -10,6 +10,10 @@ namespace LightRail.ServiceBus
         /// </summary>
         byte[] Encode(object message);
         /// <summary>
+        /// Encodes a message into a unicode string for transmit over the wire.
+        /// </summary>
+        string EncodeAsString(object message);
+        /// <summary>
         /// Encodes a message writing to TextWriter suitable for transmit over the wire.
         /// </summary>
         void Encode(object message, TextWriter output);
