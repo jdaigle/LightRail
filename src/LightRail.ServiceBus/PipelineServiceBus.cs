@@ -155,7 +155,7 @@ namespace LightRail.ServiceBus
             if (MessageProcessed != null)
             {
                 var callback = MessageProcessed;
-                Task.Factory.StartNew(() => callback(sender, args));
+                Task.Run(() => callback(sender, args));
             }
         }
 
@@ -164,7 +164,7 @@ namespace LightRail.ServiceBus
             if (PoisonMessageDetected != null)
             {
                 var callback = PoisonMessageDetected;
-                Task.Factory.StartNew(() => callback(sender, args));
+                Task.Run(() => callback(sender, args));
             }
         }
     }

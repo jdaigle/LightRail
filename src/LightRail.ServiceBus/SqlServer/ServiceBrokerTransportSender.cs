@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using LightRail.ServiceBus.Logging;
 using LightRail.ServiceBus.SqlServer.Config;
 using LightRail.ServiceBus.Transport;
@@ -46,6 +44,11 @@ namespace LightRail.ServiceBus.SqlServer
             {
                 throw new InvalidConfigurationException("MessageEncoder cannot be null.");
             }
+            messageMapper = configuration.MessageMapper;
+            if (messageMapper == null)
+            {
+                throw new InvalidConfigurationException("MessageMapper cannot be null.");
+            }
         }
 
         private static ILogger logger = LogManager.GetLogger("LightRail.ServiceBus.SqlServer.ServiceBroker");
@@ -54,6 +57,7 @@ namespace LightRail.ServiceBus.SqlServer
         private string ServiceBrokerSendingService { get; }
         private string ConnectionString { get; }
         private readonly IMessageEncoder messageEncoder;
+        private readonly IMessageMapper messageMapper;
 
         public void Send(OutgoingTransportMessage transportMessage, IEnumerable<string> addresses)
         {
@@ -73,6 +77,8 @@ namespace LightRail.ServiceBus.SqlServer
                     transportMessage.Headers[StandardHeaders.ReplyToAddress] = this.ServiceBrokerSendingService;
                 }
                 transportMessage.Headers[StandardHeaders.OriginatingAddress] = this.ServiceBrokerSendingService;
+                transportMessage.Headers[StandardHeaders.ContentType] = messageEncoder.ContentType;
+                transportMessage.Headers[StandardHeaders.EnclosedMessageTypes] = string.Join(",", messageMapper.GetEnclosedMessageTypes(transportMessage.Message.GetType()).Distinct());
 
                 using (var stream = new MemoryStream())
                 {
@@ -103,15 +109,16 @@ namespace LightRail.ServiceBus.SqlServer
 
                 if (commitAndDisposeTransaction)
                 {
-                    transaction.Commit();
+                    SqlServerTransactionManager.CommitTransactionAndDisposeConnection(transaction);
                 }
             }
-            finally
+            catch (Exception)
             {
                 if (commitAndDisposeTransaction)
                 {
-                    SqlServerTransactionManager.TryDisposeTransactionAndConnection(transaction);
+                    SqlServerTransactionManager.TryForceDisposeTransactionAndConnection(transaction);
                 }
+                throw;
             }
         }
     }

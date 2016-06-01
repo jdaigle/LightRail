@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail", "LightRail\LightRail.csproj", "{8139369D-513F-4928-95D9-7168DCCCC2A7}"
 EndProject
@@ -58,6 +58,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightRail.Common", "LightRail.Common\LightRail.Common.csproj", "{0674CFB2-AD00-4FD9-907E-9DF17041DEFC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.AmqpNetClient", "Samples\Samples.AmqpNetClient\Samples.AmqpNetClient.csproj", "{F5CB3549-41B7-4694-875D-0399FE19646B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Samples.SqlServerServiceBroker", "Samples\Samples.SqlServerServiceBroker\Samples.SqlServerServiceBroker.csproj", "{136F86B8-4A6E-417D-94FF-C03DC873C372}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -137,6 +139,10 @@ Global
 		{F5CB3549-41B7-4694-875D-0399FE19646B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5CB3549-41B7-4694-875D-0399FE19646B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F5CB3549-41B7-4694-875D-0399FE19646B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{136F86B8-4A6E-417D-94FF-C03DC873C372}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{136F86B8-4A6E-417D-94FF-C03DC873C372}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{136F86B8-4A6E-417D-94FF-C03DC873C372}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{136F86B8-4A6E-417D-94FF-C03DC873C372}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -153,5 +159,6 @@ Global
 		{C5D6BA95-24E1-4520-9ABE-9520126183A5} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 		{B66EDDE9-EAB9-4042-A6EE-C1A950856418} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 		{F5CB3549-41B7-4694-875D-0399FE19646B} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
+		{136F86B8-4A6E-417D-94FF-C03DC873C372} = {BF71F21B-BA93-4825-9CD2-0465ABAD52FE}
 	EndGlobalSection
 EndGlobal

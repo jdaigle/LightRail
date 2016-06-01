@@ -144,20 +144,12 @@ namespace LightRail.ServiceBus.InMemoryQueue
 
         private void OnMessageAvailable(IncomingTransportMessage transportMessage)
         {
-            var callback = MessageAvailable;
-            if (callback != null)
-            {
-                callback(this, new MessageAvailableEventArgs(transportMessage));
-            }
+            MessageAvailable?.Invoke(this, new MessageAvailableEventArgs(transportMessage));
         }
 
         private void OnPoisonMessageDetected(PoisonMessageDetectedEventArgs args)
         {
-            var callback = PoisonMessageDetected;
-            if (callback != null)
-            {
-                callback(this, args);
-            }
+            PoisonMessageDetected?.Invoke(this, args);
         }
 
         private static System.Runtime.Serialization.ObjectIDGenerator gen = new System.Runtime.Serialization.ObjectIDGenerator();

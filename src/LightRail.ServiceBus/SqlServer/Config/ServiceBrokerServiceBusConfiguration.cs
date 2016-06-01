@@ -10,8 +10,9 @@ namespace LightRail.ServiceBus.SqlServer.Config
         /// </summary>
         public IMessageEncoder MessageEncoder { get; set; } = new JsonMessageEncoder();
 
-        public string ServiceBrokerMessageType { get; set; }
-        public string ServiceBrokerContract { get; set; }
+        public string ServiceBrokerMessageType { get; set; } = "//LightRail/DefaultMessageType";
+        public string ServiceBrokerContract { get; set; } = "//LightRail/MessageContract";
+
         public string ServiceBrokerSendingService { get; set; }
 
         /// <summary>

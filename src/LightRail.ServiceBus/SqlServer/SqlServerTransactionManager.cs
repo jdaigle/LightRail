@@ -52,6 +52,23 @@ namespace LightRail.ServiceBus.SqlServer
             return OpenConnection(connectionString).BeginTransaction(IsolationLevel.ReadCommitted);
         }
 
+        public static void CommitTransactionAndDisposeConnection(SqlTransaction transaction)
+        {
+            var connection = transaction.Connection;
+            using (connection)
+            {
+                using (transaction)
+                {
+                    transaction.Commit();
+                }
+                try
+                {
+                    connection.Close();
+                }
+                catch (Exception) { }
+            }
+        }
+
         public static void TryRollbackTransaction(SqlTransaction transaction)
         {
             try
@@ -61,7 +78,7 @@ namespace LightRail.ServiceBus.SqlServer
             catch (Exception) { }
         }
 
-        public static void TryDisposeTransactionAndConnection(SqlTransaction transaction)
+        public static void TryForceDisposeTransactionAndConnection(SqlTransaction transaction)
         {
             if (transaction != null)
             {
