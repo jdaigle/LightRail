@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using LightRail.ServiceBus.Dispatch;
 using LightRail.ServiceBus.FastServiceLocator;
 using LightRail.ServiceBus.Pipeline;
@@ -61,6 +62,23 @@ namespace LightRail.ServiceBus.Config
         public void AddMessageEndpointMapping(MessageEndpointMapping mapping)
         {
             MessageEndpointMappings.Add(mapping);
+        }
+
+        public void AddMessageEndpointMappingFromAssembly(Assembly assembly)
+        {
+            foreach (var type in assembly.GetTypes(t => !t.IsAbstract && typeof(AbstractMessageEndpointRegistry).IsAssignableFrom(t)))
+            {
+                var registry = Activator.CreateInstance(type) as AbstractMessageEndpointRegistry;
+                foreach (var mapping in registry.MessageEndpointMappings)
+                {
+                    MessageEndpointMappings.Add(mapping);
+                }
+            }
+        }
+
+        public void AddMessageEndpointMappingFromAssemblyContaining<T>()
+        {
+            AddMessageEndpointMappingFromAssembly(typeof(T).Assembly);
         }
 
         public void AddPipelinedBehavior(PipelinedBehavior behavior)

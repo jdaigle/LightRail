@@ -57,6 +57,7 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Config\AbstractMessageEndpointRegistry.cs" />
     <Compile Include="Amqp\AmqpConfiguratorExtensions.cs" />
     <Compile Include="Amqp\AmqpTransportReceiver.cs" />
     <Compile Include="Amqp\AmqpTransportSender.cs" />

@@ -29,6 +29,11 @@ namespace LightRail.ServiceBus.Reflection
             }
         }
 
+        public static IEnumerable<Type> GetTypes(this Assembly assembly, Func<Type, bool> matching)
+        {
+            return GetTypesSafely(assembly).Where(matching);
+        }
+
         /// <summary>
         /// Useful for finding if a type is (for example) IMessageHandler{T} where T : IMessage.
         /// </summary>
