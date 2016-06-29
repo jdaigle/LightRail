@@ -8,11 +8,14 @@ using LightRail.ServiceBus.Reflection;
 
 namespace LightRail.ServiceBus.Dispatch
 {
-    public class MessageHandlerCollection : IEnumerable<MessageHandlerMethodDispatcher>
+    public sealed class MessageHandlerCollection : IEnumerable<MessageHandlerMethodDispatcher>
     {
         private static ILogger logger = LogManager.GetLogger("LightRail.Dispatch");
 
-        private readonly IDictionary<Type, List<MessageHandlerMethodDispatcher>> messageTypeToMessageHandlerDictionary = new Dictionary<Type, List<MessageHandlerMethodDispatcher>>();
+        private static readonly Type MessageHandlerGenericInterfaceType = typeof(IMessageHandler<>);
+
+        private readonly IDictionary<Type, List<MessageHandlerMethodDispatcher>> messageTypeToMessageHandlerDictionary 
+            = new Dictionary<Type, List<MessageHandlerMethodDispatcher>>();
 
         public void ScanAssembliesAndMapMessageHandlers(IEnumerable<Assembly> assembliesToScan)
         {
@@ -26,26 +29,32 @@ namespace LightRail.ServiceBus.Dispatch
         {
             foreach (var method in FindAllMessageHandlerMethods(assembly))
             {
-                var messageType = FindMessageTypeFromMethodParameters(method);
-                AddMessageHandler(method, messageType);
-                logger.Debug("Associated '{0}' message with method '{1}'", messageType, method);
+                var messageType = method.GetParameters()[0].ParameterType;
+                foreach (var interfaceType in messageType.GetInterfaces())
+                {
+                    var dispatcher = new MessageHandlerMethodDispatcher(method, interfaceType);
+                    AddMessageHandler(dispatcher);
+                    logger.Debug("Mapped '{0}' to '{1}'", dispatcher.MessageType, dispatcher.MessageHandlerType);
+                }
+                while (messageType != typeof(object))
+                {
+                    var dispatcher = new MessageHandlerMethodDispatcher(method, messageType);
+                    AddMessageHandler(dispatcher);
+                    logger.Debug("Mapped '{0}' to '{1}'", dispatcher.MessageType, dispatcher.MessageHandlerType);
+                    messageType = messageType.BaseType;
+                }
             }
-        }
-
-        public void AddMessageHandler(MethodInfo method, Type messageType)
-        {
-            AddMessageHandler(new MessageHandlerMethodDispatcher(method, messageType));
         }
 
         public void AddMessageHandler(MessageHandlerMethodDispatcher messageHandler)
         {
-            var messageType = messageHandler.HandledMessageType;
+            var messageType = messageHandler.MessageType;
             if (!messageTypeToMessageHandlerDictionary.ContainsKey(messageType))
             {
                 messageTypeToMessageHandlerDictionary.Add(messageType, new List<MessageHandlerMethodDispatcher>());
             }
             var messageHandlers = messageTypeToMessageHandlerDictionary[messageType];
-            if (!messageHandlers.Any(x => x.MethodInfo == messageHandler.MethodInfo))
+            if (!messageHandlers.Any(x => x.Method == messageHandler.Method))
             {
                 messageTypeToMessageHandlerDictionary[messageType].Add(messageHandler);
             }
@@ -53,15 +62,11 @@ namespace LightRail.ServiceBus.Dispatch
 
         public IEnumerable<MessageHandlerMethodDispatcher> GetDispatchersForMessageType(Type messageType)
         {
-            foreach (var handledMessageType in messageTypeToMessageHandlerDictionary.Keys)
+            if (messageTypeToMessageHandlerDictionary.ContainsKey(messageType))
             {
-                // TODO: faster lookup? Maybe cache this logic on first lookup?
-                if (handledMessageType.IsAssignableFrom(messageType))
+                foreach (var handler in messageTypeToMessageHandlerDictionary[messageType])
                 {
-                    foreach (var handler in messageTypeToMessageHandlerDictionary[handledMessageType])
-                    {
-                        yield return handler;
-                    }
+                    yield return handler;
                 }
             }
         }
@@ -71,31 +76,42 @@ namespace LightRail.ServiceBus.Dispatch
         /// </summary>
         public static IEnumerable<MethodInfo> FindAllMessageHandlerMethods(Assembly assembly)
         {
-            foreach (var type in assembly.GetTypesSafely())
+            foreach (var candidateType in assembly.GetTypesSafely())
             {
-                foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance))
+                if (!candidateType.IsClass || candidateType.IsAbstract)
                 {
-                    if (IsMessageHandlerMethod(method))
-                    {
-                        yield return method;
-                    }
+                    continue;
+                }
+
+                var messageHandlerInterfaces = FindRequestHandlerInterfaces(candidateType);
+
+                if (!messageHandlerInterfaces.Any())
+                {
+                    continue;
+                }
+
+                foreach (var messageHandlerInterface in messageHandlerInterfaces)
+                {
+                    var messageType = messageHandlerInterface.GetGenericArguments()[0];
+                    yield return candidateType.GetInterfaceMap(messageHandlerInterface).TargetMethods[0];
                 }
             }
         }
 
-        private static bool IsMessageHandlerMethod(MethodInfo method)
+        private static IEnumerable<Type> FindRequestHandlerInterfaces(Type type)
         {
-            return method.GetCustomAttribute<MessageHandlerAttribute>() != null;
-        }
-
-        private Type FindMessageTypeFromMethodParameters(MethodInfo method)
-        {
-            var parameter = method.GetParameters().FirstOrDefault();
-            if (parameter == null)
+            foreach (var _interface in type.GetInterfaces())
             {
-                throw new InvalidOperationException(string.Format("Method {0} is marked with [MessageHandlerAttribute] does not have any parameters. The first parameter is the handled message type.", method));
+                if (!_interface.IsGenericType)
+                {
+                    continue;
+                }
+                var genericType = _interface.GetGenericTypeDefinition();
+                if (genericType == MessageHandlerGenericInterfaceType)
+                {
+                    yield return _interface;
+                }
             }
-            return parameter.ParameterType;
         }
 
         public IEnumerator<MessageHandlerMethodDispatcher> GetEnumerator()

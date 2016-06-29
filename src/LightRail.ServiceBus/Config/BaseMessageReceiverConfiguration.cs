@@ -38,16 +38,6 @@ namespace LightRail.ServiceBus.Config
             MessageHandlers.ScanAssemblyAndMapMessageHandlers(Assembly.GetCallingAssembly());
         }
 
-        public void Handle<TMessage>(Action<TMessage> messageHandler)
-        {
-            MessageHandlers.AddMessageHandler(MessageHandlerMethodDispatcher.FromDelegate(messageHandler));
-        }
-
-        public void Handle<TMessage>(Action<TMessage, MessageContext> messageHandler)
-        {
-            MessageHandlers.AddMessageHandler(MessageHandlerMethodDispatcher.FromDelegate(messageHandler));
-        }
-
         /// <summary>
         /// Returns a combined set of message handlers including shared message handlers.
         /// </summary>

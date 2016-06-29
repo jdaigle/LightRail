@@ -8,10 +8,18 @@ using QGenda.Email;
 
 namespace QGenda.Email
 {
-    public static class SendEmailHandler
+    public class SendEmailHandler : IMessageHandler<SendEmail>
     {
-        [MessageHandler]
-        public static void Handle(SendEmail message, MessageContext context)
+        public SendEmailHandler(IEmailSender emailSender, MessageContext context)
+        {
+            _emailSender = emailSender;
+            _context = context;
+        }
+
+        private readonly IEmailSender _emailSender;
+        private readonly MessageContext _context;
+
+        public void Handle(SendEmail message)
         {
         }
     }

@@ -2,19 +2,21 @@
 using System.Collections.Generic;
 using System.Linq;
 using Autofac;
+using Autofac.Features.ResolveAnything;
 
 namespace LightRail.ServiceBus.Autofac
 {
     public class AutofacServiceLocator : IServiceLocator
     {
         public AutofacServiceLocator()
+            :this(new ContainerBuilder().Build())
         {
-            this.container = new ContainerBuilder().Build();
         }
 
         public AutofacServiceLocator(ILifetimeScope container)
         {
             this.container = container;
+            this.container.ComponentRegistry.AddRegistrationSource(new AnyConcreteTypeNotAlreadyRegisteredSource());
         }
 
         private readonly ILifetimeScope container;

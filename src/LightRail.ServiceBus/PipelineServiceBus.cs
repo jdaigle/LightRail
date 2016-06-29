@@ -102,7 +102,7 @@ namespace LightRail.ServiceBus
             {
                 return;
             }
-            var transportMessage = new OutgoingTransportMessage(new Dictionary<string, string>(), message);
+            var transportMessage = new OutgoingTransportMessage(new Dictionary<string, string>(), message, typeof(T));
             Transport.Send(transportMessage, addresses);
         }
 

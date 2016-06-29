@@ -296,7 +296,7 @@ namespace LightRail.ServiceBus.SqlServer
                         throw new CannotDeserializeMessageException(errorMessage);
                     }
                     var decodedMessage = messageEncoder.Decode(Encoding.UTF8.GetBytes(payload.Body), messageType);
-                    return new IncomingTransportMessage(message.ConversationHandle.ToString(), payload.Headers, decodedMessage);
+                    return new IncomingTransportMessage(message.ConversationHandle.ToString(), payload.Headers, messageType, decodedMessage);
                 }
                 catch (Exception e)
                 {

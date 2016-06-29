@@ -243,7 +243,7 @@ namespace LightRail.ServiceBus.Amqp
 
                 if (message != null)
                 {
-                    var transportMessage = new IncomingTransportMessage(messageID, headers, message);
+                    var transportMessage = new IncomingTransportMessage(messageID, headers, message.GetType(), message);
 
                     Exception lastException = null;
                     if (faultManager.HasMaxRetriesExceeded(transportMessage, out lastException))

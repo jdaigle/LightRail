@@ -78,7 +78,7 @@ namespace LightRail.ServiceBus.SqlServer
                 }
                 transportMessage.Headers[StandardHeaders.OriginatingAddress] = this.ServiceBrokerSendingService;
                 transportMessage.Headers[StandardHeaders.ContentType] = messageEncoder.ContentType;
-                transportMessage.Headers[StandardHeaders.EnclosedMessageTypes] = string.Join(",", messageMapper.GetEnclosedMessageTypes(transportMessage.Message.GetType()).Distinct());
+                transportMessage.Headers[StandardHeaders.EnclosedMessageTypes] = string.Join(",", messageMapper.GetEnclosedMessageTypes(transportMessage.MessageType).Distinct());
 
                 using (var stream = new MemoryStream())
                 {
@@ -96,7 +96,7 @@ namespace LightRail.ServiceBus.SqlServer
                             , body: messageBuffer);
 #if DEBUG
                         logger.Debug(string.Format("Sending message {0} with Handle {1} to Service Named {2}.",
-                                                   transportMessage.Message.GetType().AssemblyQualifiedName,
+                                                   transportMessage.MessageType.AssemblyQualifiedName,
                                                    conversationHandle,
                                                    destination));
                         logger.Debug(string.Format("ToString() of the message yields: {0}\n" +

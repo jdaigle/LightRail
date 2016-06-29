@@ -68,7 +68,6 @@
     <Compile Include="Config\BaseServiceBusConfig.cs" />
     <Compile Include="Config\MessageEndpointMapping.cs" />
     <Compile Include="Config\ServiceBusFactory.cs" />
-    <Compile Include="Dispatch\IMessageHandlerDispatcher.cs" />
     <Compile Include="Dispatch\MessageHandlerCollection.cs" />
     <Compile Include="Dispatch\MessageHandlerMethodDispatcher.cs" />
     <Compile Include="FastServiceLocator\FastContainer.cs" />
@@ -79,6 +78,7 @@
     <Compile Include="IBusEvents.cs" />
     <Compile Include="IMessageCreator.cs" />
     <Compile Include="IMessageEncoder.cs" />
+    <Compile Include="IMessageHandler.cs" />
     <Compile Include="IMessageMapper.cs" />
     <Compile Include="InvalidConfigurationException.cs" />
     <Compile Include="SqlServer\SqlServerConfigurationExtensions.cs" />
@@ -109,7 +109,6 @@
     <Compile Include="Logging\LoggingEventType.cs" />
     <Compile Include="Logging\LogManager.cs" />
     <Compile Include="Transport\MessageAvailableEventArgs.cs" />
-    <Compile Include="MessageHandlerAttribute.cs" />
     <Compile Include="MessageProcessedEventArgs.cs" />
     <Compile Include="Transport\OutgoingTransportMessage.cs" />
     <Compile Include="PipelineMessageReceiver.cs" />

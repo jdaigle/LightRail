@@ -30,6 +30,11 @@ namespace QGenda.Email
         private static IServiceLocator BuildContainer()
         {
             var builder = new ContainerBuilder();
+
+            builder.RegisterType<DotNetEmailSender>()
+                   .As<IEmailSender>()
+                   .InstancePerLifetimeScope();
+
             return new AutofacServiceLocator(builder.Build());
         }
     }

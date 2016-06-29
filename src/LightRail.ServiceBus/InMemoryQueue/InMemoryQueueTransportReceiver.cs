@@ -111,7 +111,7 @@ namespace LightRail.ServiceBus.InMemoryQueue
             // NOTE this method _should not_ throw an exception!
             try
             {
-                var transportMessage = new IncomingTransportMessage(messageID, new Dictionary<string, string>(), message);
+                var transportMessage = new IncomingTransportMessage(messageID, new Dictionary<string, string>(), message.GetType(), message);
                 Exception lastException = null;
                 if (faultManager.HasMaxRetriesExceeded(transportMessage, out lastException))
                 {

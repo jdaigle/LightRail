@@ -26,7 +26,7 @@ namespace LightRail.ServiceBus
             this.compiledMessageHandlerPipeline = config.GetCompiledMessageHandlerPipeline();
 
             // initialize all known message types
-            this.MessageMapper.Initialize(this.MessageHandlers.Select(x => x.HandledMessageType));
+            this.MessageMapper.Initialize(this.MessageHandlers.Select(x => x.MessageType));
 
             this.Transport = config.CreateTransportReceiver();
             this.Transport.MessageAvailable += (sender, args) => OnMessageAvailable(args);
@@ -67,6 +67,7 @@ namespace LightRail.ServiceBus
                     bus: this.Bus,
                     messageID: value.TransportMessage.MessageId,
                     headers: value.TransportMessage.Headers,
+                    messageType: value.TransportMessage.MessageType,
                     currentMessage: value.TransportMessage.DecodedMessage,
                     serviceLocator: childServiceLocator);
 
